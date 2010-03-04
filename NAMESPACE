@@ -1,0 +1,35 @@
+
+# functions
+export(clm)
+export(clmm)
+
+S3method(print, clm)
+S3method(vcov, clm)
+S3method(summary, clm)
+S3method(print, summary.clm)
+S3method(anova, clm)
+S3method(predict, clm)
+S3method(profile, clm)
+S3method(confint, clm)
+S3method(confint, profile.clm)
+S3method(plot, profile.clm)
+S3method(logLik, clm)
+S3method(extractAIC, clm)
+S3method(update, clm)
+S3method(dropterm, clm)
+S3method(addterm, clm)
+S3method(update, clm)
+
+S3method(print, clmm)
+S3method(vcov, clmm)
+S3method(summary, clmm)
+S3method(print, summary.clmm)
+S3method(anova, clmm)
+
+## importFrom(graphics, plot)
+## importFrom(ucminf, ucminf)
+importFrom(numDeriv, hessian)
+importFrom(MASS, addterm, dropterm)
+importFrom(stats, coef, confint, logLik, profile, vcov, update,
+           extractAIC, anova, fitted, terms)
+

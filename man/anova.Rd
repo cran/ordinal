@@ -1,0 +1,66 @@
+\name{anova.clm}
+%%\alias{anova}
+\alias{anova.clm}
+\title{Likelihood ratio test of cumulative link models}
+\description{
+  Comparison of cumulative link models in likelihood ratio tests.
+  The models may differ by terms in location as well as in scale.
+}
+\usage{
+\method{anova}{clm}(object, ..., test = c("Chisq", "none"))
+}
+\arguments{
+  \item{object}{a \code{\link{clm}} object.
+  }
+  \item{\dots}{one or more additional \code{\link{clm}} objects.
+  }
+  \item{test}{if \code{test = "none"} the p-value for the likelihood
+    ratio test is suppressed.
+  }
+}
+\value{
+  The method returns an object of class \code{Anova} (for printing) and
+  \code{data.frame} with the following elements
+  \item{Model}{character description of the cumulative link models being
+    compared. Location and scale models are separated by a "|".
+  }
+  \item{Resid.df}{the residual degrees of freedom
+  }
+  \item{-2logLik}{twice the negative log likelihood (proportional to the
+    deviance)}
+  \item{Test}{indication of which models are being compared.
+  }
+  \item{DF}{the difference in the degrees of freedom in the models being
+    compared, i.e. the degrees of freedom for the chi-squared test.
+  }
+  \item{LR stat.}{the likelihood ratio statistic.
+  }
+  \item{Pr(Chi)}{the p-value from the likelihood ratio test. Absent if
+    \code{test = "none"}.
+  }
+}
+\seealso{
+  \code{\link[ordinal]{clm}}, \code{\link[ordinal]{addterm}},
+  \code{\link[ordinal:addterm]{dropterm}} and
+  \code{\link[=anova]{anova.default}}
+}
+\examples{
+options(contrasts = c("contr.treatment", "contr.poly"))
+data(soup)
+m1 <- clm(SURENESS ~ PROD, scale = ~PROD, data = soup,
+          link = "logistic")
+
+## anova
+anova(m1, update(m1, scale = ~.-PROD))
+mN1 <- clm(SURENESS ~ 1, nominal = ~PROD, data = soup,
+           link = "logistic")
+anova(m1, mN1)
+anova(m1, update(m1, scale = ~.-PROD), mN1)
+
+## Fit model from polr example:
+data(housing, package = "MASS")
+fm1 <- clm(Sat ~ Infl + Type + Cont, weights = Freq, data = housing)
+anova(fm1, update(fm1, scale =~ Cont))
+
+}
+\keyword{models}
