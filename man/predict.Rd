@@ -10,12 +10,20 @@
 \arguments{
   \item{object}{a fitted object of class inheriting from \code{"clm"}.}
   \item{newdata}{optionally, a data frame in which to look for variables
-    with which to predict.}
+    with which to predict. Observe that the response variable should
+    also be present.}
   \item{\dots}{further arguments passed to or from other methods.}
+}
+\details{
+  This method does not duplicate the behavior of
+  \code{predict.polr} in package \code{MASS} which produces a
+  matrix instead of a vector of predictions. The behavior of
+  \code{predict.polr} can be mimiced as shown in the examples. 
 }
 \value{
   A vector of predicted probabilities.
 }
+\author{Rune Haubo B Christensen}
 \seealso{
     \code{\link[ordinal]{clm}}.
 }
@@ -44,5 +52,27 @@ predict(update(m1, scale = ~.-prod))
 data(housing, package = "MASS")
 fm1 <- clm(Sat ~ Infl + Type + Cont, weights = Freq, data = housing)
 predict(fm1)
+
+#################################
+## Mimicing the behavior of predict.polr:
+set.seed(123)
+nlev <- 3
+y <- gl(nlev, 5)
+x <- as.numeric(y) + rnorm(15)
+fm.clm <- clm(y ~ x)
+fm.polr <- polr(y ~ x)
+
+## The equivalent of predict.polr(object, type = "probs"):
+(pmat.polr <- predict(fm.polr, type = "probs"))
+ndat <- expand.grid(y = gl(nlev,1), x = x)
+(pmat.clm <- matrix(predict(fm.clm, newdata = ndat), ncol=nlev,
+                    byrow = TRUE))
+all.equal(c(pmat.clm), c(pmat.polr), tol = 1e-5) # TRUE
+
+## The equivalent of predict.polr(object, type = "class"):
+(class.polr <- predict(fm.polr))
+(class.clm <- factor(apply(pmat.clm, 1, which.max)))
+all.equal(class.clm, class.polr) ## TRUE
+
 }
 \keyword{models}

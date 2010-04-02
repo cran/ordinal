@@ -1,5 +1,6 @@
 \name{clm}
 \alias{clm}
+\alias{fixed}
 \title{Cumulative link models}
 \description{
   Fits cumulative link models with an additive model for the location
@@ -14,11 +15,10 @@
 }
 \usage{
 clm(location, scale, nominal, data, weights, start, subset,
-    na.action, contrasts = NULL, Hess = TRUE, model = TRUE,
-    method = c("ucminf", "Newton", "nlminb", "optim", "model.frame"),
+    na.action, contrasts, Hess = TRUE, model,
     link = c("logistic", "probit", "cloglog", "loglog",
-    "cauchit", "Aranda-Ordaz", "log-gamma"), lambda = NULL,
-    doFit = TRUE, control = list(),
+    "cauchit", "Aranda-Ordaz", "log-gamma"), lambda,
+    doFit = TRUE, control,
     threshold = c("flexible", "symmetric", "equidistant"), ...)
 }
 \arguments{
@@ -34,8 +34,9 @@ clm(location, scale, nominal, data, weights, start, subset,
 \item{scale}{
   a optional formula expression as for the location part, of the form
   \code{ ~ predictors}, i.e. with an empty left hand side.
-  If left unspecified, the model assumes a constant scale.
-  An offset may be used. See the
+  If left unspecified, the model assumes a constant scale for models
+  with factor response and estimates the residual scale for models with
+  numerical response.  An offset may be used. See the
   documentation of \code{\link{formula}} for other details.
 }
 \item{nominal}{
@@ -59,7 +60,7 @@ clm(location, scale, nominal, data, weights, start, subset,
   in the fit. All observations are included by default.
 }
 \item{na.action}{
-  a function to filter missing data.
+  a function to filter missing data. Applies to terms in all three formulae.
 }
 \item{contrasts}{
   a list of contrasts to be used for some or all of
@@ -79,15 +80,6 @@ clm(location, scale, nominal, data, weights, start, subset,
   logical for whether the model frames should be part of the returned
   object.
 }
-\item{method}{
-  the optimizer used to maximize the likelihood
-  function. \code{"Newton"} only works for models without \code{scale},
-  structured thresholds and flexible link functions,
-  but is considerably faster than the other
-  optimizers when applicable. \code{model.frame} simply returns a list
-  of model frames with the location, scale and nominal model
-  frames. \code{"optim"} uses the \code{"BFGS"} method.
-}
 \item{link}{link function, i.e. the type of location-scale distribution
   assumed for the latent distribution. The \code{Aranda-Ordaz} and
   \code{log-gamma} links add additional flexibility with a link function
@@ -104,13 +96,13 @@ clm(location, scale, nominal, data, weights, start, subset,
   combination with link \code{Aranda-Ordaz} or \code{log-gamma} and
   otherwise ignored. If lambda is specified, the model is estimated with
   lambda fixed at this value and otherwise lambda is estimated by
-  ML. For \code{Aranda-Ordaz} lambda has to be positive.
+  ML. For \code{Aranda-Ordaz} lambda has to be positive; \code{> 1e-5}
+  for numerical reasons.
 }
 \item{doFit}{logical for whether the model should be fit or the model
   environment should be returned.
 }
-\item{control}{a list of control parameters for the optimizers, see the
-  details section for options.
+\item{control}{a call to \code{\link{clm.control}}.
 }
 \item{threshold}{specifies a potential structure for the thresholds
   (cut-points). \code{"flexible"} provides the standard unstructured
@@ -121,11 +113,23 @@ clm(location, scale, nominal, data, weights, start, subset,
   thresholds to the same value.
 }
 \item{\dots}{
-  additional arguments---currently not used.
+  additional arguments are passed on to \code{\link{clm.control}} and
+  possibly further on to the optimizer, which can lead to surprising
+  error or warning messages when mistyping arguments etc.
 }
 
 }
 \details{
+  There are methods for the standard model-fitting functions, including
+  \code{\link{summary}}, \code{\link{vcov}},
+  \code{\link[ordinal]{predict}},
+  \code{\link[ordinal]{anova}}, \code{\link{logLik}},
+  \code{\link[=profile.clm]{profile}},
+  \code{\link[=profile.clm]{plot.profile}},
+  \code{\link[=confint.clm]{confint}},
+  \code{\link[ordinal]{update}}, \code{\link[=addterm.clm]{dropterm}},
+  \code{\link[ordinal]{addterm}}, and an \code{extractAIC} method.
+
   The design of the implementation is inspired by an idea proposed by
   Douglas Bates in the talk "Exploiting sparsity in model matrices"
   presented at the DSC conference in Copenhagen, July 14 2009.
@@ -142,45 +146,6 @@ clm(location, scale, nominal, data, weights, start, subset,
   obtained, and of the associated methods are
   inspired by \code{\link[MASS]{polr}} from package \code{MASS}.
 
-  Control parameters can be supplied to manage the optimization
-  process. The supplied set of control parameters should match those
-  relevant for the chosen optimizer; see
-  \code{\link[ucminf]{ucminf}}, \code{\link{optim}}, and
-  \code{\link{nlminb}}. The control parameters for
-  \code{method = "Newton"} are
-  \describe{
-    \item{\code{trace}}{numerical, if > 0 information is printed about and during
-      the optimization process. Defaults to \code{0}.
-    }
-    \item{\code{maxIter}}{the maximum number of iterations. Defaults to \code{100}.
-    }
-    \item{\code{gradTol}}{the maximum absolute gradient. This is the termination
-      (and convergence)  criterion and defaults to \code{1e-4}.
-    }
-    \item{\code{maxLineIter}}{the maximum number of step halfings allowed if
-      a Newton(-Raphson) step over shoots. Defaults to \code{10}.
-    }
-  }
-
-  The convergence criterion adopted, \code{convTol} is the size of the
-  maximum absolute gradient. This can be specified in \code{control} as
-  \code{gradTol} even when the Newton optimizer is not chosen. The
-  \code{ucminf} optimizer, like the Newton optimizer but unlike
-  \code{optim} and \code{nlminb}, accepts the maximum absolute gradient
-  as a termination criterion via the control argument \code{grtol} which
-  defaults to \code{1e-6}. If \code{ucminf} is used (the default method)
-  setting \code{grtol} in \code{control} also sets \code{convTol} to the
-  same number.
-
-  There are methods for the standard model-fitting functions, including
-  \code{\link{summary}}, \code{\link{vcov}},
-  \code{\link[ordinal]{predict}},
-  \code{\link[ordinal]{anova}}, \code{\link{logLik}},
-  \code{\link[=profile.clm]{profile}},
-  \code{\link[=profile.clm]{plot.profile}},
-  \code{\link[=confint.clm]{confint}},
-  \code{\link[ordinal]{update}}, \code{\link[=addterm.clm]{dropterm}},
-  \code{\link[ordinal]{addterm}}, and an \code{extractAIC} method.
 }
 \value{
   If \code{doFit = FALSE} the result is an environment
@@ -269,6 +234,7 @@ clm(location, scale, nominal, data, weights, start, subset,
   \item{na.action}{the function used to filter missing data.
   }
 }
+\author{Rune Haubo B Christensen}
 \references{
   Agresti, A. (2002) \emph{Categorical Data.} Second edition.  Wiley.
 
@@ -348,5 +314,38 @@ summary(fm2 <- update(fm1, scale =~ Cont))
 anova(fm1, fm2)
 ## which seems to improve the fit
 
+#################################
+## It is possible to fit multinomial models (i.e. with nominal
+## effects) as the following example shows:
+library(nnet)
+(hous1.mu <- multinom(Sat ~ 1, weights = Freq, data = housing))
+(hous1.clm <- clm(Sat ~ 1, weights = Freq, data = housing))
+
+## It is the same likelihood:
+all.equal(logLik(hous1.mu), logLik(hous1.clm))
+
+## and the same fitted values:
+fitHous.mu <-
+    t(fitted(hous1.mu))[t(col(fitted(hous1.mu)) == unclass(housing$Sat))]
+all.equal(fitted(hous1.clm), fitHous.mu)
+
+## The coefficients of multinom can be retrieved from the clm-object
+## by:
+Pi <- diff(c(0, plogis(hous1.clm$xi), 1))
+log(Pi[2:3]/Pi[1])
+
+## A larger model with explanatory variables:
+(hous.mu <- multinom(Sat ~ Infl + Type + Cont, weights = Freq, data = housing))
+(hous.clm <- clm(Sat ~ 1, nominal = ~ Infl + Type + Cont, weights = Freq,
+                 data = housing))
+
+## Almost the same likelihood:
+all.equal(logLik(hous.mu), logLik(hous.clm))
+
+## And almost the same fitted values:
+fitHous.mu <-
+    t(fitted(hous.mu))[t(col(fitted(hous.mu)) == unclass(housing$Sat))]
+all.equal(fitted(hous.clm), fitHous.mu)
+all.equal(round(fitted(hous.clm), 5), round(fitHous.mu), 5)
 }
 \keyword{models}

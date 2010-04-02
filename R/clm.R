@@ -1,8 +1,8 @@
 ##################################################################
-#  file ordinal/R/clm3.R
+#  file ordinalv2/R/clm.R
 #
 #  Author: Rune Haubo Bojesen Christensen, rhbc@imm.dtu.dk
-#  Last modified: 24. Feb 2010
+#  Last modified: April 2010
 #
 #  This program is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -19,58 +19,52 @@
 #
 ##################################################################
 
-## Thresholds (out of date):
-##
-## theta:       the basic set of thresholds
-## ntheta:      length(theta) = nlevels(y) - 1
-## Theta:       matrix with thresholds
-## Alpha        matrix with threshold parameters
-## dim(Theta)   c(ncolXX, ntheta)
-## alpha:       the parameters that define theta
-## nalpha:      length(alpha)
-## xi:          the extented set of threshold parameters after
-##                 nominal variables have been introduced
-## par:         c(xi, beta, zeta)
-## npar:        nxi + p + k
-## nxi:         nalpha * ncolXX
-## Par:         xi with fill-in.
-## nPar:        (nalpha + 1) * ncolXX
-## dim(D):      c(nobs, nPar)
-## dim(B1):     c(nobs, nPar + p)
-## dim(B2):     c(nobs, nPar + p)
-## XX:          the design matrix for the nominal model,
-## dim(XX):     c(nobs, ncolXX)
-## tJac:        generates alpha from theta
-## xiToPar:     generates Par from xi
-## Definition chain: theta -> alpha -> xi -> Par
-## Definition chain: A + XX -> D, D + X -> B
-## start val:   theta -> alpha -> xi -> Par
-## eta_(j)      D %*% Par_(j) - locat
-## eta_(j-1)    D %*% Par_(j-1) - locat
+clm.control <-
+    function(method = c("ucminf", "Newton", "nlminb", "optim",
+             "model.frame"), ..., convTol = 1e-4,
+             trace = 0, maxIter = 100, gradTol = 1e-4,
+             maxLineIter = 10)
+{
+    method <- match.arg(method)
+    ctrl <-
+        if(method == "Newton")
+            list(convTol=convTol, trace=trace, maxIter=maxIter,
+                 gradTol=gradTol, maxLineIter=maxLineIter)
+        else
+            list(trace = abs(trace), ...)
 
-## dim(tJac) should be??
-## Redefine nobs to n so that there is no confusion between
-## sum(weights) == nobs and nrow(X) == n.
+    if(!all(is.numeric(c(maxIter, gradTol, maxLineIter, convTol))))
+        stop("maxIter, gradTol, maxLineIter, convTol should all be numeric")
+    if(convTol <= 0)
+        stop("convTol should be > 0")
+    if(method == "ucminf" && !"grtol" %in% names(ctrl))
+        ctrl$grtol <- gradTol
+    if(method == "ucminf" && convTol > ctrl$grtol)
+        stop("convTol should be <= grtol/gradTol")
+    if(method == "Newton" && convTol > gradTol)
+        stop("convTol should be <= gradTol")
 
-newRho <- function(parent, XX, X, Z, y, weights = rep(1, length(y)),
-                   Loffset = rep(0, length(y)),
-                   Soffset = rep(0, length(y)), link, lambda, method,
-                   threshold)
+    list(method = method, convTol = convTol, ctrl = ctrl)
+}
+
+newRho <- function(parent, XX, X, Z, y, weights, Loffset, Soffset,
+                   link, lambda, theta, threshold, Hess, control)
 {
     rho <- new.env(parent = parent)
-    if(!missing(X)) {
-        rho$X <- X
-        rho$dnX <- dimnames(X)
-        dimnames(rho$X) <- NULL
-    }
-    if(!missing(Z)) {
-        rho$Z <- Z
-        rho$dnZ <- dimnames(Z)
-        dimnames(rho$Z) <- NULL
-    }
+    rho$X <- X
+    rho$dnX <- dimnames(X)
+    dimnames(rho$X) <- NULL
+    rho$Z <- Z
+    rho$dnZ <- dimnames(Z)
+    dimnames(rho$Z) <- NULL
     rho$weights <- weights
     rho$Loffset <- Loffset
-    rho$Soffset <- Soffset
+    rho$expSoffset <- rho$sigma <- exp(Soffset)
+    rho$Hess <- ifelse(Hess, 1L, 0L)
+    rho$method <- control$method
+    rho$convTol <- control$convTol
+    rho$ctrl <- control$ctrl
+
     rho$pfun <- switch(link, logistic = plogis, probit = pnorm,
                        cloglog = pgumbel, cauchit = pcauchy,
                        loglog = pgumbel2,
@@ -84,78 +78,53 @@ newRho <- function(parent, XX, X, Z, y, weights = rep(1, length(y)),
     rho$gfun <- switch(link,
                        logistic = glogis,
                        probit = function(x) -x * dnorm(x),
-                       loglog = function(x) ggumbel(-x),
+                       loglog = function(x) -ggumbel(-x),
                        cloglog = ggumbel,
                        cauchit = gcauchy,
                        "Aranda-Ordaz" = function(x, lambda) gAO(x, lambda), ## shouldn't happen
                        "log-gamma" = function(x, lambda) glgamma(x, lambda)
                        )
     rho$link <- link
-    rho$estimLambda <- ifelse(link %in% c("Aranda-Ordaz", "log-gamma") &
-                              is.null(lambda), 1, 0)
-    rho$nlambda <- 0
+    rho$estimLambda <- ifelse(link %in% c("Aranda-Ordaz", "log-gamma") &&
+                              is.null(lambda), 1L, 0L)
+    rho$nlambda <- 0L
     if(!is.null(lambda))
         rho$lambda <- lambda
     if(link %in% c("Aranda-Ordaz", "log-gamma"))
-        rho$nlambda <- 1
-    rho$threshold <- threshold
-    rho$nobs <- nobs <- length(y)
+        rho$nlambda <- 1L
+
+    if(rho$estimLambda > 0 & rho$link == "Aranda-Ordaz" &
+       rho$method != "nlminb"){
+        message("Changing to nlminb optimizer to accommodate optimization with bounds")
+        m <- match( names(rho$ctrl), "grtol", 0)
+        rho$ctrl <- rho$ctrl[!m]
+        rho$method <- "nlminb"
+    }
+    if(rho$method == "nlminb") {
+        rho$limitUp <- Inf
+        rho$limitLow <- -Inf
+    }
+
+    rho$n <- n <- length(y)
     rho$p <- ifelse(missing(X), 0, ncol(X))
     rho$k <- ifelse(missing(Z), 0, ncol(Z))
+    rho$y <- y
+    rho$threshold <- threshold
     rho$ncolXX <- ncol(XX)
     rho$dnXX <- dimnames(XX)
-    if(!is.factor(y))
-        stop("response must be a factor")
     rho$lev <- levels(y)
-    rho$y <- c(unclass(y))
-    rho$ntheta <- length(rho$lev) - 1
-    rho$B2 <- 1 * (col(matrix(0, nobs, length(rho$lev))) == rho$y)
-    rho$o1 <- c(100 * rho$B2[, length(rho$lev)])
-    rho$o2 <- c(-100 * rho$B2[,1])
-    rho$B1 <- rho$B2[,-length(rho$lev), drop=FALSE]
+    rho$ntheta <- nlevels(y) - 1
+    rho$B2 <- 1 * (col(matrix(0, n, rho$ntheta + 1)) == c(unclass(y)))
+    rho$o1 <- c(100 * rho$B2[, rho$ntheta + 1]) - rho$Loffset
+    rho$o2 <- c(-100 * rho$B2[,1]) - rho$Loffset
+    rho$B1 <- rho$B2[,-(rho$ntheta + 1), drop=FALSE]
     rho$B2 <- rho$B2[,-1, drop=FALSE]
-
-    ## Should the following section on threshold construction be
-    ## singled out in a separate function?
-    if(threshold == "flexible") {
-        rho$tJac <- diag(rho$ntheta)
-        rho$nalpha <- rho$ntheta
-        rho$alphaNames <-
-            paste(rho$lev[-length(rho$lev)], rho$lev[-1], sep="|")
-    }
-    if(threshold == "symmetric") {
-        if(!rho$ntheta >=2)
-            stop("symmetric thresholds are only meaningful for responses with 3 or more levels")
-        if(rho$ntheta %% 2) { ## ntheta is odd
-            rho$nalpha <- (rho$ntheta + 1)/2 ## No. threshold parameters
-            rho$tJac <- t(cbind(diag(-1, rho$nalpha)[rho$nalpha:1, 1:(rho$nalpha-1)],
-                                diag(rho$nalpha)))
-            rho$tJac[,1] <- 1
-            rho$alphaNames <-
-                c("central", paste("spacing.", 1:(rho$nalpha-1), sep=""))
-        }
-        else { ## ntheta is even
-            rho$nalpha <- (rho$ntheta + 2)/2
-            rho$tJac <- cbind(rep(1:0, each=rho$ntheta/2),
-                              rbind(diag(-1, rho$ntheta/2)[(rho$ntheta/2):1,],
-                                    diag(rho$ntheta/2)))
-            rho$tJac[,2] <- rep(0:1, each=rho$ntheta/2)
-            rho$alphaNames <- c("central.1", "central.2",
-                                paste("spacing.", 1:(rho$nalpha-2), sep=""))
-        }
-    }
-    if(threshold == "equidistant") {
-        if(!rho$ntheta >=2)
-            stop("symmetric thresholds are only meaningful for responses with 3 or more levels")
-        rho$tJac <- cbind(1, 0:(rho$ntheta-1))
-        rho$nalpha <- 2
-        rho$alphaNames <- c("threshold.1", "spacing")
-    }
+    makeThresholds(rho, threshold)
     rho$B1 <- rho$B1 %*% rho$tJac
     rho$B2 <- rho$B2 %*% rho$tJac
     rho$xiNames <- rho$alphaNames
     rho$nxi <- rho$nalpha * rho$ncolXX
-    if(rho$ncolXX > 1) { ## test not needed
+    if(rho$ncolXX > 1) { ## test actually not needed
         rho$xiNames <- paste(rep(rho$alphaNames, rho$ncolXX), ".",
                              rep(colnames(XX), each=rho$nalpha), sep="")
         LL1 <- lapply(1:rho$ncolXX, function(x) rho$B1 * XX[,x])
@@ -169,16 +138,15 @@ newRho <- function(parent, XX, X, Z, y, weights = rep(1, length(y)),
     }
     dimnames(rho$B1) <- NULL
     dimnames(rho$B2) <- NULL
-    rho$method <- method
-    rho
+    return(rho)
 } # populates the rho environment
 
 setStart <- function(rho)
 { ## set starting values in the rho environment
     ## try logistic/probit regression on 'middle' cut
     q1 <- max(1, rho$ntheta %/% 2)
-    y1 <- (rho$y > q1)
-    x <- cbind(Intercept = rep(1, rho$nobs), rho$X)
+    y1 <- (c(unclass(rho$y)) > q1)
+    x <- cbind(Intercept = rep(1, rho$n), rho$X)
     fit <-
         switch(rho$link,
                "logistic"= glm.fit(x, y1, rho$weights, family = binomial(), offset = rho$Loffset),
@@ -233,20 +201,17 @@ getNll <- function(rho, par)  {
     if(!missing(par))
         rho$par <- par
     with(rho, {
-        locat <- Loffset
-        sigma <- exp(Soffset)
         if(estimLambda > 0)
             lambda <- par[nxi + p + k + 1:estimLambda]
-        if(k > 0)
-            sigma <- sigma * exp(drop(Z %*% par[nxi+p + 1:k]))
-        eta1 <- (drop(B1 %*% par[1:(nxi + p)]) + o1 - locat)/sigma
-        eta2 <- (drop(B2 %*% par[1:(nxi + p)]) + o2 - locat)/sigma
-        if(nlambda)
-            pr <- pfun(eta1, lambda) - pfun(eta2, lambda)
-        else
-            pr <- pfun(eta1) - pfun(eta2)
-        if (all(pr > 0))
-            -sum(weights * log(pr))
+        sigma <-
+            if(k > 0) expSoffset * exp(drop(Z %*% par[nxi+p + 1:k]))
+            else expSoffset
+        eta1 <- (drop(B1 %*% par[1:(nxi + p)]) + o1)/sigma
+        eta2 <- (drop(B2 %*% par[1:(nxi + p)]) + o2)/sigma
+        pr <-
+            if(nlambda) pfun(eta1, lambda) - pfun(eta2, lambda)
+            else pfun(eta1) - pfun(eta2)
+        if (all(pr > 0)) -sum(weights * log(pr))
         else Inf
     })
 }
@@ -255,14 +220,13 @@ getGnll <- function(rho, par)  {
     if(!missing(par))
         rho$par <- par
     with(rho, {
-        locat <- Loffset
-        sigma <- exp(Soffset)
         if(estimLambda > 0)
             lambda <- par[nxi + p + k + 1:estimLambda]
-        if(k > 0)
-            sigma <- sigma * exp(drop(Z %*% par[nxi+p + 1:k]))
-        eta1 <- (drop(B1 %*% par[1:(nxi + p)]) + o1 - locat)/sigma
-        eta2 <- (drop(B2 %*% par[1:(nxi + p)]) + o2 - locat)/sigma
+        sigma <-
+            if(k > 0) expSoffset * exp(drop(Z %*% par[nxi+p + 1:k]))
+            else expSoffset
+        eta1 <- (drop(B1 %*% par[1:(nxi + p)]) + o1)/sigma
+        eta2 <- (drop(B2 %*% par[1:(nxi + p)]) + o2)/sigma
         if(nlambda) {
             pr <- pfun(eta1, lambda) - pfun(eta2, lambda)
             p1 <- dfun(eta1, lambda)
@@ -274,14 +238,15 @@ getGnll <- function(rho, par)  {
             p2 <- dfun(eta2)
         }
         prSig <- pr * sigma
-        gradSigma <- if(k > 0)
-            crossprod(Z, weights * (eta1*p1 - eta2*p2)/pr)
-        else numeric(0)
+        gradSigma <-
+            if(k > 0) crossprod(Z, weights * (eta1*p1 - eta2*p2)/pr)
+            else numeric(0)
         gradThetaBeta <-
-            -crossprod((B1*p1 - B2*p2), weights/prSig)
-        grad <- if (all(pr > 0))
-            c(gradThetaBeta, gradSigma)
-        else rep(Inf, nxi + p + k)
+            if(nxi > 0) -crossprod((B1*p1 - B2*p2), weights/prSig)
+            else -crossprod((X * (p2 - p1)), weights/prSig)
+        grad <-
+            if (all(pr > 0)) c(gradThetaBeta, gradSigma)
+            else rep(Inf, nxi + p + k)
     })
     if(rho$estimLambda > 0)
         c(rho$grad, grad.lambda(rho, rho$lambda, rho$link))
@@ -293,9 +258,8 @@ getHnll <- function(rho, par)  {
     if(!missing(par))
         rho$par <- par
     with(rho, {
-        locat <- Loffset
-        eta1 <- drop(B1 %*% par[1:(nxi + p)]) + o1 - locat
-        eta2 <- drop(B2 %*% par[1:(nxi + p)]) + o2 - locat
+        eta1 <- drop(B1 %*% par[1:(nxi + p)]) + o1
+        eta2 <- drop(B2 %*% par[1:(nxi + p)]) + o2
         pr <- pfun(eta1) - pfun(eta2)
         p1 <- dfun(eta1)
         p2 <- dfun(eta2)
@@ -315,9 +279,8 @@ getHnll <- function(rho, par)  {
 
 .negLogLik <- function(rho) { ## negative log-likelihood
     with(rho, {
-        locat <- Loffset
-        eta1 <- drop(B1 %*% par[1:(nxi + p)]) + o1 - locat
-        eta2 <- drop(B2 %*% par[1:(nxi + p)]) + o2 - locat
+        eta1 <- drop(B1 %*% par[1:(nxi + p)]) + o1
+        eta2 <- drop(B2 %*% par[1:(nxi + p)]) + o2
         pr <- pfun(eta1) - pfun(eta2)
         if (all(pr > 0))
             -sum(weights * log(pr))
@@ -440,8 +403,16 @@ fitCLM <- function(rho) {
                   method="BFGS", control=rho$ctrl),
                   )
     rho$par <- optRes[[1]]
-    rho$logLik <- -getNll(rho, optRes[[1]])
+    rho$logLik <- - getNll(rho, optRes[[1]])
     rho$optRes <- optRes
+
+    rho$gradient <- c(getGnll(rho))
+    rho$maxGradient <- max(abs(rho$gradient))
+    if(rho$maxGradient > rho$convTol)
+        warning("clm may not have converged:\n  optimizer ", rho$method,
+                " terminated with max|gradient|: ", rho$maxGradient,
+                call.=FALSE)
+    return(invisible())
 }
 
 finalizeRho <- function(rho) {
@@ -450,41 +421,47 @@ finalizeRho <- function(rho) {
         rho$maxGradient <- max(abs(rho$gradient))
         rho$par <- rho$optRes[[1]]
         if(rho$Hess) {
-            if(rho$k > 0 | rho$threshold != "flexible" |
-               rho$ncolXX > 1 | rho$nlambda > 0) {
-                rho$Hessian <- hessian(function(par) getNll(rho, par),
-                                       rho$par)
-                getNll(rho, rho$optRes[[1]]) # to reset variables
+            if(rho$k > 0 || rho$threshold != "flexible" ||
+               rho$ncolXX > 1 || rho$nlambda > 0) {
+                if(rho$link == "Aranda-Ordaz" &&
+                   rho$estimLambda > 0 && rho$lambda < 1e-3)
+                    message("Cannot get Hessian because lambda = ",rho$lambda
+                            ," is too close to boundary.\n",
+                            " Fit model with link == 'logistic' to get Hessian")
+                else {
+                    rho$Hessian <- hessian(function(par) getNll(rho, par),
+                                           rho$par)
+                    getNll(rho, rho$optRes[[1]]) # to reset the variables:
                                         # (par, pr)
+                }
             }
             else
                 rho$Hessian <- getHnll(rho, rho$optRes[[1]])
         }
     }
-    if(rho$maxGradient > rho$convTol)
-        warning("Optimizer ", rho$method,
-                " terminated with max|gradient|: ", rho$maxGradient,
-                call.=FALSE)
-     rho$convergence <-
+    rho$convergence <-
         ifelse(rho$maxGradient > rho$convTol, FALSE, TRUE)
 
     with(rho, {
-        xi <- par[1:nxi]
-        names(xi) <- xiNames
-        thetaNames <- paste(lev[-length(lev)], lev[-1], sep="|")
-        Alpha <- Theta <- matrix(par[1:nxi], nrow=ncolXX, byrow=TRUE)
-        Theta <- t(apply(Theta, 1, function(x) c(tJac %*% x)))
-        if(ncolXX > 1){
-            dimnames(Theta) <- list(dnXX[[2]], thetaNames)
-            dimnames(Alpha) <- list(dnXX[[2]], alphaNames)
+        if(nxi > 0) {
+            xi <- par[seq_len(nxi)]
+            names(xi) <- xiNames
+            thetaNames <- paste(lev[-length(lev)], lev[-1], sep="|")
+            Alpha <- Theta <- matrix(par[1:nxi], nrow=ncolXX, byrow=TRUE)
+            Theta <- t(apply(Theta, 1, function(x) c(tJac %*% x)))
+            if(ncolXX > 1){
+                dimnames(Theta) <- list(dnXX[[2]], thetaNames)
+                dimnames(Alpha) <- list(dnXX[[2]], alphaNames)
+            }
+            else {
+                Theta <- c(Theta)
+                Alpha <- c(Alpha)
+                names(Theta) <- thetaNames
+                names(Alpha) <- alphaNames
+            }
+            coefficients <- xi
         }
-        else {
-            Theta <- c(Theta)
-            Alpha <- c(Alpha)
-            names(Theta) <- thetaNames
-            names(Alpha) <- alphaNames
-        }
-        coefficients <- xi
+        else coefficients <- numeric(0)
         if(p > 0) {
             beta <- par[nxi + 1:p]
             names(beta) <- dnX[[2]]
@@ -502,6 +479,7 @@ finalizeRho <- function(rho) {
         names(gradient) <- names(coefficients)
         edf <- p + nxi + k + estimLambda
         nobs <- sum(weights)
+
         fitted.values <- pr
         df.residual = nobs - edf
         if(exists("Hessian", inherits=FALSE)) {
@@ -510,17 +488,6 @@ finalizeRho <- function(rho) {
         }
     })
     res <- as.list(rho)
-###     notKeep <- c("wtpr", "g", "g1", "g2", "dpi.psi", "X", "Z",
-###                  "dS.psi", "p2", "p1", "pr", "eta1", "eta2", "gfun",
-###                  "dfun", "pfun", "dnX", "B1", "B2", "locat", "ctheta",
-###                  "prSig", "gradSigma", "gradThetaBeta", "dnXX",
-###                  "Soffset", "Loffset", "dnZ", "weights", "par",
-###                  "alphaNames", "tJac", "nalpha", "ntheta", "p", "k",#"lev",
-###                  "Hess", "sigma", "maxGradient", "thetaNames",
-###                  "alphaNames", "nxi", "ctrl", "xiNames", "o2",
-###                  "o1", "ncolXX", "u", "grad", "nlambda")
-###     keep <- names(res)[!(names(res) %in% notKeep)]
-###     res <- res[keep]
     keepNames <-
         c("df.residual", "fitted.values", "edf", "start",
           "beta", "coefficients", "zeta", "Alpha", "Theta",
@@ -531,25 +498,22 @@ finalizeRho <- function(rho) {
           "contrasts", "na.action")
     m <- match(keepNames, names(res), 0)
     res <- res[m]
-    class(res) <- "clm.fit"
     res
 }
 
 clm <-
   function(location, scale, nominal, data, weights, start, subset,
-           na.action, contrasts = NULL, Hess = TRUE, model = TRUE,
-           method = c("ucminf", "Newton", "nlminb", "optim",
-           "model.frame"),
+           na.action, contrasts, Hess = TRUE, model = TRUE,
            link = c("logistic", "probit", "cloglog", "loglog",
-           "cauchit", "Aranda-Ordaz", "log-gamma"), lambda = NULL,
-           doFit = TRUE, control = list(),
+           "cauchit", "Aranda-Ordaz", "log-gamma"), lambda,
+           doFit = TRUE, control,
            threshold = c("flexible", "symmetric", "equidistant"), ...)
 {
     L <- match.call(expand.dots = FALSE)
     if(missing(location))
         stop("Model needs a specification of the location")
-    if(missing(scale))
-        L$scale <- ~1 ## A model for the scale is not needed
+    if(missing(lambda)) lambda <- NULL
+    if(missing(contrasts)) contrasts <- NULL
     link <- match.arg(link)
     if(!(link %in% c("Aranda-Ordaz", "log-gamma")) & !is.null(lambda)){
         warning("lambda ignored with link ", link)
@@ -564,123 +528,124 @@ clm <-
         if(lambda < 1e-6)
             stop("lambda has to be positive and lambda < 1e-6 not allowed for numerical reasons. lambda = ",
                  lambda, " was supplied.")
-    method <- match.arg(method)
-    threshold <- match.arg(threshold)
+    if (missing(control)) control <- clm.control(...)
+    if(!setequal(names(control), c("method", "convTol", "ctrl")))
+        stop("specify 'control' via clm.control()")
+
     if (missing(data)) data <- environment(location)
     if (is.matrix(eval.parent(L$data)))
         L$data <- as.data.frame(data)
-    ## L$start <- L$Hess <- L$model <- L$... <- L$method <-
-    ##    L$link <- L$control <- L$doFit <- L$contrasts <- NULL
+
+### Collect variables in location, scale and nominal formulae in a
+### single formula, evaluate the model.frame and get index of row
+### names for the rows to keep in the individual model.frames:
+    m <- match(c("location", "scale", "nominal"), names(L), 0)
+    F <- as.list(L[m])
+    varNames <- unique(unlist(lapply(F, all.vars)))
+    longFormula <-
+        eval(parse(text = paste("~", paste(varNames, collapse = "+")))[1])
+    m <- match(c("location", "data", "subset", "weights",
+                  "na.action"), names(L), 0)
+    L0 <- L[c(1, m)]
+    L0$location <- longFormula
+    L0$drop.unused.levels <- TRUE
+    L0[[1]] <- as.name("model.frame")
+    names(L0)[names(L0) == "location"] <- "formula"
+    L0 <- eval.parent(L0)
     m <- match(c("location", "scale", "nominal", "data", "subset",
                  "weights", "na.action"), names(L), 0)
     L <- L[c(1, m)]
     L$drop.unused.levels <- TRUE
     L[[1]] <- as.name("model.frame")
     S <- L ## L: Location, S: Scale
-
-### format location:
     L$scale <- L$nominal <- NULL
     names(L)[names(L) == "location"] <- "formula"
     L <- eval.parent(L)
+    keep <- match(rownames(L0), rownames(L))
+    L <- L[keep, , drop = FALSE]
     TermsL <- attr(L, "terms")
-    X <- model.matrix(TermsL, L, contrasts)
-    namX <- colnames(X)
-    Xint <- match("(Intercept)", namX, nomatch = 0)
-    nobs <- nrow(X)
-    wt <- model.weights(L)
-    ## Xcons <- attr(X, "contrasts") ## What is this doing here?
-    if (Xint > 0) {
-        X <- X[, -Xint, drop = FALSE]
-    }
-    else warning("an intercept is needed and assumed in the location")
-    Loffset <- model.offset(L)
-    if(length(Loffset) <= 1)
-        Loffset <- rep(0, nobs)
-
-### Format nominal:
-    if(!missing(nominal)) {
-        Card <- S
-        Card$location <- Card$scale <- NULL
-        names(Card)[names(Card) == "nominal"] <- "formula"
-        Card <- eval.parent(Card)
-        TermsCard <- attr(Card, "terms")
-        XX <- model.matrix(TermsCard, Card)## , contrasts)
-        ## Not allowing other than treatment contrasts in location
-        Coffset <- model.offset(Card)
-        namC <- colnames(XX)
-        Cint <- match("(Intercept)", namC, nomatch = 0)
-        if(Cint != 1)
-            stop("An intercept is needed in the nominal formula")
-        ## Are there any requirements about the presence of an
-        ## intercept in the nominal formula?
-        if(length(Coffset) <= 1)
-            Coffset <- rep(0, nobs)
-    }
-    else
-        XX <- array(1, dim=c(nobs, 1))
-
-### format scale:
-    S$location <- S$nominal <- NULL
-    names(S)[names(S) == "scale"] <- "formula"
-    if(!length(wt)) {
-        wt <- rep(1, nobs)
-        S$weights <- wt ## Trick to avoid warning message in
-        ##'eval.parent(S)' when scale part is omitted.
-    }
-    S <- eval.parent(S)
-    TermsS <- attr(S, "terms")
-### Should contrasts be allowed for the scale?
-    Z <- model.matrix(TermsS, S, contrasts)
-    ## cons <- attr(Z, "contrasts") ## What is this doing here?
-    namZ <- colnames(Z)
-    Zint <- match("(Intercept)", namZ, nomatch = 0)
-    k <- ncol(Z)
-    if (Zint > 0) {
-        Z <- Z[, -Zint, drop = FALSE]
-        k <- k - 1
-    }
-    else warning("an intercept is needed and assumed in the scale")
-    Soffset <- model.offset(S)
-    if(length(Soffset) <= 1)
-        Soffset <- rep(0, nobs)
-    if(k > 0 && nobs != nrow(Z))
-        stop("Model needs same dataset in location and scale")
 
 ### format response:
     y <- model.response(L)
+    if(!is.factor(y))
+        stop("response needs to be a factor")
+
+### format thresholds:
+    threshold <- match.arg(threshold)
+
+### format location:
+    X <- model.matrix(TermsL, L, contrasts)
+    Xint <- match("(Intercept)", colnames(X), nomatch = 0)
+    if (Xint > 0) X <- X[, -Xint, drop = FALSE]
+    else warning("an intercept is needed and assumed in the location")
+    n <- nrow(X)
+    if(is.null(wt <- model.weights(L))) wt <- rep(1, n)
+    if(is.null(Loffset <- model.offset(L))) Loffset <- rep(0, n)
+
+### Format nominal:
+    if(!missing(nominal)) {
+        Nom <- S
+        Nom$location <- Nom$scale <- NULL
+        names(Nom)[names(Nom) == "nominal"] <- "formula"
+        Nom <- eval.parent(Nom)
+        Nom <- Nom[match(rownames(L0), rownames(Nom)), ,drop=FALSE]
+        TermsNom <- attr(Nom, "terms")
+        XX <- model.matrix(TermsNom, Nom)## , contrasts)
+### Not allowing other than treatment contrasts in nominal
+        if(is.null(Noffset <- model.offset(Nom))) Noffset <- rep(0, n)
+        Nint <- match("(Intercept)", colnames(XX), nomatch = 0)
+        if(Nint != 1)
+            stop("An intercept is needed in the nominal formula")
+### Are there any requirements about the presence of an
+### intercept in the nominal formula?
+    }
+    else
+        XX <- array(1, dim=c(n, 1))
+
+### format scale:
+    if(!missing(scale)) {
+        S$location <- S$nominal <- NULL
+        names(S)[names(S) == "scale"] <- "formula"
+        S <- eval.parent(S)
+        S <- S[match(rownames(L0), rownames(S)), ,drop=FALSE]
+        TermsS <- attr(S, "terms")
+### Should contrasts be allowed for the scale?
+        Z <- model.matrix(TermsS, S, contrasts)
+        Zint <- match("(Intercept)", colnames(Z), nomatch = 0)
+        if(Zint > 0) Z <- Z[, -Zint, drop = FALSE]
+        else warning("an intercept is needed and assumed in the scale")
+        if(is.null(Soffset <- model.offset(S))) Soffset <- rep(0, n)
+        if(ncol(Z) > 0 && n != nrow(Z)) # This shouldn't happen
+            stop("Model needs same dataset in location and scale")
+    } else if(missing(scale) && !is.factor(y)){
+        Z <- array(1, dim = c(n, 1))
+        Soffset <- rep(0, n)
+    } else {
+        Z <- array(dim = c(n, 0))
+        Soffset <- rep(0, n)
+    }
 
 ### return model.frame?
-    if(method == "model.frame") {
-        mf <- list(location = L, scale = S)
-        if(!missing(nominal)) mf$nominal <- Card
+    if(control$method == "model.frame") {
+        mf <- list(location = L)
+        if(!missing(scale)) mf$scale <- S
+        if(!missing(nominal)) mf$nominal <- Nom
         return(mf)
     }
+
 ### initialize and populate rho environment:
     rho <- newRho(parent.frame(), XX = XX, X=X, Z=Z, y=y, weights=wt,
                   Loffset=Loffset, Soffset=Soffset, link=link,
-                  lambda = lambda, method=method, threshold=threshold)
-    rho$Hess <- ifelse(Hess, 1L, 0L)
-    rho$convTol <-
-        ifelse(any(c("grtol", "gradTol") %in% names(control)),
-               control[names(control) %in% c("grtol", "gradTol")][1],
-               1e-4)
-    if(method == "Newton") {
-        ctrl <- list(trace = 0, maxIter = 100,
-                     gradTol = 1e-4, maxLineIter = 10)
-        nam.ctrl <- names(ctrl)
-        nam.control <- names(control)
-        control <- control[nam.control %in% nam.ctrl]
-        ctrl[names(control)] <- control
-        rho$ctrl <- ctrl
-    }
-    else
-        rho$ctrl <- control[!(names(control) %in% "gradTol")]
+                  lambda = lambda, threshold=threshold,
+                  Hess = Hess, control = control)
 
 ### get starting values:
     if(missing(start))
         setStart(rho)
     else
         rho$start <- rho$par <- start
+    if(rho$estimLambda > 0 & rho$link == "Aranda-Ordaz")
+        rho$limitLow <- c(rep(-Inf, length(rho$par)-1), 1e-5)
     if(length(rho$start) != with(rho, nxi + p + k + estimLambda))
         stop("'start' is not of the correct length")
 ### FIXME: Better check of increasing thresholds when ncol(XX) > 0
@@ -692,20 +657,9 @@ clm <-
         stop("Non-finite log-likelihood at starting values")
     if(model) {
         rho$location <- L
-        rho$scale <- S
-        if(!missing(nominal)) rho$nominal <- Card
+        if(!missing(scale)) rho$scale <- S
+        if(!missing(nominal)) rho$nominal <- Nom
     }
-    if(rho$estimLambda > 0 & rho$link == "Aranda-Ordaz" &
-       rho$method != "nlminb"){
-        message("Changing to nlminb optimizer to accommodate optimization with bounds")
-        rho$method <- "nlminb"
-    }
-    if(rho$method == "nlminb") {
-        rho$limitUp <- Inf
-        rho$limitLow <- -Inf
-    }
-    if(rho$estimLambda > 0 & rho$link == "Aranda-Ordaz")
-        rho$limitLow <- c(rep(-Inf, length(rho$par)-1), 1e-6)
 
 ### fit the model:
     if(!doFit)
@@ -715,7 +669,7 @@ clm <-
 
 ### add to output:
     res$call <- match.call()
-    res$na.action <- attr(L, "na.action")
+    res$na.action <- attr(L0, "na.action")
     res$contrasts <- contrasts
     class(res) <- "clm"
     res
@@ -743,11 +697,13 @@ print.clm <- function(x, ...)
         cat("\nLink coefficient:\n")
         print(x$lambda)
     }
-    cat("\nThreshold coefficients:\n")
-    print(x$Alpha, ...)
-    if(x$threshold != "flexible") {
-        cat("\nThresholds:\n")
-        print(x$Theta, ...)
+    if(length(x$xi) > 0) {
+        cat("\nThreshold coefficients:\n")
+        print(x$Alpha, ...)
+        if(x$threshold != "flexible") {
+            cat("\nThresholds:\n")
+            print(x$Theta, ...)
+        }
     }
     cat("\nlog-likelihood:", format(x$logLik, nsmall=2), "\n")
     cat("AIC:", format(-2*x$logLik + 2*x$edf, nsmall=2), "\n")
@@ -779,6 +735,9 @@ summary.clm <- function(object, digits = max(3, .Options$digits - 3),
     coef[, 4] <- 2*pnorm(abs(coef[, 3]), lower.tail=FALSE)
     object$coefficients <- coef
     object$digits <- digits
+    object$condHess <-
+        with(eigen(object$Hessian, only.values = TRUE),
+             abs(max(values) / min(values)))
 
     if(correlation)
         object$correlation <- (vc/sd)/rep(sd, rep(object$edf, object$edf))
@@ -816,11 +775,14 @@ print.summary.clm <- function(x, digits = x$digits, signif.stars =
         print(coef[(nxi+p+k+1):(nxi+p+k+u), , drop=FALSE],
               quote = FALSE, ...)
     }
-    cat("\nThreshold coefficients:\n")
-    print(coef[1:nxi, -4, drop=FALSE], quote = FALSE, ...)
+    if(nxi > 0) {
+        cat("\nThreshold coefficients:\n")
+        print(coef[seq_len(nxi), -4, drop=FALSE], quote = FALSE, ...)
+    }
 
     cat("\nlog-likelihood:", format(x$logLik, nsmall=2), "\n")
     cat("AIC:", format(-2*x$logLik + 2*x$edf, nsmall=2), "\n")
+    cat("Condition number of Hessian:", format(x$condHess, nsmall=2), "\n")
     if(nzchar(mess <- naprint(x$na.action))) cat("(", mess, ")\n", sep="")
     if(!is.null(correl <- x$correlation)) {
         cat("\nCorrelation of Coefficients:\n")
@@ -853,10 +815,21 @@ anova.clm <- function (object, ..., test = c("Chisq", "none"))
                        class(tmp) <- "formula"
                        paste(tmp[2]) } ))
   mds <- sapply(mlist, function(x) {
-                tmp1 <- attr(x$location, "terms")
-                tmp2 <- attr(x$scale, "terms")
-                class(tmp1) <- class(tmp2) <- "formula"
-                paste(tmp1[3], "|", tmp2[2]) } )
+      tmp1 <- attr(x$location, "terms")
+      class(tmp1) <- "formula"
+      if(!is.null(x$scale)) {
+          tmp2 <- attr(x$scale, "terms")
+          class(tmp2) <- "formula"
+          tmp2 <- tmp2[2]
+      }
+      else tmp2 <- ""
+      if(!is.null(x$nominal)) {
+          tmp3 <- attr(x$nominal, "terms")
+          class(tmp3) <- "formula"
+          tmp3 <- tmp3[2]
+      }
+      else tmp3 <- ""
+      paste(tmp1[3], "|", tmp2, "|", tmp3) } )
   dfs <- dflis[s]
   lls <- sapply(mlist, function(x) -2*x$logLik)
   tss <- c("", paste(1:(nt - 1), 2:nt, sep = " vs "))
@@ -997,11 +970,15 @@ gof <- function(object, ...) {
 
 profile.clm <- function(fitted, whichL = seq_len(p),
                         whichS = seq_len(k), lambda = TRUE, alpha = 0.01,
-                        maxSteps = 50, delta = LrootMax/10, trace = 0, ...)
+                        maxSteps = 50, delta = LrootMax/10, trace = 0,
+                        stepWarn = 8, ...)
 {
     rho <- update(fitted, doFit=FALSE)
+    if(rho$estimLambda > 0 & rho$link == "Aranda-Ordaz")
+        rho$limitLow <- c(rep(-Inf, length(rho$par)-2), 1e-5)
     nxi <- rho$nxi; k <- rho$k; p <- rho$p; X <- rho$X; Z <- rho$Z
-    B1 <- rho$B1; B2 <- rho$B2; lO <- rho$Loffset; sO <- rho$Soffset
+    B1 <- rho$B1; B2 <- rho$B2
+    sO <- rho$expSoffset; O1 <- rho$o1; O2 <- rho$o2
     beta0 <- with(fitted, coefficients[nxi + seq_len(p+k)])
     Lnames <- names(beta0[seq_len(p)])
     Snames <- names(beta0[p + seq_len(k)])
@@ -1014,7 +991,7 @@ profile.clm <- function(fitted, whichL = seq_len(p),
     if(trace < 0) rho$ctrl$trace <- trace <- 1
     origLogLik <- fitted$logLik
     LrootMax <- qnorm(1 - alpha/2)
-    prof <- vector("list", length= nL + nS)
+    prof <- vector("list", length = nL + nS)
     names(prof) <-
         c(paste("loc", Lnames[whichL], sep=".")[seq_len(nL)],
           paste("scale", Snames[whichS], sep=".")[seq_len(nS)])
@@ -1024,38 +1001,55 @@ profile.clm <- function(fitted, whichL = seq_len(p),
             which <- whichL }
         if(where == "scale") {
             which <- whichS
-            rho$Loffset <- lO
+            rho$o1 <- O1
+            rho$o2 <- O2
             rho$p <- p
             rho$k <- max(0, k - 1)
             rho$X <- X
-            rho$B1 <- B1
-            rho$B2 <- B2 }
+            if(rho$nxi > 0) {
+                rho$B1 <- B1
+                rho$B2 <- B2 } }
         for(i in which) {
             if(where == "loc") {
                 rho$X <- X[, -i, drop=FALSE]
-                rho$B1 <- B1[, -(nxi+i), drop=FALSE]
-                rho$B2 <- B2[, -(nxi+i), drop=FALSE] }
+                if(nxi > 0) {
+                    rho$B1 <- B1[, -(nxi+i), drop=FALSE]
+                    rho$B2 <- B2[, -(nxi+i), drop=FALSE] } }
             else {
                 rho$Z <- Z[, -i, drop=FALSE]
                 i <- i + p }
             res.i <- c(0, beta0[i])
             for(sgn in c(-1, 1)) {
                 if(trace) {
-                    message("\nParameter: ", where, ".", c(Lnames, Snames)[i], c(" down", " up")[(sgn + 1)/2 + 1])
+                    message("\nParameter: ", where, ".", c(Lnames, Snames)[i],
+                            c(" down", " up")[(sgn + 1)/2 + 1])
                     utils::flush.console() }
                 rho$par <- fitted$coefficients[-(nxi+i)]
                 step <- 0; Lroot <- 0
                 while((step <- step + 1) < maxSteps && abs(Lroot) < LrootMax) {
                     beta.i <- beta0[i] + sgn * step * delta * std.err[i]
-                    if(where=="loc") rho$Loffset <- lO + X[, i] * beta.i
-                    else rho$Soffset <- sO + Z[, (i - p)] * beta.i
+                    if(where=="loc") {
+                        rho$o1 <- O1 - X[, i] * beta.i
+                        rho$o2 <- O2 - X[, i] * beta.i }
+                    else rho$expSoffset <- exp(sO + Z[, (i - p)] * beta.i)
                     fitCLM(rho)
                     Lroot <- sgn * sqrt(2*(-rho$logLik + origLogLik))
-                    res.i <- rbind(res.i, c(Lroot, beta.i)) } }
+                    res.i <- rbind(res.i, c(Lroot, beta.i)) }
+                if(step - 1 < stepWarn)
+                    warning("profile may be unreliable for ",
+                            where, ".", c(Lnames, Snames)[i],
+                            " because only ", step - 1, "\n  steps were taken ",
+                            c("downwards", "upwards")[(sgn + 1)/2 + 1])
+            }
             rownames(res.i) <- NULL
             prof[[paste(where, c(Lnames, Snames)[i], sep=".")]] <- # -p+nL
                 structure(data.frame(res.i[order(res.i[,1]),]),
-                          names = c("Lroot",  c(Lnames, Snames)[i]))}
+                          names = c("Lroot",  c(Lnames, Snames)[i]))
+            if(!all(diff(prof[[length(prof)]][,2]) > 0))
+                warning("likelihood is not monotonically decreasing from maximum,\n",
+                        "  so profile may be unreliable for ",
+                        names(prof)[length(prof)])
+        }
     }
     if(lambda & rho$nlambda)
         prof$lambda <- profileLambda(fitted, trace = trace, ...)
@@ -1082,7 +1076,7 @@ profileLambda <-
                           lambda = NULL)
     MLogLik <- fitted$logLik
     MLlambda <- fitted$lambda
-    logLik <- double(nSteps)
+    logLik <- numeric(nSteps)
     rho <- update(fitted, Hess = FALSE, link = link,
                   lambda = min(range))
     logLik[1] <- rho$logLik
@@ -1091,17 +1085,25 @@ profileLambda <-
     if(trace)  message("\nNow profiling lambda with ", nSteps - 1,
                        " steps: i =")
     for(i in 2:nSteps){
-        if(trace) cat(i, " ")
+        if(trace) cat(i-1, " ")
         rho$lambda <- lambdaSeq[i]
         fitCLM(rho)
         logLik[i] <- rho$logLik
     }
     if(trace) cat("\n\n")
+    if(any(logLik > fitted$logLik))
+        warning("Profiling found a better optimum,",
+                "  so original fit had not converged")
+
     sgn <- 2*(lambdaSeq > MLlambda) -1
     Lroot <- sgn * sqrt(2) * sqrt(-logLik + MLogLik)
     res <- data.frame("Lroot" = c(0, Lroot),
                       "lambda" = c(MLlambda, lambdaSeq))
-    res[order(res[,1]),]
+    res <- res[order(res[,1]),]
+    if(!all(diff(res[,2]) > 0))
+        warning("likelihood is not monotonically decreasing from maximum,\n",
+                "  so profile may be unreliable for lambda")
+    res
 }
 
 confint.clm <-
@@ -1113,7 +1115,7 @@ confint.clm <-
         message("Waiting for profiling to be done...")
         utils::flush.console() }
     object <- profile(object, whichL = whichL, whichS = whichS,
-                      alpha = (1. - level)/4., lambda = TRUE,
+                      alpha = (1. - level)/4., lambda = lambda,
                       trace = trace)
     confint(object, level=level, ...)
 }
@@ -1197,7 +1199,7 @@ extractAIC.clm <- function(fit, scale = 0, k = 2, ...)
 }
 
 update.clm <-
-    function(object, formula., location, scale, ..., evaluate = TRUE)
+    function(object, formula., location, scale, nominal, ..., evaluate = TRUE)
 ### This method makes it possible to use the update.formula features
 ### for location and scale formulas in clm objects. This includes the
 ### possibility of using e.g.
@@ -1213,8 +1215,18 @@ update.clm <-
                                    location)
     if (!missing(scale))
         call$scale <-
-            update.formula(formula(attr(object$scale, "terms")),
-                                   scale)
+            if(!is.null(object$scale))
+                update.formula(formula(attr(object$scale, "terms")), scale)
+            else
+                scale
+
+    if (!missing(nominal))
+        call$nominal <-
+            if(!is.null(object$nominal))
+                update.formula(formula(attr(object$nominal, "terms")), nominal)
+            else
+                nominal
+
     if (length(extras)) {
         existing <- !is.na(match(names(extras), names(call)))
         for (a in names(extras)[existing]) call[[a]] <- extras[[a]]
@@ -1300,9 +1312,12 @@ addterm.clm <-
 ### the two formulas (location and scale) in the model.
 {
     which <- match.arg(which)
-    Terms <-
-        if(which == "location") attr(object$location, "terms")
-        else attr(object$scale, "terms")
+    if (which == "location")
+        Terms <- attr(object$location, "terms")
+    else if(!is.null(object$scale))
+        Terms <- attr(object$scale, "terms")
+    else
+        Terms <- as.formula(" ~ 1")
     if(missing(scope) || is.null(scope)) stop("no terms in scope")
     if(!is.character(scope))
         scope <- add.scope(Terms, update.formula(Terms, scope))
@@ -1399,7 +1414,8 @@ gcauchy <- function(x)  -2*x/pi*(1+x^2)^-2
 logit <- function(p) log(p/(1 - p))
 
 pAO <- function(q, lambda, lower.tail = TRUE) {
-    ## browser()
+    if(lambda < 1e-6)
+        stop("'lambda' has to be positive. lambda = ", lambda, " was supplied")
     p <- 1 - (lambda * exp(q) + 1)^(-1/lambda)
     if(!lower.tail) 1 - p else p
 }
@@ -1420,7 +1436,6 @@ gAO <- function(eta, lambda) {
 plgamma <- function(eta, lambda, lower.tail = TRUE) {
     q <- lambda
     v <- q^(-2) * exp(q * eta)
-    ## browser()
     if(q < 0)
         p <- 1 - pgamma(v, q^(-2))
     if(q > 0)
@@ -1443,13 +1458,13 @@ glgamma <- function(x, lambda)
     (1 - exp(lambda * x))/lambda * dlgamma(x, lambda)
 
 
-grad.lambda <- function(rho, lambda, link, delta = 1e-4) {
+grad.lambda <- function(rho, lambda, link, delta = 1e-6) {
     ll <- lambda + c(-delta, delta)
-    if(link == "Aranda-Ordaz")
-        ll[ll < 0] <- 0
-    len <- length(rho$par)
-    f <- sapply(ll, function(x) getNll(rho, c(rho$par[-len], x)))
+    if(link == "Aranda-Ordaz") ll[ll < 0] <- 0
+    par <- rho$par
+    f <- sapply(ll, function(x) getNll(rho, c(par[-length(par)], x)))
     rho$lambda <- lambda
+    rho$par <- par
     diff(f) /  diff(ll)
 }
 
@@ -1478,4 +1493,77 @@ print.Anova <- function (x, ...)
     })
     print.data.frame(res)
     invisible(x)
+}
+
+fixed <- function(theta, eps = 1e-3) {
+    res <- vector("list")
+    res$name <- "fixed"
+    if(!missing(theta) && length(theta) > 1) {
+        if(length(theta) < 3)
+            stop("'length(theta) = ", length(theta),
+                 ", but has to be 1 or >= 3")
+        res$eps <- NULL
+        res$theta <- theta
+        res$getTheta <- function(y, theta, eps) theta
+    }
+    else if(!missing(theta) && length(theta) == 1) {
+        if(as.integer(theta) < 3)
+            stop("'as.integer(theta)' was ", as.integer(theta),
+                 ", but has to be > 2")
+        res$eps <- NULL
+        res$theta <- theta
+        res$getTheta <- function(y, theta, eps) {
+            eps <- diff(range(y)) / (theta - 1)
+            seq(min(y) - eps/2, max(y) + eps/2, len = theta + 1)
+        }
+    }
+    else if(missing(theta) && length(eps) == 1) {
+        res$eps <- eps
+        res$theta <- NULL
+        res$getTheta <- function(y, theta, eps) {
+            J <- diff(range(y))/eps + 1
+            seq(min(y) - eps/2, max(y) + eps/2, len = J)
+        }
+    }
+    else
+        stop("inappropriate arguments")
+    class(res) <- "threshold"
+    res
+}
+
+makeThresholds <- function(rho, threshold, ...) {
+    if(threshold == "flexible") {
+        rho$tJac <- diag(rho$ntheta)
+        rho$nalpha <- rho$ntheta
+        rho$alphaNames <-
+            paste(rho$lev[-length(rho$lev)], rho$lev[-1], sep="|")
+    }
+    if(threshold == "symmetric") {
+        if(!rho$ntheta >=2)
+            stop("symmetric thresholds are only meaningful for responses with 3 or more levels")
+        if(rho$ntheta %% 2) { ## ntheta is odd
+            rho$nalpha <- (rho$ntheta + 1)/2 ## No. threshold parameters
+            rho$tJac <- t(cbind(diag(-1, rho$nalpha)[rho$nalpha:1, 1:(rho$nalpha-1)],
+                                diag(rho$nalpha)))
+            rho$tJac[,1] <- 1
+            rho$alphaNames <-
+                c("central", paste("spacing.", 1:(rho$nalpha-1), sep=""))
+        }
+        else { ## ntheta is even
+            rho$nalpha <- (rho$ntheta + 2)/2
+            rho$tJac <- cbind(rep(1:0, each=rho$ntheta/2),
+                              rbind(diag(-1, rho$ntheta/2)[(rho$ntheta/2):1,],
+                                    diag(rho$ntheta/2)))
+            rho$tJac[,2] <- rep(0:1, each=rho$ntheta/2)
+            rho$alphaNames <- c("central.1", "central.2",
+                                paste("spacing.", 1:(rho$nalpha-2), sep=""))
+        }
+    }
+    if(threshold == "equidistant") {
+        if(!rho$ntheta >=2)
+            stop("symmetric thresholds are only meaningful for responses with 3 or more levels")
+        rho$tJac <- cbind(1, 0:(rho$ntheta-1))
+        rho$nalpha <- 2
+        rho$alphaNames <- c("threshold.1", "spacing")
+    }
 }

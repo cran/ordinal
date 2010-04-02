@@ -20,7 +20,7 @@
 
 \method{profile}{clm}(fitted, whichL = seq_len(p), whichS = seq_len(k),
         lambda = TRUE, alpha = 0.01, maxSteps = 50, delta = LrootMax/10,
-        trace = 0, \dots)
+        trace = 0, stepWarn = 8, \dots)
 
 \method{plot}{profile.clm}(x, parm = seq_along(Pnames), level = c(0.95, 0.99),
         Log = FALSE, relative = TRUE, fig = TRUE, n = 1e3, ..., ylim = NULL)
@@ -83,6 +83,10 @@
     constructing confidence intervals so fairly long steps can provide
     high accuracy.
   }
+  \item{stepWarn}{a warning is issued if the no. steps in each direction
+    (up or down) for a parameter is less than \code{stepWarn} (defaults
+    to 8 steps) because this indicates an unreliable profile.
+  }
   \item{Log}{should the profile likelihood be plotted on the log-scale?
   }
   \item{relative}{should the relative or the absolute likelihood be
@@ -120,13 +124,14 @@
   These \code{confint} methods call
   the appropriate profile method, then finds the
   confidence intervals by interpolation of the profile traces.
-  If the profile object is already available it should be used as the
+  If the profile object is already available, this should be used as the
   main argument rather than the fitted model object itself.
 
-  \code{plot.profile.clm}: at least one of \code{Log} and
+  In \code{plot.profile.clm}: at least one of \code{Log} and
   \code{relative} arguments have to be \code{TRUE}.
 
 }
+\author{Rune Haubo B Christensen}
 \seealso{
 \code{\link{profile}} and \code{\link{confint}}
 }

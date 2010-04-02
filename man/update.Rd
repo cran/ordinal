@@ -1,5 +1,6 @@
 \name{update.clm}
 \alias{update.clm}
+\alias{update.clmm}
 \title{Update method for cumulative link models}
 \description{
   Update method for cumulative link models fitted with \code{clm}.
@@ -7,7 +8,10 @@
   \code{update(obj, location = ~ . - var1, scale = ~ . + var2)}
 }
 \usage{
-\method{update}{clm}(object, formula., location, scale, ..., evaluate = TRUE)
+\method{update}{clm}(object, formula., location, scale, nominal,...,
+        evaluate = TRUE)
+\method{update}{clmm}(object, formula., location, scale, nominal,...,
+        evaluate = TRUE)
 }
 \arguments{
   \item{object}{a \code{\link{clm}} object.
@@ -21,16 +25,20 @@
   \item{scale}{an optional new formula for the scale; see
     \code{\link{update.formula}} for details.
   }
-  \item{\dots}{Additional arguments to the call, or arguments with
+  \item{nominal}{an optional new formula for nominal effects; see
+    \code{\link{update.formula}} for details.
+  }
+  \item{\dots}{additional arguments to the call, or arguments with
     changed values.
   }
-  \item{evaluate}{If true evaluate the new call else return the call.
+  \item{evaluate}{if true evaluate the new call else return the call.
   }
 }
 \value{
   If \code{evaluate = TRUE} the fitted object is returned,
   otherwise the updated call.
 }
+\author{Rune Haubo B Christensen}
 \examples{
 options(contrasts = c("contr.treatment", "contr.poly"))
 data(soup)

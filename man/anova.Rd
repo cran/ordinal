@@ -1,13 +1,16 @@
 \name{anova.clm}
 %%\alias{anova}
 \alias{anova.clm}
+\alias{anova.clmm}
 \title{Likelihood ratio test of cumulative link models}
 \description{
   Comparison of cumulative link models in likelihood ratio tests.
-  The models may differ by terms in location as well as in scale.
+  The models may differ by terms in location, scale and nominal
+  formulae, in link, threshold function and random effect structure.
 }
 \usage{
 \method{anova}{clm}(object, ..., test = c("Chisq", "none"))
+\method{anova}{clmm}(object, ..., test = c("Chisq", "none"))
 }
 \arguments{
   \item{object}{a \code{\link{clm}} object.
@@ -22,7 +25,8 @@
   The method returns an object of class \code{Anova} (for printing) and
   \code{data.frame} with the following elements
   \item{Model}{character description of the cumulative link models being
-    compared. Location and scale models are separated by a "|".
+    compared. Location, scale and nominal formulae are separated by
+    "|"s in this order.
   }
   \item{Resid.df}{the residual degrees of freedom
   }
@@ -39,6 +43,7 @@
     \code{test = "none"}.
   }
 }
+\author{Rune Haubo B Christensen}
 \seealso{
   \code{\link[ordinal]{clm}}, \code{\link[ordinal]{addterm}},
   \code{\link[ordinal:addterm]{dropterm}} and

@@ -1,7 +1,29 @@
 This file documents updates and changes in package ordinal since version
 2010.03-04
 
-Martch 04 2010:
+March 04 2010:
 
 - First version of the package is created.
+
+2010-04-06:
+
+- removing class "clm.fit" from results of finalizeRho.
+- moving offset computations from logLik and gradient funtions to
+  newRho function.
+- Bug fixed in grad.lambda
+- checks and warning messages added to profile.clm
+- a warning is now given if the profile fits do not converge
+- profile.clm has grown the argument 'stepWarn', which gives a
+  warning if the no. profile steps in each direction (up or down) is
+  less than stepWarn (default 8), which indicates that the profile is
+  unreliable.
+- Bug in loglog-link for clmm fits fixed.
+- Missing values are handled better in clm and clmm.
+- clmm has grown an argument 'sdFixed' which assigns a fixed value of
+  the standard deviation of the random effects. Optimization is
+  performed with respect to the remaining parameters.
+- profile.clmm, confint.profile.clmm and plot.profile.clmm are now
+  available. Profiling is restricted to the standard deviation
+  parameter of the random effects.
+- control.clm and control.clmm now handles the control parameters.
 

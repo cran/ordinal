@@ -66,6 +66,7 @@ marginality.
 The definition of AIC is only up to an additive constant because the
 likelihood function is only defined up to an additive constant.
 }
+\author{Rune Haubo B Christensen}
 \seealso{
   \code{\link[ordinal]{clm}}, \code{\link[ordinal]{anova}},
   \code{\link{addterm.default}} and \code{\link{dropterm.default}}

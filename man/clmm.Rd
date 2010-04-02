@@ -10,11 +10,10 @@
 }
 \usage{
 clmm(location, scale, nominal, random, data, weights, start, subset,
-     na.action, contrasts = NULL, Hess = FALSE, model = TRUE,
-     method = c("ucminf", "nlminb"),
+     na.action, contrasts, Hess = FALSE, model = TRUE, sdFixed,
      link = c("logistic", "probit", "cloglog", "loglog",
-     "cauchit", "Aranda-Ordaz", "log-gamma"), lambda = NULL,
-     doFit = TRUE,  control = list(), nAGQ = 1,
+     "cauchit", "Aranda-Ordaz", "log-gamma"), lambda,
+     doFit = TRUE, control, nAGQ = 1,
      threshold = c("flexible", "symmetric", "equidistant"), ...)
 }
 \arguments{
@@ -60,14 +59,14 @@ clmm(location, scale, nominal, random, data, weights, start, subset,
 \item{model}{
   as in \code{\link{clm}}.
 }
-\item{method}{
-  the optimizer used to maximize the likelihood
-  function. Note that \code{"Newton"} and \code{"optim"} are not
-  available for \code{clmm}s. \code{model.frame} simply returns a list
-  of model frames with the location, scale and nominal model frames.
+\item{sdFixed}{
+  If \code{sdFixed} is specified (a positive scalar), a model is fitted
+  where the standard deviation for the random term is fixed at the value
+  of \code{sdFixed}. If \code{sdFixed} is left unspecified, the standard
+  deviation of the random term is estimated from data.
 }
 \item{link}{
-    as in \code{\link{clm}}.
+  as in \code{\link{clm}}.
 }
 \item{lambda}{
     as in \code{\link{clm}}.
@@ -76,7 +75,7 @@ clmm(location, scale, nominal, random, data, weights, start, subset,
     as in \code{\link{clm}}.
 }
 \item{control}{
-    as in \code{\link{clm}}.
+  a call to \code{\link{clmm.control}}.
 }
 \item{threshold}{
     as in \code{\link{clm}}.
@@ -89,35 +88,37 @@ clmm(location, scale, nominal, random, data, weights, start, subset,
     3, 5 or 7 are usually enough to achive high precision.
 }
 \item{\dots}{
-  additional arguments---currently not used.
+  additional arguments are passed on to \code{\link{clm.control}} and
+  possibly further on to the optimizer, which can lead to surprising
+  error or warning messages when mistyping arguments etc.
 }
 
 }
 \details{
-  The function calls \code{\link{clm}} to set op the computing
-  environment and to get starting values.
-
-  The function is implemented in pure R-code, so it will not be as fast
-  as \code{\link[lme4]{glmer}}, which have of its code in C, for
-  binomial fits.
-
-  A Newton scheme is used to obtain the conditional modes of the random
-  effects and a non-linear optimization is performed over the fixed
-  parameter set to get the maximum likelihood estimates. The Newton
-  scheme uses the observed Hessian rather than the expected as is done
-  in e.g. \code{\link[lme4]{glmer}}, so results from the Laplace
-  approximation for binomial fits may differ slightly.
-
-
-  Control parameters can be supplied to manage the optimization
-  process. The supplied set of control parameters should match those
-  relevant for the chosen optimizer; see
-  \code{\link[ucminf]{ucminf}}, and  \code{\link{nlminb}}.
-
   There are methods for the standard model-fitting functions, including
   \code{\link{summary}}, \code{\link{vcov}},
+  \code{\link[=profile.clmm]{profile}},
+  \code{\link[=profile.clmm]{plot.profile}},
+  \code{\link[=confint.profile.clmm]{confint}},
   \code{\link[ordinal]{anova}}, \code{\link{logLik}},
   and an \code{extractAIC} method.
+
+  A Newton scheme is used to obtain the conditional modes of the random
+  effects for Laplace and AGQ approximations, and a non-linear
+  optimization is performed over the fixed parameter set to get the
+  maximum likelihood estimates.
+  The Newton
+  scheme uses the observed Hessian rather than the expected as is done
+  in e.g. \code{\link[lme4]{glmer}}, so results from the Laplace
+  approximation for binomial fits should in general be more precise -
+  partidularly for other links than the \code{"logistic"}.
+
+  The function is implemented in pure R-code, so it will not be as fast
+  as e.g. \code{\link[lme4]{glmer}}, which have of its code in C, for
+  binomial fits.
+
+  The function calls \code{\link{clm}} to up an
+  environment and to get starting values.
 }
 \value{
   If \code{doFit = FALSE} the result is an environment
@@ -221,6 +222,7 @@ clmm(location, scale, nominal, random, data, weights, start, subset,
   \item{na.action}{the function used to filter missing data.
   }
 }
+\author{Rune Haubo B Christensen}
 \references{
   Agresti, A. (2002) \emph{Categorical Data.} Second edition.  Wiley.
 
@@ -244,10 +246,12 @@ extractAIC(m1)
 anova(m1, update(m1, location = SURENESS ~ 1, Hess = FALSE))
 anova(m1, update(m1, random = NULL))
 
-\dontrun{
-update(mms1, Hess = FALSE, nAGQ = 3)
-}
+## Use adaptive Gauss-Hermite quadrature rather than the Laplace
+## approximation:
+update(m1, Hess = FALSE, nAGQ = 3)
 
+
+##################################################################
 ## Binomial example with data from the lme4-package:
 data(cbpp, package = "lme4")
 cbpp2 <- rbind(cbpp[,-(2:3)], cbpp[,-(2:3)])

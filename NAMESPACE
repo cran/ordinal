@@ -2,6 +2,8 @@
 # functions
 export(clm)
 export(clmm)
+export(clm.control)
+export(clmm.control)
 
 S3method(print, clm)
 S3method(vcov, clm)
@@ -25,6 +27,10 @@ S3method(vcov, clmm)
 S3method(summary, clmm)
 S3method(print, summary.clmm)
 S3method(anova, clmm)
+S3method(profile, clmm)
+S3method(confint, profile.clmm)
+S3method(plot, profile.clmm)
+S3method(update, clmm)
 
 ## importFrom(graphics, plot)
 ## importFrom(ucminf, ucminf)
