@@ -81,6 +81,16 @@ summary(fm3 <- update(fm1, location =~.-Cont, nominal =~ Cont))
 anova(fm1, fm2, fm3)
 ## which seems to improve the fit
 
+#################################
+## Use of formula-objects in location, scale and nominal:
+## Bug-report from Lluís Marco Almagro <lluis.marco@upc.edu>
+## 5 May 2010 17:58
+f <- formula(sureness ~ prod)
+fs <- formula( ~ prod)
+m2 <- clm(f, scale = fs, data = dat26, weights = wghts)
+summary(m2)
+
+#################################
 ## Missing values:
 ## Bug-report from Jonathan Williams
 ## <Jonathan.Williams@dpag.ox.ac.uk>, 18 March 2010 12:42

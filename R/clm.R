@@ -540,7 +540,8 @@ clm <-
 ### single formula, evaluate the model.frame and get index of row
 ### names for the rows to keep in the individual model.frames:
     m <- match(c("location", "scale", "nominal"), names(L), 0)
-    F <- as.list(L[m])
+    F <- lapply(as.list(L[m]), eval.parent) ## evaluate in parent
+    ## frame to allow 'f <- formula(sureness ~ prod); clm(f, ...)'
     varNames <- unique(unlist(lapply(F, all.vars)))
     longFormula <-
         eval(parse(text = paste("~", paste(varNames, collapse = "+")))[1])

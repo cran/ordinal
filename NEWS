@@ -27,3 +27,8 @@ March 04 2010:
   parameter of the random effects.
 - control.clm and control.clmm now handles the control parameters.
 
+2010-05-06:
+
+- allowing the formulas to be constructed outside clm and clmm
+  (the formulas are evaluated in the parent frame before the variable
+  names are extracted)

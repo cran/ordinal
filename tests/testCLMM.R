@@ -73,7 +73,18 @@ fm1
            Hess = FALSE, method="ucminf", threshold = "symmetric",
            subset = RESP != "13"))
 
+#################################
+## Use of formula-objects in location, scale and nominal:
+## Bug-report from Lluís Marco Almagro <lluis.marco@upc.edu>
+## 5 May 2010 17:58
+f <- formula(sureness ~ prod)
+fs <- formula( ~ prod)
+ff <- formula(SURENESS ~ PROD)
+m2 <- clmm(ff, random = RESP, data = dat, link="probit",
+           Hess = TRUE, method="ucminf", threshold = "symmetric")
+summary(m2)
 
+#################################
 ## Testing missing values:
 dat$RESP[78] <- NA
 (m1 <- clmm(SURENESS ~ PROD, random = RESP, data = dat, link="probit",

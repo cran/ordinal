@@ -193,7 +193,7 @@ clmm <-
 ### Collect all variables in a single formula and evaluate to handle
 ### missing values correctly:
     m <- match(c("location", "scale", "nominal"), names(R), 0)
-    F <- as.list(R[m])
+    F <- lapply(as.list(R[m]), eval.parent) ## evaluate in parent
     varNames <- unique(unlist(lapply(F, all.vars)))
     longFormula <-
         eval(parse(text = paste("~", paste(varNames, collapse = "+")))[1])
