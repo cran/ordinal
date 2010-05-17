@@ -2,7 +2,7 @@
 #  file ordinalv2/R/clmm.R
 #
 #  Author: Rune Haubo Bojesen Christensen, rhbc@imm.dtu.dk
-#  Last modified: April 2010
+#  Last modified: May 2010
 #
 #  This program is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -512,11 +512,23 @@ summary.clmm <- function(object, digits = max(3, .Options$digits - 3),
                          list(names(coefficients[seq_len(edf-estimStDev)]),
                         c("Estimate", "Std. Error", "z value", "Pr(>|z|)"))))
     coef[, 1] <- object$coefficients[seq_len(edf-estimStDev)]
-    vc <- vcov(object)
-    sd <- sqrt(diag(vc))
-    coef[, 2] <- sd[seq_len(edf-estimStDev)]
-    coef[, 3] <- coef[, 1]/coef[, 2]
-    coef[, 4] <- 2*pnorm(abs(coef[, 3]), lower.tail=FALSE)
+    vc <- try(vcov(object), silent = TRUE)
+    if(class(vc) == "try-error") {
+        warning("Variance-covariance matrix of the parameters is not defined")
+        coef[, 2:4] <- NaN
+        if(correlation) warning("Correlation matrix is unavailable")
+        object$condHess <- NaN
+    } else {
+        sd <- sqrt(diag(vc))
+        coef[, 2] <- sd[seq_len(edf - estimStDev)]
+        object$condHess <-
+            with(eigen(object$Hessian, only.values = TRUE),
+                 abs(max(values) / min(values)))
+        coef[, 3] <- coef[, 1]/coef[, 2]
+        coef[, 4] <- 2*pnorm(abs(coef[, 3]), lower.tail=FALSE)
+        if(correlation)
+            object$correlation <- (vc/sd)/rep(sd, rep(object$edf, object$edf))
+    }
     object$coefficients <- coef
     object$digits <- digits
     varMat <- matrix(c(object$stDev^2, object$stDev),
@@ -524,12 +536,6 @@ summary.clmm <- function(object, digits = max(3, .Options$digits - 3),
     rownames(varMat) <- names(object$stDev)
     colnames(varMat) <- c("Var", "Std.Dev")
     object$varMat <- varMat
-    object$condHess <- with(eigen(vc, only.values = TRUE),
-                            abs(max(values) / min(values)))
-
-
-    if(correlation)
-        object$correlation <- (vc/sd)/rep(sd, rep(object$edf, object$edf))
     class(object) <- "summary.clmm"
     object
 }

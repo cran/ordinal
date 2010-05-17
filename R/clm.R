@@ -2,7 +2,7 @@
 #  file ordinalv2/R/clm.R
 #
 #  Author: Rune Haubo Bojesen Christensen, rhbc@imm.dtu.dk
-#  Last modified: April 2010
+#  Last modified: May 2010
 #
 #  This program is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -532,9 +532,9 @@ clm <-
     if(!setequal(names(control), c("method", "convTol", "ctrl")))
         stop("specify 'control' via clm.control()")
 
-    if (missing(data)) data <- environment(location)
+    if (missing(data)) L$data <- environment(location)
     if (is.matrix(eval.parent(L$data)))
-        L$data <- as.data.frame(data)
+        L$data <- as.data.frame(L$data)
 
 ### Collect variables in location, scale and nominal formulae in a
 ### single formula, evaluate the model.frame and get index of row
@@ -548,7 +548,8 @@ clm <-
     m <- match(c("location", "data", "subset", "weights",
                   "na.action"), names(L), 0)
     L0 <- L[c(1, m)]
-    L0$location <- longFormula
+    if(!missing(scale) || !missing(nominal))
+        L0$location <- longFormula
     L0$drop.unused.levels <- TRUE
     L0[[1]] <- as.name("model.frame")
     names(L0)[names(L0) == "location"] <- "formula"
@@ -730,18 +731,24 @@ summary.clm <- function(object, digits = max(3, .Options$digits - 3),
                    dimnames = list(names(object$coefficients),
                    c("Estimate", "Std. Error", "z value", "Pr(>|z|)")))
     coef[, 1] <- object$coefficients
-    vc <- vcov(object)
-    coef[, 2] <- sd <- sqrt(diag(vc))
-    coef[, 3] <- coef[, 1]/coef[, 2]
-    coef[, 4] <- 2*pnorm(abs(coef[, 3]), lower.tail=FALSE)
+    vc <- try(vcov(object), silent = TRUE)
+    if(class(vc) == "try-error") {
+        warning("Variance-covariance matrix of the parameters is not defined")
+        coef[, 2:4] <- NaN
+        if(correlation) warning("Correlation matrix is unavailable")
+        object$condHess <- NaN
+        } else {
+        coef[, 2] <- sd <- sqrt(diag(vc))
+        object$condHess <-
+            with(eigen(object$Hessian, only.values = TRUE),
+                 abs(max(values) / min(values)))
+        coef[, 3] <- coef[, 1]/coef[, 2]
+        coef[, 4] <- 2*pnorm(abs(coef[, 3]), lower.tail=FALSE)
+        if(correlation)
+            object$correlation <- (vc/sd)/rep(sd, rep(object$edf, object$edf))
+    }
     object$coefficients <- coef
     object$digits <- digits
-    object$condHess <-
-        with(eigen(object$Hessian, only.values = TRUE),
-             abs(max(values) / min(values)))
-
-    if(correlation)
-        object$correlation <- (vc/sd)/rep(sd, rep(object$edf, object$edf))
     class(object) <- "summary.clm"
     object
 }

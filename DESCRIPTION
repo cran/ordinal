@@ -1,8 +1,8 @@
 Package: ordinal
 Type: Package
 Title: Regression Models for Ordinal Data
-Version: 2010.05-06
-Date: 2010-05-6
+Version: 2010.05-17
+Date: 2010-05-17
 Author: Rune Haubo B Christensen
 Maintainer: Rune Haubo B Christensen <rhbc@imm.dtu.dk>
 Imports: numDeriv
@@ -19,6 +19,6 @@ Description: This package implements likelihood based models for
         random effects. Further, a range of estimation procedures and a
         range of auxiliary functions are implemented.
 License: GPL (>= 2)
-Packaged: 2010-05-06 18:58:37 UTC; rhbc
+Packaged: 2010-05-18 12:24:10 UTC; rhbc
 Repository: CRAN
-Date/Publication: 2010-05-06 21:00:01
+Date/Publication: 2010-05-22 06:36:36

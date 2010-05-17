@@ -91,6 +91,28 @@ m2 <- clm(f, scale = fs, data = dat26, weights = wghts)
 summary(m2)
 
 #################################
+## Other ways to construct formulas:
+y <- factor(sample(1:4,20,replace=TRUE))
+x <- rnorm(20)
+data <- data.frame(y=y,x=x)
+rm(x, y)
+fit <- clm(data$y ~ data$x)
+fit <- clm(data[,1] ~ data[,2])
+## This currently fails, but the union of variable names in location
+## and scale could possibly be tested for:
+## fit <- clm(data$y ~ data$x, ~data$x)
+
+#################################
+## Better handling of ill-defined variance-covariance matrix of the
+## parameters in summary methods for clm and clmm objects:
+dat26.2 <- data.frame(sureness = as.factor(1:12),
+                      prod = rep(c("One", "Two", "Three"),each=4))
+fm1 <- clm(sureness ~ prod, ~prod, data = dat26.2)
+fm1
+summary(fm1)
+summary(fm1, corr = 1)
+
+#################################
 ## Missing values:
 ## Bug-report from Jonathan Williams
 ## <Jonathan.Williams@dpag.ox.ac.uk>, 18 March 2010 12:42

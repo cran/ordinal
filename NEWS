@@ -32,3 +32,10 @@ March 04 2010:
 - allowing the formulas to be constructed outside clm and clmm
   (the formulas are evaluated in the parent frame before the variable
   names are extracted)
+
+2010-05-17:
+
+- Better evaluation in case of non-standard formula usage allowing
+  e.g. clm(data$y ~ data$x).
+- Better handling of ill-defined variance-covariance matrix of the
+  parameters in summary methods for clm and clmm objects.
