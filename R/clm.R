@@ -1,5 +1,5 @@
 ##################################################################
-#  file ordinalv2/R/clm.R
+#  file ordinalv3/R/clm.R
 #
 #  Author: Rune Haubo Bojesen Christensen, rhbc@imm.dtu.dk
 #  Last modified: May 2010
@@ -65,13 +65,19 @@ newRho <- function(parent, XX, X, Z, y, weights, Loffset, Soffset,
     rho$convTol <- control$convTol
     rho$ctrl <- control$ctrl
 
-    rho$pfun <- switch(link, logistic = plogis, probit = pnorm,
-                       cloglog = pgumbel, cauchit = pcauchy,
+    rho$pfun <- switch(link,
+                       logistic = plogis,
+                       probit = pnorm,
+                       cloglog = pgumbel,
+                       cauchit = pcauchy,
                        loglog = pgumbel2,
                        "Aranda-Ordaz" = function(x, lambda) pAO(x, lambda),
                        "log-gamma" = function(x, lambda) plgamma(x, lambda))
-    rho$dfun <- switch(link, logistic = dlogis, probit = dnorm,
-                       cloglog = dgumbel, cauchit = dcauchy,
+    rho$dfun <- switch(link,
+                       logistic = dlogis,
+                       probit = dnorm,
+                       cloglog = dgumbel,
+                       cauchit = dcauchy,
                        loglog = dgumbel2,
                        "Aranda-Ordaz" = function(x, lambda) dAO(x, lambda),
                        "log-gamma" = function(x, lambda) dlgamma(x, lambda))
@@ -85,11 +91,20 @@ newRho <- function(parent, XX, X, Z, y, weights, Loffset, Soffset,
                        "log-gamma" = function(x, lambda) glgamma(x, lambda)
                        )
     rho$link <- link
+    rho$linkInt <- switch(link,
+                          logistic = 1L,
+                          probit = 2L,
+                          cloglog = 3L,
+                          loglog = 4L,
+                          cauchit = 5L,
+                          "Aranda-Ordaz" = 6L,
+                          "log-gamma" = 7L)
     rho$estimLambda <- ifelse(link %in% c("Aranda-Ordaz", "log-gamma") &&
                               is.null(lambda), 1L, 0L)
     rho$nlambda <- 0L
-    if(!is.null(lambda))
-        rho$lambda <- lambda
+    rho$lambda <-
+        if(!is.null(lambda)) lambda
+        else 1
     if(link %in% c("Aranda-Ordaz", "log-gamma"))
         rho$nlambda <- 1L
 
@@ -171,7 +186,7 @@ setStart <- function(rho)
         rho$p <- ncol(rho$X)
     }
     ## Intercepts:
-    spacing <- logit((1:rho$ntheta)/(rho$ntheta+1)) # just a guess
+    spacing <- qlogis((1:rho$ntheta)/(rho$ntheta+1)) # just a guess
     if(rho$link != "logit") spacing <- spacing/1.7
     ## if(rho$threshold == "flexible") # default
     alphas <- -coefs[1] + spacing - spacing[q1]
@@ -907,8 +922,11 @@ predict.clm <- function(object, newdata, ...)
             B1 <- cbind(B1, -X)
             B2 <- cbind(B2, -X)
         }
-        pfun <- switch(object$link, logistic = plogis, probit = pnorm,
-                       cloglog = pgumbel, cauchit = pcauchy,
+        pfun <- switch(object$link,
+                       logistic = plogis,
+                       probit = pnorm,
+                       cloglog = pgumbel,
+                       cauchit = pcauchy,
                        loglog = pgumbel2,
                        "Aranda-Ordaz" = function(x, lambda) pAO(x, lambda),
                        "log-gamma" = function(x, lambda) plgamma(x, lambda))
@@ -1378,70 +1396,84 @@ addterm.clm <-
 ## addterm <- function(object, ...) UseMethod("addterm")
 ## dropterm <- function(object, ...) UseMethod("dropterm")
 
+##################################################################
+### pfun, dfun and gfun definitions:
+
+PFUN <- function(x, link)
+    .C("pfun",
+       x = as.double(x),
+       length(x),
+       as.integer(link))$x
+
+DFUN <- function(x, link)
+    .C("dfun",
+       x = as.double(x),
+       length(x),
+       as.integer(link))$x
+
+GFUN <- function(x, link)
+    .C("gfun",
+       x = as.double(x),
+       length(x),
+       as.integer(link))$x
+
+## These functions still needs to be checked to see if they work as
+## intented
+
+#################################
+## pfun:
+
 pgumbel <- function(q, location = 0, scale = 1, lower.tail = TRUE)
+### CDF for the gumbel distribution
+### Currently only unit length location and scale are supported.
+    .C("pgumbel",
+       q = as.double(q),
+       length(q),
+       as.double(location)[1],
+       as.double(scale)[1],
+       as.integer(lower.tail))$q
+
+pgumbel2 <- function(q, location = 0, scale = 1, lower.tail = TRUE)
+### CDF for the 'swapped' gumbel distribution
+### Currently only unit length location and scale are supported.
+    .C("pgumbel2",
+       q = as.double(q),
+       length(q),
+       as.double(location)[1],
+       as.double(scale)[1],
+       as.integer(lower.tail))$q
+
+pgumbelR <- function(q, location = 0, scale = 1, lower.tail = TRUE)
+### R equivalent of pgumbel()
 {
     q <- (q - location)/scale
     p <- exp(-exp(-q))
     if (!lower.tail) 1 - p else p
 }
 
-dgumbel <- function(x, location = 0, scale = 1, log = FALSE)
-{
-    q <- (x - location)/scale
-    log.d <- -exp(-q) - q - log(scale)
-    if (!log) exp(log.d) else log.d
-}
-
-ggumbel <- function(x){
-    q <- exp(-x)
-    eq <- exp(-q)
-    -eq*q + eq*q*q
-}
-
-pgumbel2 <- function(q, location = 0, scale = 1, lower.tail = TRUE)
+pgumbel2R <- function(q, location = 0, scale = 1, lower.tail = TRUE)
 {
     q <- (-q - location)/scale
     p <- exp(-exp(-q))
     if (!lower.tail) p else 1 - p
 }
 
-dgumbel2 <- function(x, location = 0, scale = 1, log = FALSE)
-{
-    q <- (-x - location)/scale
-    log.d <- -exp(-q) - q - log(scale)
-    if (!log) exp(log.d) else log.d
-}
-
-glogis <- function(x) {
-    q <- exp(-x)
-    2*q^2*(1 + q)^-3 - q*(1 + q)^-2
-}
-
-gcauchy <- function(x)  -2*x/pi*(1+x^2)^-2
-
-logit <- function(p) log(p/(1 - p))
-
-pAO <- function(q, lambda, lower.tail = TRUE) {
+pAOR <- function(q, lambda, lower.tail = TRUE) {
     if(lambda < 1e-6)
         stop("'lambda' has to be positive. lambda = ", lambda, " was supplied")
     p <- 1 - (lambda * exp(q) + 1)^(-1/lambda)
     if(!lower.tail) 1 - p else p
 }
 
-dAO <- function(eta, lambda, log = FALSE) {
-### exp(eta) * (lambda * exp(eta) + 1)^(-1-1/lambda)
-    if(lambda < 1e-6)
-        stop("'lambda' has to be positive. lambda = ", lambda, " was supplied")
-    log.d <- eta - (1 + 1/lambda) * log(lambda * exp(eta) + 1)
-    if(!log) exp(log.d) else log.d
-}
+pAO <- function(q, lambda, lower.tail = TRUE)
+    .C("pAO",
+       q = as.double(q),
+       length(q),
+       as.double(lambda[1]),
+       as.integer(lower.tail))$q
 
-gAO <- function(eta, lambda) {
-    lex <- lambda * exp(eta)
-    dAO(eta, lambda) * (1 - (1 + 1/lambda) * lex/(1 + lex))
-}
 
-plgamma <- function(eta, lambda, lower.tail = TRUE) {
+plgammaR <- function(eta, lambda, lower.tail = TRUE) {
     q <- lambda
     v <- q^(-2) * exp(q * eta)
     if(q < 0)
@@ -1453,7 +1485,67 @@ plgamma <- function(eta, lambda, lower.tail = TRUE) {
     if(!lower.tail) 1 - p else p
 }
 
-dlgamma <- function(x, lambda, log = FALSE) {
+plgamma <- function(eta, lambda, lower.tail = TRUE)
+    .C("plgamma",
+       eta = as.double(eta),
+       length(eta),
+       as.double(lambda[1]),
+       as.integer(lower.tail[1]))$eta
+
+#################################
+## dfun:
+
+dgumbel <- function(x, location = 0, scale = 1, log = FALSE)
+### PDF for the gumbel distribution
+### Currently only unit length location and scale are supported.
+    .C("dgumbel",
+       x = as.double(x),
+       length(x),
+       as.double(location)[1],
+       as.double(scale)[1],
+       as.integer(log))$x
+
+dgumbel2 <- function(x, location = 0, scale = 1, log = FALSE)
+### PDF for the 'swapped' gumbel distribution
+### Currently only unit length location and scale are supported.
+    .C("dgumbel2",
+       x = as.double(x),
+       length(x),
+       as.double(location)[1],
+       as.double(scale)[1],
+       as.integer(log))$x
+
+dgumbelR <- function(x, location = 0, scale = 1, log = FALSE)
+### dgumbel in R
+{
+    q <- (x - location)/scale
+    log.d <- -exp(-q) - q - log(scale)
+    if (!log) exp(log.d) else log.d
+}
+
+dgumbel2R <- function(x, location = 0, scale = 1, log = FALSE)
+{
+    q <- (-x - location)/scale
+    log.d <- -exp(-q) - q - log(scale)
+    if (!log) exp(log.d) else log.d
+}
+
+dAOR <- function(eta, lambda, log = FALSE) {
+### exp(eta) * (lambda * exp(eta) + 1)^(-1-1/lambda)
+    if(lambda < 1e-6)
+        stop("'lambda' has to be positive. lambda = ", lambda, " was supplied")
+    log.d <- eta - (1 + 1/lambda) * log(lambda * exp(eta) + 1)
+    if(!log) exp(log.d) else log.d
+}
+
+dAO <- function(eta, lambda, log = FALSE)
+    .C("dAO",
+       eta = as.double(eta),
+       length(eta),
+       as.double(lambda[1]),
+       as.integer(log))$eta
+
+dlgammaR <- function(x, lambda, log = FALSE) {
     q <- lambda
     q.2 <- q^(-2)
     qx <- q * x
@@ -1462,9 +1554,113 @@ dlgamma <- function(x, lambda, log = FALSE) {
     if (!log) exp(log.d) else log.d
 }
 
-glgamma <- function(x, lambda)
+dlgamma <- function(x, lambda, log = FALSE)
+    .C("dlgamma",
+       x = as.double(x),
+       length(x),
+       as.double(lambda[1]),
+       as.integer(log[1]))$x
+
+#################################
+## gfun:
+
+ggumbel <- function(x)
+### gradient of dgumbel(x) wrt. x
+    .C("ggumbel",
+       x = as.double(x),
+       length(x))$x
+
+ggumbel2 <- function(x)
+### gradient of dgumbel(x) wrt. x
+    .C("ggumbel2",
+       x = as.double(x),
+       length(x))$x
+
+ggumbelR <- function(x){
+### ggumbel in R
+    q <- exp(-x)
+    eq <- exp(-q)
+    -eq*q + eq*q*q
+}
+
+ggumbel2R <- function(x) -ggumbelR(-x)
+
+glogis <- function(x)
+### gradient of dlogis
+    .C("glogis",
+       x = as.double(x),
+       length(x))$x
+
+gnorm <- function(x)
+### gradient of dnorm(x) wrt. x
+    .C("gnorm",
+       x = as.double(x),
+       length(x))$x
+
+gcauchy <- function(x)
+### gradient of dcauchy(x) wrt. x
+    .C("gcauchy",
+       x = as.double(x),
+       length(x))$x
+
+glogisR <- function(x) {
+### glogis in R
+    q <- exp(-x)
+    2*q^2*(1 + q)^-3 - q*(1 + q)^-2
+}
+
+gnormR <- function(x)
+### gnorm in R
+    -x * dnorm(x)
+
+gcauchyR <- function(x)
+### gcauchy(x) in R
+    -2*x/pi*(1+x^2)^-2
+
+gAOR <- function(eta, lambda) {
+    lex <- lambda * exp(eta)
+    dAO(eta, lambda) * (1 - (1 + 1/lambda) * lex/(1 + lex))
+}
+
+gAO <- function(eta, lambda)
+    .C("gAO",
+       eta = as.double(eta),
+       length(eta),
+       as.double(lambda[1]))$eta
+
+glgammaR <- function(x, lambda)
     (1 - exp(lambda * x))/lambda * dlgamma(x, lambda)
 
+glgamma <- function(x, lambda)
+    .C("glgamma",
+       x = as.double(x),
+       length(x),
+       as.double(lambda[1]))$x
+
+##################################################################
+PFUN <- function(x, lambda = 1, link)
+    .C("pfun",
+       x = as.double(x),
+       length(x),
+       as.double(lambda),
+       as.integer(link))$x
+
+DFUN <- function(x, lambda = 1, link)
+    .C("dfun",
+       x = as.double(x),
+       length(x),
+       as.double(lambda),
+       as.integer(link))$x
+
+GFUN <- function(x, lambda = 1, link)
+    .C("gfun",
+       x = as.double(x),
+       length(x),
+       as.double(lambda),
+       as.integer(link))$x
+
+##################################################################
+## Additional utility functions:
 
 grad.lambda <- function(rho, lambda, link, delta = 1e-6) {
     ll <- lambda + c(-delta, delta)
@@ -1476,7 +1672,20 @@ grad.lambda <- function(rho, lambda, link, delta = 1e-6) {
     diff(f) /  diff(ll)
 }
 
-Trace <- function(iter, stepFactor, val, maxGrad, par, first=FALSE) {
+TraceC <- function(iter, stepFactor, val, maxGrad, par, first=FALSE) {
+    .C("trace",
+       as.integer(iter[1]),
+       as.double(stepFactor[1]),
+       as.double(val[1]),
+       as.double(maxGrad[1]),
+       as.double(par),
+       length(par),
+       as.integer(first[1]))
+
+    return(invisible())
+}
+
+TraceR <- function(iter, stepFactor, val, maxGrad, par, first=FALSE) {
     t1 <- sprintf(" %3d:     %.2e:   %.3f:   %1.3e:  ",
                   iter, stepFactor, val, maxGrad)
     t2 <- formatC(par)

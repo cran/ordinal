@@ -1,3 +1,4 @@
+useDynLib(ordinal, .registration = TRUE)
 
 # functions
 export(clm)

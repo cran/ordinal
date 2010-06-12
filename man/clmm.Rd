@@ -3,8 +3,8 @@
 \title{Cumulative link mixed models}
 \description{
   Fits cumulative link mixed models, i.e. cumulative link models with
-  random effects via the Laplace approximation or the adaptive
-  Gauss-Hermite quadrature approximation. The functionality in
+  random effects via the Laplace approximation or the standard and the
+  adaptive Gauss-Hermite quadrature approximation. The functionality in
   \code{\link{clm}} is also implemented here. Currently only a single
   random term is allowed in the location-part of the model.
 }
@@ -72,7 +72,10 @@ clmm(location, scale, nominal, random, data, weights, start, subset,
     as in \code{\link{clm}}.
 }
 \item{doFit}{
-    as in \code{\link{clm}}.
+  as in \code{\link{clm}} although it can also be one of \code{c("no",
+    "R" "C")}, where \code{"R"} use the R-implementation for fitting,
+  \code{"C"} (default) use C-implementation for fitting and \code{"no"}
+  behaves as \code{FALSE} and returns the environment. 
 }
 \item{control}{
   a call to \code{\link{clmm.control}}.
@@ -85,7 +88,9 @@ clmm(location, scale, nominal, random, data, weights, start, subset,
     Gauss-Hermite quadrature approximation to the marginal
     likelihood. Defaults to \code{1} which leads to the Laplace
     approximation. An odd number of quadrature points is encouraged and
-    3, 5 or 7 are usually enough to achive high precision.
+    3, 5 or 7 are usually enough to achive high precision. Negative
+    values give the standard, i.e. non-adaptive Gauss-Hermite
+    quadrature. 
 }
 \item{\dots}{
   additional arguments are passed on to \code{\link{clm.control}} and
@@ -111,11 +116,11 @@ clmm(location, scale, nominal, random, data, weights, start, subset,
   scheme uses the observed Hessian rather than the expected as is done
   in e.g. \code{\link[lme4]{glmer}}, so results from the Laplace
   approximation for binomial fits should in general be more precise -
-  partidularly for other links than the \code{"logistic"}.
+  particularly for other links than the \code{"logistic"}.
 
-  The function is implemented in pure R-code, so it will not be as fast
-  as e.g. \code{\link[lme4]{glmer}}, which have of its code in C, for
-  binomial fits.
+  Core parts of the function are implemented in C-code for speed. For
+  binomial fits with a single random factor \code{clmm} is now faster
+  than \code{\link[lme4]{glmer}} for at least some models.
 
   The function calls \code{\link{clm}} to up an
   environment and to get starting values.
@@ -250,6 +255,8 @@ anova(m1, update(m1, random = NULL))
 ## approximation:
 update(m1, Hess = FALSE, nAGQ = 3)
 
+## Use standard Gauss-Hermite quadrature:
+update(m1, Hess = FALSE, nAGQ = -7)
 
 ##################################################################
 ## Binomial example with data from the lme4-package:

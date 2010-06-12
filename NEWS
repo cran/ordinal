@@ -39,3 +39,15 @@ March 04 2010:
   e.g. clm(data$y ~ data$x).
 - Better handling of ill-defined variance-covariance matrix of the
   parameters in summary methods for clm and clmm objects.
+
+2010-06-12:
+
+- Standard Gauss-Hermite quadrature is now available via the nAGQ
+- argument to clmm.
+- Core functions implemented in C for speed. This includes all link
+  functions, update of the conditional modes of the random effects,
+  adaptive Gauss-Hermite quadrature and standard, i.e. non-adaptive
+  Gauss-Hermite quadrature. Select R or C implementation via the
+  argument doFit to clmm.
+- Bug in random effects estimates and their conditional modes
+  corrected. 

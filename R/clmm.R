@@ -1,5 +1,5 @@
 ##################################################################
-#  file ordinalv2/R/clmm.R
+#  file ordinalv3/R/clmm.R
 #
 #  Author: Rune Haubo Bojesen Christensen, rhbc@imm.dtu.dk
 #  Last modified: May 2010
@@ -46,125 +46,104 @@ clmm.control <-
     list(method = method, ctrl = ctrl, optCtrl = optCtrl)
 }
 
-.negLogLikM <- function(rho) { ## negative log-likelihood
+
+.negLogLikBase <- function(rho) {
+### Update stDev, sigma, eta1Fix, and eta2Fix given new par:
     with(rho, {
-        if(estimStDev)
-            stDev <- exp(par[p+nxi+k+estimLambda+ 1:s])
-        o21 <- u[grFac] * stDev
-        o11 <- o1 - o21
-        o21 <- o2 - o21
         if(estimLambda > 0)
             lambda <- par[nxi + p + k + 1:estimLambda]
+        if(estimStDev)
+            stDev <- exp(par[p+nxi+k+estimLambda+ 1:s])
         sigma <-
             if(k > 0) expSoffset * exp(drop(Z %*% par[nxi+p + 1:k]))
             else expSoffset
-        eta1 <- (drop(B1 %*% par[1:(nxi + p)]) + o11)/sigma
-        eta2 <- (drop(B2 %*% par[1:(nxi + p)]) + o21)/sigma
-        pr <-
-            if(nlambda) pfun(eta1, lambda) - pfun(eta2, lambda)
-            else pfun(eta1) - pfun(eta2)
-        if(any(is.na(pr)) || any(pr <= 0))
-            nll <- Inf
-        else
-            nll <- -sum(weights * log(pr)) -
-                sum(dnorm(x=u, mean=0, sd=1, log=TRUE))
-        nll
+        eta1Fix <- drop(B1 %*% par[1:(nxi + p)])
+        eta2Fix <- drop(B2 %*% par[1:(nxi + p)])
     })
+    return(invisible())
 }
 
-.gradM <- function(rho) { ## gradient of the negative log-likelihood
-    with(rho, {
-        if(nlambda) {
-            p1 <- dfun(eta1, lambda)
-            p2 <- dfun(eta2, lambda)
-        }
-        else {
-            p1 <- dfun(eta1)
-            p2 <- dfun(eta2)
-        }
-        wtprSig <- weights/pr/sigma
-        tapply(stDev * wtprSig * (p1 - p2), grFac, sum) + u
+.negLogLikMfast <- function(rho) { ## negative log-likelihood
+    fit <- with(rho, {
+        .C("nll",
+           as.double(u),
+           length(u),
+           as.integer(grFac),
+           as.double(stDev),
+           as.double(o1),
+           as.double(o2),
+           length(o1),
+           eta1 = as.double(eta1),
+           eta2 = as.double(eta2),
+           as.double(eta1Fix),
+           as.double(eta2Fix),
+           as.double(sigma),
+           pr = as.double(pr),
+           as.double(weights),
+           as.double(lambda),
+           as.integer(linkInt),
+           nll = double(1)
+           )[c("eta1", "eta2", "pr", "nll")]
     })
+    rho$eta1 <- fit$eta1
+    rho$eta2 <- fit$eta2
+    rho$pr <- fit$pr
+    fit$nll
 }
 
-.hessianM <- function(rho)  ## hessian of the negative log-likelihood
-    with(rho,{
-        if(nlambda) {
-            g1 <- gfun(eta1, lambda)
-            g2 <- gfun(eta2, lambda)
-        }
-        else {
-            g1 <- gfun(eta1)
-            g2 <- gfun(eta2)
-        }
-        tapply(((p1 - p2)^2 / pr - g1 + g2) * wtprSig, grFac, sum) *
-            stDev^2 + 1
-    })
-
-update.u <- function(rho)
-{
-    stepFactor <- 1
-    innerIter <- 0
-    rho$u <- rho$uStart
-    rho$negLogLik <- .negLogLikM(rho)
-    if(!is.finite(rho$negLogLik)) return(FALSE)
-    rho$gradient <- .gradM(rho)
-    maxGrad <- max(abs(rho$gradient))
-    conv <- -1  ## Convergence flag
-        message <- "iteration limit reached when updating the random effects"
-    if(rho$ctrl$trace > 0)
-        Trace(iter=0, stepFactor, rho$negLogLik, maxGrad, rho$u, first=TRUE)
-
-    ## Newton-Raphson algorithm:
-    for(i in 1:rho$ctrl$maxIter) {
-        if(maxGrad < rho$ctrl$gradTol) {
-            message <- "max|gradient| < tol, so current iterate is probably solution"
-            if(rho$ctrl$trace > 0)
-                cat("\nOptimizer converged! ", "max|grad|:",
-                    maxGrad, message, fill = TRUE)
-            conv <- 0
-            break
-        }
-        rho$D <- .hessianM(rho)
-        step <- rho$gradient / rho$D
-        rho$u <- rho$u - stepFactor * step
-        negLogLikTry <- .negLogLikM(rho)
-        lineIter <- 0
-        ## simple line search, i.e. step halfing:
-        while(negLogLikTry > rho$negLogLik) {
-            stepFactor <- stepFactor/2
-            rho$u <- rho$u + stepFactor * step
-            negLogLikTry <- .negLogLikM(rho)
-            lineIter <- lineIter + 1
-            if(rho$ctrl$trace > 0)
-                Trace(i+innerIter, stepFactor, rho$negLogLik, maxGrad,
-                      rho$u, first=FALSE)
-            if(lineIter > rho$ctrl$maxLineIter){
-                message <- "step factor reduced below minimum when updating the random effects"
-                conv <- 1
-                break
-            }
-            innerIter <- innerIter + 1
-        }
-        rho$negLogLik <- negLogLikTry
-        rho$gradient <- .gradM(rho)
-        maxGrad <- max(abs(rho$gradient))
-        if(rho$ctrl$trace > 0)
-            Trace(i+innerIter, stepFactor, rho$negLogLik, maxGrad, rho$u, first=FALSE)
-        stepFactor <- min(1, 2 * stepFactor)
-    }
-    if(conv != 0 && rho$ctrl$innerCtrl == "warnOnly") {
+update.u.v3 <- function(rho) {
+### third version: C-implementation of NR-algorithm.
+    .negLogLikBase(rho) ## update: par, stDev, eta1Fix, eta2Fix eta2Fix, sigma
+    fit <- with(rho,
+                .C("NRalgv3",
+                   as.integer(ctrl$trace),
+                   as.integer(ctrl$maxIter),
+                   as.double(ctrl$gradTol),
+                   as.integer(ctrl$maxLineIter),
+                   as.integer(grFac),
+                   as.double(stDev),
+                   as.double(o1),
+                   as.double(o2),
+                   as.double(eta1Fix),
+                   as.double(eta2Fix),
+                   as.double(sigma),
+                   as.integer(linkInt),
+                   as.double(weights),
+                   u = as.double(uStart),
+                   pr = as.double(pr),
+                   funValue = double(1),
+                   gradValues = as.double(uStart),
+                   hessValues = as.double(uStart),
+                   length(pr),
+                   length(uStart),
+                   maxGrad = double(1),
+                   conv = 0L,
+                   as.double(lambda),
+                   Niter = as.integer(Niter)
+                   )[c("u", "funValue", "gradValues",
+                       "hessValues", "maxGrad", "conv", "Niter")] )
+    ## Get message:
+    message <- switch(as.character(fit$conv),
+                      "1" = "max|gradient| < tol, so current iterate is probably solution",
+                      "0" = "Non finite negative log-likelihood",
+                      "-1" = "iteration limit reached when updating the random effects",
+                      "-2" = "step factor reduced below minimum when updating the random effects")
+    ## Check for convergence and report warning/error:
+    if(rho$ctrl$trace > 0 && fit$conv == 1)
+        cat("\nOptimizer converged! ", "max|grad|:",
+            fit$maxGrad, message, fill = TRUE)
+    if(fit$conv != 1 && rho$ctrl$innerCtrl == "warnOnly")
         warning(message, "\n  at iteration ", rho$Niter)
-        utils::flush.console()
-    }
-    else if(conv != 0 && rho$ctrl$innerCtrl == "giveError")
+    else if(fit$conv != 1 && rho$ctrl$innerCtrl == "giveError")
         stop(message, "\n  at iteration ", rho$Niter)
-    rho$Niter <- rho$Niter + i
-    rho$D <- .hessianM(rho)
-    if(!is.finite(rho$negLogLik))
+    ## Store values and return:
+    rho$Niter <- fit$Niter
+    rho$u <- fit$u
+    rho$D <- fit$hessValue
+    rho$gradient <- fit$gradValue
+    if(!is.finite(rho$negLogLik <- fit$funValue))
         return(FALSE)
-    else
-        return(TRUE)
+    return(TRUE)
 }
 
 clmm <-
@@ -175,6 +154,10 @@ clmm <-
            doFit = TRUE, control, nAGQ = 1,
            threshold = c("flexible", "symmetric", "equidistant"), ...)
     ## Handle if model = FALSE
+### Marginal fitted values? (pr | u = 0) or (pr | u = u.tilde) ?
+### How can we (should we?) get u.tilde and var(u.tilde) with GHQ?
+### Make safeStart function if !is.finite(negLogLik)
+### Write test suite for doFit argument
 {
     R <- match.call(expand.dots = FALSE)
     Call <- match.call()
@@ -235,6 +218,7 @@ clmm <-
         rhoM$estimStDev <- TRUE
     with(rhoM, {
         r <- nlevels(grFac) ## no. random effects
+        grFac <- as.integer(unclass(grFac))
         if(r <= 2) stop("Grouping factor must have 3 or more levels")
         s <- ifelse(estimStDev, 1L, 0L) ## no. variance parameters
         Niter <- 0L
@@ -263,7 +247,8 @@ clmm <-
        is.null(rhoM$call$sdFixed))
         rhoM$limitLow <- c(rep(-Inf, length(rhoM$par)-2), 1e-5, -Inf)
 ### This should hardly ever be the case:
-    if(!.negLogLikM(rhoM) < Inf)
+    .negLogLikBase(rhoM) ## set lambda, stDev, sigma, eta1Fix and eta2Fix
+    if(!is.finite(.negLogLikMfast(rhoM)))
         stop("Non-finite integrand at starting values")
     rhoM$ctrl <- control$ctrl
     rhoM$optCtrl <- control$optCtrl
@@ -271,23 +256,53 @@ clmm <-
         m <- match(names(rhoM$optCtrl), c("grad","grtol"), 0)
         rhoM$optCtrl <- rhoM$optCtrl[!m]
     }
+### Match doFit:
+    if(is.logical(doFit) || is.numeric(doFit)) {
+        if(doFit) doFit <- "C"
+        else doFit <- "no"
+    }
+    else if(!is.character(doFit) || !doFit %in% c("no", "R", "C"))
+        stop("argument 'doFit' not recognized. 'doFit' should be\n
+numeric, logical or one of c('no', 'R', 'C')")
 
-### Set AGQ parameters:
-    ObjFun <- getNLA
+### Set ObjFun parameters:
+    ObjFun <- getNLA ## same for "R" and "C"
+    rhoM$updateU <-
+        if(doFit == "R") update.u
+        else update.u.v3
     rhoM$nAGQ <- as.integer(nAGQ)
     if(rhoM$nAGQ >= 2) {
-        ObjFun <- getNAGQ
-        rhoM$PRnn <- array(0, dim=c(rhoM$n, rhoM$nAGQ))
-        rhoM$PRrn <- array(0, dim=c(rhoM$r, rhoM$nAGQ))
         ghq <- gauss.hermite(rhoM$nAGQ)
         rhoM$ghqns <- ghq$nodes
-        rhoM$ghqws <- ghq$weights * exp(rhoM$ghqns^2)
+        rhoM$ghqws <- ghq$weights
+        if(doFit == "R") {
+            ObjFun <- getNAGQinR
+            rhoM$PRnn <- array(0, dim=c(rhoM$n, rhoM$nAGQ))
+            rhoM$PRrn <- array(0, dim=c(rhoM$r, rhoM$nAGQ))
+            rhoM$ghqws <- ghq$weights * exp(rhoM$ghqns^2)
+        }
+        else
+            ObjFun <- getNAGQinC
     }
+    if(rhoM$nAGQ <= -1) {
+        ghq <- gauss.hermite(abs(rhoM$nAGQ))
+        rhoM$ghqns <- ghq$nodes
+        rhoM$ghqws <- ghq$weights * exp((ghq$nodes^2)/2)
+        if(doFit == "R"){
+            ObjFun <- getNGHQinR
+        }
+        else {
+            ObjFun <- getNGHQinC
+            rhoM$ghqws <- log(ghq$weights) + (ghq$nodes^2)/2
+        }
+    }
+    stopifnot(rhoM$nAGQ != 0) ## test needed?
 
 ### Fit the model:
-    if(!doFit)
+    if(!doFit %in% c("C", "R"))
         return(rhoM)
-    update.u(rhoM) # Try updating the random effects
+    if(rhoM$nAGQ > -1)
+        rhoM$updateU(rhoM) # Try updating the random effects
     rhoM$optRes <- switch(rhoM$method,
                        "ucminf" = ucminf(rhoM$start, function(x)
                        ObjFun(rhoM, x), control=rhoM$optCtrl),
@@ -307,7 +322,9 @@ clmm <-
             rhoM$par <- rhoM$optRes[[1]]
         }
     }
-    update.u(rhoM) # Makes sure ranef's are evaluated at the optimum
+    .negLogLikMfast(rhoM) ## update pr
+    ## if(rhoM$nAGQ > -1)
+    rhoM$updateU(rhoM) # Makes sure ranef's are evaluated at the optimum
 ### Post processing:
     res <- finalizeRhoM(rhoM)
     res$call <- match.call()
@@ -318,27 +335,31 @@ clmm <-
 }
 
 getNLA <- function(rho, par) {
+### negative log-likelihood by the Laplace approximation
+### (with update.u in C or R):
     if(!missing(par)) rho$par <- par
-    if(!update.u(rho)) return(Inf)
+    if(!rho$updateU(rho)) return(Inf)
     if(any(rho$D < 0)) return(Inf)
-    logDetD <- sum(log(rho$D/(2*pi)))
+    ## logDetD <- sum(log(rho$D/(2*pi)))
+    logDetD <- sum(log(rho$D)) - rho$r * log(2*pi)
     rho$negLogLik + logDetD / 2
 }
 
-getNAGQ <- function(rho, par) {
+getNAGQinR <- function(rho, par) {
+### negative log-likelihood by adaptive Gauss-Hermite quadrature
+### implemented in R:
     if(!missing(par))
         rho$par <- par
-    if(!update.u(rho)) return(Inf)
+    if(!rho$updateU(rho)) return(Inf)
     if(any(rho$D < 0)) return(Inf)
-    ## update.u(rho)
     with(rho, {
         K <- sqrt(2/D)
         agqws <- K %*% t(ghqws)
         agqns <- apply(K %*% t(ghqns), 2, function(x) x + u)
         ranNew <- apply(agqns, 2, function(x) x[grFac] * stDev)
 
-        eta1Tmp <- (drop(B1 %*% par[1:(nxi + p)]) + o1 - ranNew)/sigma
-        eta2Tmp <- (drop(B2 %*% par[1:(nxi + p)]) + o2 - ranNew)/sigma
+        eta1Tmp <- (eta1Fix + o1 - ranNew) / sigma
+        eta2Tmp <- (eta2Fix + o2 - ranNew) / sigma
         if(nlambda)
             ## PRnn <- (pfun(eta1Tmp, lambda) - pfun(eta2Tmp, lambda))^weights
             ## This is likely a computationally more safe solution:
@@ -347,10 +368,102 @@ getNAGQ <- function(rho, par) {
             ## PRnn <- (pfun(eta1Tmp) - pfun(eta2Tmp))^weights
             PRnn <- exp(weights * log(pfun(eta1Tmp) - pfun(eta2Tmp)))
         for(i in 1:r)
-            PRrn[i,] <- apply(PRnn[unclass(grFac) == i, ], 2, prod)
+            ## PRrn[i,] <- apply(PRnn[grFac == i, ], 2, prod)
+### FIXME: Should this be: ???
+            PRrn[i,] <- apply(PRnn[grFac == i, ,drop = FALSE], 2, prod)
         PRrn <- PRrn * agqws * dnorm(x=agqns, mean=0, sd=1)
+### FIXME: Could this be optimized by essentially computing dnorm 'by hand'?
     })
     -sum(log(rowSums(rho$PRrn)))
+}
+
+getNAGQinC <- function(rho, par) {
+### negative log-likelihood by adaptive Gauss-Hermite quadrature
+### implemented in C:
+    if(!missing(par))
+        rho$par <- par
+    if(!rho$updateU(rho)) return(Inf)
+    if(any(rho$D < 0)) return(Inf)
+    with(rho, {
+        .C("getNAGQ",
+           nll = double(1),
+           as.integer(grFac),
+           as.double(stDev),
+           as.double(eta1Fix),
+           as.double(eta2Fix),
+           as.double(o1),
+           as.double(o2),
+           as.double(sigma),
+           as.double(weights),
+           length(sigma),
+           length(uStart),
+           as.double(ghqns),
+           as.double(log(ghqws)),
+           as.double(ghqns^2),
+           as.double(u),
+           as.double(D),
+           as.integer(abs(nAGQ)),
+           as.integer(linkInt),
+           as.double(lambda))$nll
+    })
+}
+
+getNGHQinR <- function(rho, par) {
+### negative log-likelihood by standard Gauss-Hermite quadrature
+### implemented in R:
+    if(!missing(par))
+        rho$par <- par
+    .negLogLikBase(rho) ## Update lambda, stDev, sigma and eta*Fix
+    with(rho, {
+        ns <- ghqns * stDev
+        SS <- numeric(r) ## summed likelihood
+        for(i in 1:r) {
+            ind <- grFac == i
+            eta1Fi <- eta1Fix[ind]
+            eta2Fi <- eta2Fix[ind]
+            o1i <- o1[ind]
+            o2i <- o2[ind]
+            si <- sigma[ind]
+            wt <- weights[ind]
+            for(h in 1:abs(nAGQ)) {
+                eta1s <- (eta1Fi + o1i - ns[h]) / si
+                eta2s <- (eta2Fi + o2i - ns[h]) / si
+                ## SS[i] <- exp(sum(wt * log(pfun(eta1s) - pfun(eta2s)))) *
+                ##     ghqws[h] * exp(ghqns[h]^2) * dnorm(x=ghqns[h]) + SS[i]
+                SS[i] <- exp(sum(wt * log(pfun(eta1s) - pfun(eta2s)))) *
+                    ghqws[h] + SS[i]
+            }
+        }
+        -sum(log(SS)) + r * log(2*pi)/2
+    })
+}
+
+getNGHQinC <- function(rho, par) {
+### negative log-likelihood by standard Gauss-Hermite quadrature
+### implemented in C:
+    if(!missing(par))
+        rho$par <- par
+    .negLogLikBase(rho) ## Update lambda, stDev, sigma and eta*Fix
+    with(rho, {
+        .C("getNGHQ",
+           nll = double(1),
+           as.integer(grFac),
+           as.double(stDev),
+           as.double(eta1Fix),
+           as.double(eta2Fix),
+           as.double(o1),
+           as.double(o2),
+           as.double(sigma),
+           as.double(weights),
+           length(sigma),
+           length(uStart),
+           as.double(ghqns),
+           as.double(ghqws),
+           as.integer(abs(nAGQ)),
+           as.integer(linkInt),
+           as.double(ghqns * stDev),
+           as.double(lambda))$nll
+    })
 }
 
 finalizeRhoM <- function(rhoM) {
@@ -416,8 +529,8 @@ finalizeRhoM <- function(rhoM) {
         nobs <- sum(weights)
         fitted.values <- pr
         df.residual = nobs - edf
-        ranef <- u * exp(stDev)
-        condVar <- 1/D * exp(2*stDev)
+        ranef <- u * stDev
+        condVar <- 1/D * stDev^2
         logLik <- -optRes[[2]]
     })
     res <- as.list(rhoM)
