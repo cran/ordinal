@@ -2,13 +2,14 @@
 \alias{predict.clm}
 \title{Predict Method for CLM fits}
 \description{
-  Obtains predictions from a cumulative link model.
+  Obtains predictions from a cumulative link (mixed) model.
 }
 \usage{
 \method{predict}{clm}(object, newdata, ...)
 }
 \arguments{
-  \item{object}{a fitted object of class inheriting from \code{"clm"}.}
+  \item{object}{a fitted object of class inheriting from
+    \code{clm}. This include \code{clmm} objects.}
   \item{newdata}{optionally, a data frame in which to look for variables
     with which to predict. Observe that the response variable should
     also be present.}
@@ -18,14 +19,22 @@
   This method does not duplicate the behavior of
   \code{predict.polr} in package \code{MASS} which produces a
   matrix instead of a vector of predictions. The behavior of
-  \code{predict.polr} can be mimiced as shown in the examples. 
+  \code{predict.polr} can be mimiced as shown in the examples.
+
+  If \code{newdata} is not supplied, the fitted values are obtained. For
+  \code{clmm} fits this means predictions that are controlled for the
+  observed value of the random effects. If the predictions for a
+  random effect of zero, i.e. an average 'subject', are wanted, the same
+  data used to fit the model should be supplied in the \code{newdata}
+  argument. For \code{clm} fits those two sets of predictions are
+  identical. 
 }
 \value{
   A vector of predicted probabilities.
 }
 \author{Rune Haubo B Christensen}
 \seealso{
-    \code{\link[ordinal]{clm}}.
+    \code{\link[ordinal]{clm}}, \code{\link[ordinal]{clmm}}.
 }
 \examples{
 options(contrasts = c("contr.treatment", "contr.poly"))

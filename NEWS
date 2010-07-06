@@ -43,7 +43,7 @@ March 04 2010:
 2010-06-12:
 
 - Standard Gauss-Hermite quadrature is now available via the nAGQ
-- argument to clmm.
+  argument to clmm.
 - Core functions implemented in C for speed. This includes all link
   functions, update of the conditional modes of the random effects,
   adaptive Gauss-Hermite quadrature and standard, i.e. non-adaptive
@@ -51,3 +51,7 @@ March 04 2010:
   argument doFit to clmm.
 - Bug in random effects estimates and their conditional modes
   corrected. 
+
+2010-07-06:
+
+- Bug in predict when 'newdata' was supplied is now corrected.

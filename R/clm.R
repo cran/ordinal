@@ -935,10 +935,11 @@ predict.clm <- function(object, newdata, ...)
             sigma <- sigma * exp(drop(Z %*% object$zeta))
         eta1 <- (drop(B1 %*% c(object$xi, object$beta)) + o1)/sigma
         eta2 <- (drop(B2 %*% c(object$xi, object$beta)) + o2)/sigma
-        if(!is.null(object$lambda))
-            pr <- pfun(eta1, object$lambda) - pfun(eta2, object$lambda)
+        if(object$link %in% c("Aranda-Ordaz", "log-gamma"))
+          ## if(!is.null(object$lambda))
+          pr <- pfun(eta1, object$lambda) - pfun(eta2, object$lambda)
         else
-            pr <- pfun(eta1) - pfun(eta2)
+          pr <- pfun(eta1) - pfun(eta2)
     }
     if(missing(newdata) && !is.null(object$na.action))
         pr <- napredict(object$na.action, pr)

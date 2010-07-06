@@ -46,28 +46,28 @@ soup
   \item{\code{COLD}}{
     factor with two levels: does the respondent have a cold?
   }
-%%   \item{\code{EASY}}{
-%%     factor with ten levels: How easy did the respondent find the
-%%     discrimation test? 1 = difficult, 10 = easy.
-%%   }
+  \item{\code{EASY}}{
+    factor with ten levels: How easy did the respondent find the
+    discrimation test? 1 = difficult, 10 = easy.
+  }
   \item{\code{GENDER}}{
     factor with two levels: gender of the respondent.
   }
   \item{\code{AGEGROUP}}{
     factor with four levels: the age of the respondent.
   }
-%%   \item{\code{LOCATION}}{
-%%     factor with three levels: three different locations in the
-%%     Netherlands where experimentation took place.
-%%   }
+  \item{\code{LOCATION}}{
+    factor with three levels: three different locations where
+    experimentation took place. 
+  }
 %%   \item{\code{SEQ}}{
 %%     integer vector: the sequence at which experimentation took
 %%     place. Numbering restarted at the second day of experimentation.
 %%   }
 }}
 \source{
-  Data are simulated based on a real eksperiment. Permission to publish
-  the real data is not granted (yet). % produced by Unilever Research.
+  Data are produced by Unilever Research. Permission to publish
+  the real data is granted. 
 }
 \references{
   Christensen, R. H. B., Brockhoff, P. B. and Cleaver, G. (2010)

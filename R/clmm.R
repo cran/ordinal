@@ -554,13 +554,17 @@ anova.clmm <- function (object, ..., test = c("Chisq", "none"))
 
 print.clmm <- function(x, ...)
 {
-    if(x$nAGQ >=2)
-        cat(paste("Cumulative Link Mixed Model fitted with the adaptive",
-                  "Gauss-Hermite \nquadrature approximation with",
-                  x$nAGQ ,"quadrature points"), "\n\n")
-    else
-        cat("Cumulative Link Mixed Model fitted with the Laplace approximation\n",
-            fill=TRUE)
+  if(x$nAGQ >= 2)
+    cat(paste("Cumulative Link Mixed Model fitted with the adaptive",
+              "Gauss-Hermite \nquadrature approximation with",
+              x$nAGQ ,"quadrature points"), "\n\n")
+  else if(x$nAGQ <= -1)
+    cat(paste("Cumulative Link Mixed Model fitted with the",
+              "Gauss-Hermite \nquadrature approximation with",
+              abs(x$nAGQ) ,"quadrature points"), "\n\n")
+  else
+    cat("Cumulative Link Mixed Model fitted with the Laplace approximation\n",
+        fill=TRUE)
     if(!is.null(cl <- x$call)) {
         cat("Call:\n")
         dput(cl, control=NULL)
@@ -660,6 +664,10 @@ print.summary.clmm <- function(x, digits = x$digits, signif.stars =
         cat(paste("Cumulative Link Mixed Model fitted with the adaptive",
                   "Gauss-Hermite \nquadrature approximation with",
                   x$nAGQ ,"quadrature points\n\n"))
+    else if(x$nAGQ <= -1)
+      cat(paste("Cumulative Link Mixed Model fitted with the",
+                "Gauss-Hermite \nquadrature approximation with",
+                abs(x$nAGQ) ,"quadrature points"), "\n\n")
     else
         cat("Cumulative Link Mixed Model fitted with the Laplace approximation\n",
             fill=TRUE)
