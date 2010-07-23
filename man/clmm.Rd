@@ -145,6 +145,10 @@ clmm(location, scale, nominal, random, data, weights, start, subset,
     the number of quadrature points used in the adaptive Gauss-Hermite
     Quadrature approximation to the marginal likelihood.
   }
+  \item{ranef}{
+    the conditional modes of the random effects, sometimes referred to
+    as "random effect estimates".
+  }
   \item{condVar}{
     the conditional variances of the random effects at their conditional
     modes.
@@ -173,9 +177,12 @@ clmm(location, scale, nominal, random, data, weights, start, subset,
   \item{df.residual}{the number of residual degrees of freedoms,
     calculated using the weights.
   }
-  \item{fitted.values}{vector of fitted values for each
-    observation. An observation here is each of the scalar elements of
-    the multinomial table and not a multinomial vector.
+  \item{fitted.values}{vector of fitted values conditional on the values
+    of the random effects. Use \code{\link[=predict.clm]{predict}} to
+    get the fitted 
+    values for a random effect of zero. An observation here is taken to
+    be each of the scalar elements of the multinomial table and not a
+    multinomial vector. 
   }
   \item{convergence}{\code{TRUE} if the optimizer terminates wihtout
     error and \code{FALSE} otherwise.

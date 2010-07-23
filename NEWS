@@ -55,3 +55,8 @@ March 04 2010:
 2010-07-06:
 
 - Bug in predict when 'newdata' was supplied is now corrected.
+
+2010-07-23:
+
+- Better descriptions of random effect estimates and fitted values in
+  the clmm help page.

@@ -1,8 +1,8 @@
 Package: ordinal
 Type: Package
 Title: Regression Models for Ordinal Data
-Version: 2010.07-06
-Date: 2010-07-06
+Version: 2010.07-23
+Date: 2010-07-23
 Author: Rune Haubo B Christensen
 Maintainer: Rune Haubo B Christensen <rhbc@imm.dtu.dk>
 Imports: numDeriv
@@ -21,6 +21,6 @@ Description: This package implements likelihood based models for
 License: GPL (>= 2)
 Repository: CRAN
 Repository/R-Forge/Project: ordinal
-Repository/R-Forge/Revision: 5
-Date/Publication: 2010-07-24 20:21:55
-Packaged: 2010-07-19 20:52:06 UTC; rforge
+Repository/R-Forge/Revision: 6
+Date/Publication: 2010-09-28 13:18:47
+Packaged: 2010-07-24 20:53:07 UTC; rforge
