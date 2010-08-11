@@ -143,7 +143,7 @@
     })
 
 
-update.u.v2 <- function(rho) {
+update.u2.v2 <- function(rho) {
 ### second version: C-implementation of NR-algorithm.
     .negLogLikBase(rho) ## update: par, stDev, eta1Fix, eta2Fix eta2Fix, sigma
     fit <- with(rho,
@@ -204,7 +204,7 @@ update.u.v2 <- function(rho) {
     return(TRUE)
 }
 
-update.u <- function(rho)
+update.u2 <- function(rho)
 {
     stepFactor <- 1
     innerIter <- 0
@@ -356,7 +356,7 @@ getNAGQ2 <- function(rho, par) {
 ### Not in use
     if(!missing(par))
         rho$par <- par
-    if(!update.u(rho)) return(Inf)
+    if(!update.u2(rho)) return(Inf)
     if(any(rho$D < 0)) return(Inf)
     with(rho, {
         K <- sqrt(2/D)

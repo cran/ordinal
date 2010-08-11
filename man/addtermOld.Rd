@@ -1,6 +1,6 @@
-\name{addterm.clm}
-\alias{addterm.clm}
-\alias{dropterm.clm}
+\name{addterm.clm2}
+\alias{addterm.clm2}
+\alias{dropterm.clm2}
 \title{
 Try all one-term additions to and deletions from a model
 }
@@ -10,16 +10,16 @@ deleting a single term from those supplied while maintaining
 marginality.
 }
 \usage{
-\method{addterm}{clm}(object, scope, scale = 0, test = c("none", "Chisq"),
+\method{addterm}{clm2}(object, scope, scale = 0, test = c("none", "Chisq"),
         k = 2, sorted = FALSE, trace = FALSE,
         which = c("location", "scale"), \dots)
-\method{dropterm}{clm}(object, scope, scale = 0, test = c("none", "Chisq"),
+\method{dropterm}{clm2}(object, scope, scale = 0, test = c("none", "Chisq"),
         k = 2, sorted = FALSE, trace = FALSE,
         which = c("location", "scale"), \dots)
 }
 \arguments{
   \item{object}{
-    A \code{\link{clm}} object.
+    A \code{\link{clm2}} object.
   }
   \item{scope}{
     for \code{addterm}:
@@ -68,14 +68,14 @@ likelihood function is only defined up to an additive constant.
 }
 \author{Rune Haubo B Christensen}
 \seealso{
-  \code{\link[ordinal]{clm}}, \code{\link[ordinal]{anova}},
+  \code{\link[ordinal]{clm2}}, \code{\link[=anova.clm2]{anova}},
   \code{\link{addterm.default}} and \code{\link{dropterm.default}}
 }
 \examples{
 
 options(contrasts = c("contr.treatment", "contr.poly"))
 data(soup)
-mB1 <- clm(SURENESS ~ PROD + GENDER + SOUPTYPE,
+mB1 <- clm2(SURENESS ~ PROD + GENDER + SOUPTYPE,
            scale = ~ COLD, data = soup, link = "probit",
            Hess = FALSE)
 dropterm(mB1, test = "Chi")       # or
@@ -89,7 +89,7 @@ addterm(mB1, scope = ~ . + AGEGROUP + SOUPFREQ,
 
 ## Fit model from polr example:
 data(housing, package = "MASS")
-fm1 <- clm(Sat ~ Infl + Type + Cont, weights = Freq, data = housing)
+fm1 <- clm2(Sat ~ Infl + Type + Cont, weights = Freq, data = housing)
 addterm(fm1, ~ Infl + Type + Cont, test= "Chisq", which = "scale")
 dropterm(fm1, test = "Chisq")
 }

@@ -996,4 +996,3 @@ double maxAbs(double *x, int nx)
     }
     return cmax;
 }
-

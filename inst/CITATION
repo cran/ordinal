@@ -6,13 +6,13 @@ vers <- paste("R package version", desc$Version,
      		"http://www.cran.r-project.org/package=ordinal/")
 
 citEntry(entry="misc",
-         title = "ordinal---Regression Models for Ordinal Data",
+         title = "ordinal2---Regression Models for Ordinal Data ",
          author = personList(as.person("R. H. B. Christensen")),
          year         = year,
 	 note	      = vers,
 
          textVersion =
          paste("Christensen, R. H. B. (", year,
- 		"). ordinal---Regression Models for Ordinal Data",
+ 		"). ordinal2---Regression Models for Ordinal Data ",
 		vers, ".", sep="")
 )

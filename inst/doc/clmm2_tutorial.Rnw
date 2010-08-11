@@ -12,10 +12,10 @@
 \usepackage{algorithmic}
 \usepackage[amsmath,thmmarks,standard,thref]{ntheorem}
 
-%%\VignetteIndexEntry{clmm tutorial}
+%%\VignetteIndexEntry{clmm2 tutorial}
 %%\VignetteDepends{ordinal, xtable}
 \title{A Tutorial on fitting Cumulative Link Mixed Models with 
-  %% \texttt{clmm} from 
+  \texttt{clmm2} from 
   the \textsf{ordinal} Package} 
 \author{Rune Haubo B Christensen}
 
@@ -109,8 +109,9 @@
 \begin{abstract}
   
   It is shown by example how a cumulative link mixed model is fitted
-  with the \texttt{clmm} function in package \textsf{ordinal}. Model
-  interpretation and inference is briefly discussed.
+  with the \texttt{clmm2} function in package \textsf{ordinal}. Model
+  interpretation and inference is briefly discussed. A tutorial for
+  the more recent \texttt{clmm} function is work in progress.
 
 \end{abstract}
 
@@ -208,12 +209,12 @@ or cut-points.
 We take the judge effects to be random, and assume that the judge
 effects are IID normal: $u(\mathtt{judge}_i) \sim N(0, \sigma_u^2)$.
 
-We fit this model with the \texttt{clmm} function in
-package \textsf{ordinal}. Here we save the fitted \texttt{clmm} model
+We fit this model with the \texttt{clmm2} function in
+package \textsf{ordinal}. Here we save the fitted \texttt{clmm2} model
 in the object \texttt{fm1} (short for \texttt{f}itted \texttt{m}odel
 \texttt{1}) and \texttt{print} the model by simply typing its name:
 <<>>=
-fm1 <- clmm(rating ~ temp + contact, random=judge, data=wine)
+fm1 <- clmm2(rating ~ temp + contact, random=judge, data=wine)
 fm1
 @ 
 Maximum likelihood estimates of the parameters are provided using the
@@ -222,7 +223,7 @@ more accurate approximation is provided by the adaptive Gauss-Hermite
 quadrature method. Here we use 10 quadrature nodes and use the
 \texttt{summary} method to display additional information:
 <<>>=
-fm2 <- clmm(rating ~ temp + contact, random=judge, data=wine,
+fm2 <- clmm2(rating ~ temp + contact, random=judge, data=wine,
             Hess=TRUE, nAGQ=10)
 summary(fm2)
 @ 
@@ -270,7 +271,7 @@ statistic. More accurate test are provided by likelihood ratio
 tests. These can be obtained with the \texttt{anova} method, for
 example, the likelihood ratio test of \texttt{contact} is
 <<>>=
-fm3 <- clmm(rating ~ temp, random=judge, data=wine, nAGQ=10)
+fm3 <- clmm2(rating ~ temp, random=judge, data=wine, nAGQ=10)
 anova(fm3, fm2)
 @ 
 which in this case is slightly more significant. The Wald test is not
@@ -278,7 +279,7 @@ reliable for variance parameters, so the \texttt{summary} method does
 not provide a test of $\sigma_u$, but a likelihood ratio test can be
 obtained with \texttt{anova}:
 <<>>=
-fm4 <- clm(rating ~ temp + contact, data=wine)
+fm4 <- clm2(rating ~ temp + contact, data=wine)
 anova(fm4, fm2)
 @ 
 showing that the judge term is significant. Since this test of
@@ -316,7 +317,7 @@ The judge effects, $u(\mathtt{judge}_i)$ are not parameters, so they
 cannot be \emph{estimated} in the conventional sense, but a ``best
 guess'' is provided by the \emph{conditional modes}. Similarly the
 \emph{conditional variance} provides an uncertainty measure of the
-conditional modes. These quantities are included in \texttt{clmm}
+conditional modes. These quantities are included in \texttt{clmm2}
 objects as the \texttt{ranef} and \texttt{condVar} components.
 The following code generates the plot in
 Fig.~\ref{fig:ranef} illustrating judge effects via conditional
@@ -495,8 +496,8 @@ exp(2*qnorm(0.95) * fm2$stDev)
 @ 
 The differences between judges can also be expressed in terms of
 the interquartile range: the odds ratio for a bitterness rating in
-category $j$ or above for a third quantile judge relative to a first
-quantile judge is 
+category $j$ or above for a third quartile judge relative to a first
+quartile judge is 
 <<>>=
 exp(2*qnorm(0.75) * fm2$stDev)
 @ 

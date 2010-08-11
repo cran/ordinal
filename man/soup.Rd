@@ -67,12 +67,13 @@ soup
 }}
 \source{
   Data are produced by Unilever Research. Permission to publish
-  the real data is granted. 
+  the data is granted. 
 }
 \references{
-  Christensen, R. H. B., Brockhoff, P. B. and Cleaver, G. (2010)
+  Christensen, R. H. B., Cleaver, G. and Brockhoff, P. B.(2011)
   Statistical and Thurstonian models for the A-not A protocol with and
-  without sureness. Manuscript for \emph{Food Quality and Preference}.
+  without sureness. \emph{Food Quality and Preference, 22},
+  pp. 542-549. 
 }
 
 \keyword{datasets}

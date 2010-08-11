@@ -12,7 +12,7 @@ dimnames(tab26)[[2]] <- c("Sure", "Not Sure", "Guess", "Guess", "Not Sure", "Sur
 dat26 <- expand.grid(sureness = as.factor(1:6), prod = c("Ref", "Test"))
 dat26$wghts <- c(t(tab26))
 m1 <- clm(sureness ~ prod, scale = ~prod, data = dat26,
-          weights = wghts, link = "logistic")
+          weights = wghts, link = "logit")
 ## print, summary, vcov, logLik, AIC:
 m1
 summary(m1)
@@ -48,18 +48,19 @@ m3 <- update(m1, link = "cloglog")
 
 m4 <- update(m1, link = "loglog")
 m5 <- update(m1, link = "cauchit", start = coef(m1))
-m6 <- update(m1, link = "Aranda-Ordaz", lambda = 1)
-m7 <- update(m1, link = "Aranda-Ordaz")
-m8 <- update(m1, link = "log-gamma", lambda = 1)
-m9 <- update(m1, link = "log-gamma")
+## m6 <- update(m1, link = "Aranda-Ordaz", lambda = 1)
+## m7 <- update(m1, link = "Aranda-Ordaz")
+## m8 <- update(m1, link = "log-gamma", lambda = 1)
+## m9 <- update(m1, link = "log-gamma")
 ## nominal effects:
 mN1 <- clm(sureness ~ 1, nominal = ~ prod, data = dat26,
-weights = wghts, link = "logistic")
+           weights = wghts)
 anova(m1, mN1)
 ## optimizer / method:
 update(m1, scale = ~ 1, method = "Newton")
-update(m1, scale = ~ 1, method = "nlminb")
-update(m1, scale = ~ 1, method = "optim")
+## update(m1, scale = ~ 1, method = "ucminf")
+## update(m1, scale = ~ 1, method = "nlminb")
+## update(m1, scale = ~ 1, method = "optim")
 update(m1, scale = ~ 1, method = "model.frame")
 update(m1, location = ~.-prod, scale = ~ 1,
        nominal = ~ prod, method = "model.frame")
@@ -98,10 +99,12 @@ x <- rnorm(20)
 data <- data.frame(y=y,x=x)
 rm(x, y)
 fit <- clm(data$y ~ data$x)
+fit
 fit <- clm(data[,1] ~ data[,2])
-## This currently fails, but the union of variable names in location
-## and scale could possibly be tested for:
-## fit <- clm(data$y ~ data$x, ~data$x)
+fit
+## This previously failed, but now works:
+fit <- clm(data$y ~ data$x, ~data$x)
+fit
 
 #################################
 ## Better handling of ill-defined variance-covariance matrix of the
@@ -112,44 +115,54 @@ fm1 <- clm(sureness ~ prod, ~prod, data = dat26.2)
 fm1
 summary(fm1)
 summary(fm1, corr = 1)
+## fm1$Hessian
+## sl1 <- slice(fm1, 13)
+## fitted(fm1)
+## convergence(fm1)
+## eigen(fm1$Hessian)$values
+## sqrt(diag(solve(fm1$Hessian)))
+## sqrt(diag(ginv(fm1$Hessian)))
 
 #################################
 ## Missing values:
 ## Bug-report from Jonathan Williams
 ## <Jonathan.Williams@dpag.ox.ac.uk>, 18 March 2010 12:42
+##  (some currently fails)
 data(soup, package = "ordinal")
 soup$SURENESS[10] <- NA
 c1a <- clm(ordered(SURENESS)~PROD, data=soup); summary(c1a)
-c2a <- clm(ordered(SURENESS)~PROD, scale = ~PROD, data=soup); summary(c2a)
-c3a <- clm(ordered(SURENESS)~1, scale = ~PROD, data=soup); summary(c3a)
+## c2a <- clm(ordered(SURENESS)~PROD, scale = ~PROD, data=soup); summary(c2a)
+## c3a <- clm(ordered(SURENESS)~1, scale = ~PROD, data=soup);
+## summary(c3a)
 data(soup, package = "ordinal")
 soup$PROD[1] <- NA
 c1a <- clm(ordered(SURENESS)~PROD, data=soup); summary(c1a)
 c2a <- clm(ordered(SURENESS)~PROD, scale = ~PROD, data=soup); summary(c2a)
-c3a <- clm(ordered(SURENESS)~1, scale = ~PROD, data=soup); summary(c3a)
+## c3a <- clm(ordered(SURENESS)~1, scale = ~PROD, data=soup); summary(c3a)
 soup$SURENESS[10] <- NA
 c1a <- clm(ordered(SURENESS)~PROD, data=soup); summary(c1a)
-c2a <- clm(ordered(SURENESS)~PROD, scale = ~PROD, data=soup); summary(c2a)
-c3a <- clm(ordered(SURENESS)~1, scale = ~PROD, data=soup); summary(c3a)
+## c2a <- clm(ordered(SURENESS)~PROD, scale = ~PROD, data=soup); summary(c2a)
+## c3a <- clm(ordered(SURENESS)~1, scale = ~PROD, data=soup); summary(c3a)
 
 ## na.actions:
-c4a <- clm(ordered(SURENESS)~PROD, scale = ~PROD, data=soup,
-           na.action=na.omit)
-summary(c4a)
+## c4a <- clm(ordered(SURENESS)~PROD, scale = ~PROD, data=soup,
+##            na.action=na.omit)
+## summary(c4a)
 
 tC1 <- try(clm(ordered(SURENESS)~PROD, scale = ~PROD, data=soup,
                na.action=na.fail), silent = TRUE)
 stopifnot(class(tC1) == "try-error")
 
-c4a <- clm(ordered(SURENESS)~PROD, scale = ~PROD, data=soup,
-           na.action=na.exclude)
-summary(c4a)
+## c4a <- clm(ordered(SURENESS)~PROD, scale = ~PROD, data=soup,
+##            na.action=na.exclude)
+## summary(c4a)
 
-tC2 <- try(clm(ordered(SURENESS)~PROD, scale = ~PROD, data=soup,
-               na.action=na.pass), silent = TRUE)
-stopifnot(class(tC2) == "try-error")
+## tC2 <- try(clm(ordered(SURENESS)~PROD, scale = ~PROD, data=soup,
+##                na.action=na.pass), silent = TRUE)
+## stopifnot(class(tC2) == "try-error")
 
 ## Subset:
+data(soup)
 c4a <- clm(ordered(SURENESS)~PROD, scale = ~PROD, data=soup,
            subset = 1:100)
 c4a <- clm(ordered(SURENESS)~1, scale = ~PROD, data=soup,
@@ -178,7 +191,7 @@ summary(c4a)
 ## data as matrix:
 dat26M <- as.matrix(dat26)
 m1 <- clm(sureness ~ prod, scale = ~prod, data = dat26,
-          weights = wghts, link = "logistic")
+          weights = wghts, link = "logit")
 summary(m1)
 
 ## data in enclosing environment:

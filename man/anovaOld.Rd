@@ -1,7 +1,7 @@
-\name{anova.clm}
+\name{anova.clm2}
 %%\alias{anova}
-\alias{anova.clm}
-\alias{anova.clmm}
+\alias{anova.clm2}
+\alias{anova.clmm2}
 \title{Likelihood ratio test of cumulative link models}
 \description{
   Comparison of cumulative link models in likelihood ratio tests.
@@ -9,13 +9,13 @@
   formulae, in link, threshold function and random effect structure.
 }
 \usage{
-\method{anova}{clm}(object, ..., test = c("Chisq", "none"))
-\method{anova}{clmm}(object, ..., test = c("Chisq", "none"))
+\method{anova}{clm2}(object, ..., test = c("Chisq", "none"))
+\method{anova}{clmm2}(object, ..., test = c("Chisq", "none"))
 }
 \arguments{
-  \item{object}{a \code{\link{clm}} object.
+  \item{object}{a \code{\link{clm2}} object.
   }
-  \item{\dots}{one or more additional \code{\link{clm}} objects.
+  \item{\dots}{one or more additional \code{\link{clm2}} objects.
   }
   \item{test}{if \code{test = "none"} the p-value for the likelihood
     ratio test is suppressed.
@@ -45,26 +45,26 @@
 }
 \author{Rune Haubo B Christensen}
 \seealso{
-  \code{\link[ordinal]{clm}}, \code{\link[ordinal]{addterm}},
-  \code{\link[ordinal:addterm]{dropterm}} and
+  \code{\link[ordinal]{clm2}}, \code{\link[=addterm.clm2]{addterm}},
+  \code{\link[ordinal:addtermOld]{dropterm}} and
   \code{\link[=anova]{anova.default}}
 }
 \examples{
 options(contrasts = c("contr.treatment", "contr.poly"))
 data(soup)
-m1 <- clm(SURENESS ~ PROD, scale = ~PROD, data = soup,
+m1 <- clm2(SURENESS ~ PROD, scale = ~PROD, data = soup,
           link = "logistic")
 
 ## anova
 anova(m1, update(m1, scale = ~.-PROD))
-mN1 <- clm(SURENESS ~ 1, nominal = ~PROD, data = soup,
+mN1 <- clm2(SURENESS ~ 1, nominal = ~PROD, data = soup,
            link = "logistic")
 anova(m1, mN1)
 anova(m1, update(m1, scale = ~.-PROD), mN1)
 
 ## Fit model from polr example:
 data(housing, package = "MASS")
-fm1 <- clm(Sat ~ Infl + Type + Cont, weights = Freq, data = housing)
+fm1 <- clm2(Sat ~ Infl + Type + Cont, weights = Freq, data = housing)
 anova(fm1, update(fm1, scale =~ Cont))
 
 }

@@ -1,8 +1,8 @@
-\name{confint.clm}
-\alias{confint.clm}
-\alias{confint.profile.clm}
-\alias{profile.clm}
-\alias{plot.profile.clm}
+\name{confint.clm2}
+\alias{confint.clm2}
+\alias{confint.profile.clm2}
+\alias{profile.clm2}
+\alias{plot.profile.clm2}
 \title{
   Confidence intervals and profile likelihoods for parameters in
   cumulative link models
@@ -13,35 +13,35 @@
   profile likelihood function.
 }
 \usage{
-\method{confint}{clm}(object, parm, level = 0.95, whichL = seq_len(p),
+\method{confint}{clm2}(object, parm, level = 0.95, whichL = seq_len(p),
         whichS = seq_len(k), lambda = TRUE, trace = 0, \dots)
 
-\method{confint}{profile.clm}(object, parm = seq_along(Pnames), level = 0.95, \dots)
+\method{confint}{profile.clm2}(object, parm = seq_along(Pnames), level = 0.95, \dots)
 
-\method{profile}{clm}(fitted, whichL = seq_len(p), whichS = seq_len(k),
+\method{profile}{clm2}(fitted, whichL = seq_len(p), whichS = seq_len(k),
         lambda = TRUE, alpha = 0.01, maxSteps = 50, delta = LrootMax/10,
         trace = 0, stepWarn = 8, \dots)
 
-\method{plot}{profile.clm}(x, parm = seq_along(Pnames), level = c(0.95, 0.99),
+\method{plot}{profile.clm2}(x, parm = seq_along(Pnames), level = c(0.95, 0.99),
         Log = FALSE, relative = TRUE, fig = TRUE, n = 1e3, ..., ylim = NULL)
 }
 \arguments{
   \item{object}{
-    a fitted \code{\link{clm}} object or a \code{profile.clm} object.
+    a fitted \code{\link{clm2}} object or a \code{profile.clm2} object.
   }
   \item{fitted}{
-    a fitted \code{\link{clm}} object.
+    a fitted \code{\link{clm2}} object.
   }
-  \item{x}{a \code{profile.clm} object.
+  \item{x}{a \code{profile.clm2} object.
   }
-  \item{parm}{not used in \code{confint.clm}.
+  \item{parm}{not used in \code{confint.clm2}.
 
-    For \code{confint.profile.clm}:
+    For \code{confint.profile.clm2}:
     a specification of which parameters are to be given confidence
     intervals, either a vector of numbers or a vector of names. If
     missing, all parameters are considered.
 
-    For \code{plot.profile.clm}:
+    For \code{plot.profile.clm2}:
     a specification of which parameters the profile likelihood are to be
     plotted for, either a vector of numbers or a vector of names. If
     missing, all parameters are considered.
@@ -64,7 +64,7 @@
     logical. Should profile or confidence intervals be computed for the
     link function parameter? Only used when one of the flexible link
     functions are used; see the \code{link}-argument in
-    \code{\link{clm}}.
+    \code{\link{clm2}}.
   }
   \item{trace}{
     logical.  Should profiling be traced?
@@ -117,7 +117,7 @@
   to indicate whether the confidence interval applies to a location or a
   scale parameter.
 
-  \code{plot.profile.clm} invisibly returns the profile object.
+  \code{plot.profile.clm2} invisibly returns the profile object.
 
 }
 \details{
@@ -127,7 +127,7 @@
   If the profile object is already available, this should be used as the
   main argument rather than the fitted model object itself.
 
-  In \code{plot.profile.clm}: at least one of \code{Log} and
+  In \code{plot.profile.clm2}: at least one of \code{Log} and
   \code{relative} arguments have to be \code{TRUE}.
 
 }
@@ -145,7 +145,7 @@ dimnames(tab26)[[2]] <- c("Sure", "Not Sure", "Guess", "Guess", "Not Sure", "Sur
 dat26 <- expand.grid(sureness = as.factor(1:6), prod = c("Ref", "Test"))
 dat26$wghts <- c(t(tab26))
 
-m1 <- clm(sureness ~ prod, scale = ~prod, data = dat26,
+m1 <- clm2(sureness ~ prod, scale = ~prod, data = dat26,
           weights = wghts, link = "logistic")
 
 ## profile
@@ -169,7 +169,7 @@ confint(pr1)
 ## Extend example from polr in package MASS:
 ## Fit model from polr example:
 data(housing, package = "MASS")
-fm1 <- clm(Sat ~ Infl + Type + Cont, scale = ~ Cont, weights = Freq,
+fm1 <- clm2(Sat ~ Infl + Type + Cont, scale = ~ Cont, weights = Freq,
   data = housing)
 
 pr1 <- profile(fm1)

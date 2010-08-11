@@ -1,351 +1,307 @@
 \name{clm}
 \alias{clm}
-\alias{fixed}
-\title{Cumulative link models}
+%- Also NEED an '\alias' for EACH other topic documented here.
+\title{
+  Cumulative Link Models
+%%  ~~function to do ... ~~
+}
 \description{
-  Fits cumulative link models with an additive model for the location
-  and a multiplicative model for the scale. The function allows for
-  structured thresholds. A popular special case of a CLM is the
-  proportional odds model. In addition to the standard link functions,
-  two flexible link functions, "Arandar-Ordaz" and "log-gamma" are
-  available, where an extra link function parameter provides additional
-  flexibility. A subset of the predictors can be allowed to have nominal
-  rather than ordinal effects. This has been termed "partial
-  proportional odds" when the link is the logistic.
+  Fits cumulative link models (CLMs) such as the propotional odds
+  model. The model allows for various link functions and structured
+  thresholds that restricts the thresholds or cut-points to be e.g.,
+  equidistant or symmetrically arranged around the central
+  threshold(s). Nominal effects (partial proportional odds with the
+  logit link) are also allowed.
+  A modified Newton algorithm is used to optimize the likelihood function.
+%%  ~~ A concise (1-5 lines) description of what the function does. ~~
 }
 \usage{
-clm(location, scale, nominal, data, weights, start, subset,
-    na.action, contrasts, Hess = TRUE, model,
-    link = c("logistic", "probit", "cloglog", "loglog",
-    "cauchit", "Aranda-Ordaz", "log-gamma"), lambda,
-    doFit = TRUE, control,
-    threshold = c("flexible", "symmetric", "equidistant"), ...)
+clm(formula, scale, nominal, data, weights, start, subset, doFit = TRUE,
+  na.action, contrasts, model = TRUE, control=list(),
+  link = c("logit", "probit", "cloglog", "loglog", "cauchit"),
+  threshold = c("flexible", "symmetric", "equidistant"), ...) 
 }
+%- maybe also 'usage' for other objects documented here.
 \arguments{
-\item{location}{
-  a formula expression as for regression models, of the form
-  \code{response ~ predictors}. The response should be a factor
-  (preferably an ordered factor), which will be interpreted as an
-  ordinal response with levels ordered as in the factor.
-  The model must have an intercept: attempts to remove one will
-  lead to a warning and will be ignored. An offset may be used.  See the
-  documentation of \code{\link{formula}} for other details.
+  \item{formula}{
+    a formula expression as for regression models, of the form
+    \code{response ~ predictors}. The response should be a factor
+    (preferably an ordered factor), which will be interpreted as an
+    ordinal response with levels ordered as in the factor.
+    The model must have an intercept: attempts to remove one will
+    lead to a warning and will be ignored. An offset may be used. See the
+    documentation of \code{\link{formula}} for other details.
+  }
+  \item{scale}{
+    an optional formula expression, of the form
+    \code{ ~ predictors}, i.e. with an empty left hand side.
+    An offset may be used. Variables included here will have
+    multiplicative effects and can be interpreted as effects on the
+    scale (or dispersion) of a latent distribution.
+  }
+  \item{nominal}{
+    an optional formula of the form \code{ ~ predictors}, i.e. with an
+    empty left hand side. The effects of the predictors in this formula
+    are assumed to nominal - this corresponds to the so-called partial
+    proportional odds (with the logit link).
 }
-\item{scale}{
-  a optional formula expression as for the location part, of the form
-  \code{ ~ predictors}, i.e. with an empty left hand side.
-  If left unspecified, the model assumes a constant scale for models
-  with factor response and estimates the residual scale for models with
-  numerical response.  An offset may be used. See the
-  documentation of \code{\link{formula}} for other details.
-}
-\item{nominal}{
-  an optional formula of the form \code{ ~ predictors}, i.e. with an
-  empty left hand side. The effects of the predictors in this formula are
-  assumed to nominal.
-}
-\item{data}{
-  an optional data frame in which to interpret the variables occurring
-  in the formulas.
-}
-\item{weights}{
-  optional case weights in fitting. Defaults to 1.
-}
-\item{start}{
-  initial values for the parameters in the format
-  \code{c(alpha, beta, log(zeta), lambda)}.
-}
-\item{subset}{
-  expression saying which subset of the rows of the data should  be used
-  in the fit. All observations are included by default.
-}
-\item{na.action}{
-  a function to filter missing data. Applies to terms in all three formulae.
-}
-\item{contrasts}{
-  a list of contrasts to be used for some or all of
-  the factors appearing as variables in the model formula.
-}
-\item{Hess}{
-  logical for whether the Hessian (the inverse of the observed
-  information matrix)
-  should be computed.
-  Use \code{Hess = TRUE} if you intend to call \code{summary} or
-  \code{vcov} on the fit and \code{Hess = FALSE} in all other instances
-  to save computing time. The argument is ignored if
-  \code{method = "Newton"} where the Hessian is always computed and
-  returned. Defaults to \code{TRUE}.
-}
-\item{model}{
-  logical for whether the model frames should be part of the returned
-  object.
-}
-\item{link}{link function, i.e. the type of location-scale distribution
-  assumed for the latent distribution. The \code{Aranda-Ordaz} and
-  \code{log-gamma} links add additional flexibility with a link function
-  parameter, \code{lambda}. The \code{Aranda-Ordaz} link
-  (Aranda-Ordaz, 1983) equals the logistic
-  link, when \code{lambda = 1} and approaches the \code{loglog} link when
-  \code{lambda} approaches zero. The \code{log-gamma} link (Genter and
-  Farewell, 1985) equals the
-  \code{loglog} link when \code{lambda = 1}, the \code{probit} link when
-  \code{lambda = 0} and the \code{cloglog} link when \code{lambda =
-    -1}.
-}
-\item{lambda}{numerical scalar: the link function parameter. Used in
-  combination with link \code{Aranda-Ordaz} or \code{log-gamma} and
-  otherwise ignored. If lambda is specified, the model is estimated with
-  lambda fixed at this value and otherwise lambda is estimated by
-  ML. For \code{Aranda-Ordaz} lambda has to be positive; \code{> 1e-5}
-  for numerical reasons.
-}
-\item{doFit}{logical for whether the model should be fit or the model
-  environment should be returned.
-}
-\item{control}{a call to \code{\link{clm.control}}.
-}
-\item{threshold}{specifies a potential structure for the thresholds
-  (cut-points). \code{"flexible"} provides the standard unstructured
-  thresholds, \code{"symmetric"} restricts the distance between the
-  thresholds to be symmetric around the central one or two thresholds
-  for odd or equal numbers or thresholds respectively, and
-  \code{"equidistant"} restricts the distance between consecutive
-  thresholds to the same value.
-}
-\item{\dots}{
-  additional arguments are passed on to \code{\link{clm.control}} and
-  possibly further on to the optimizer, which can lead to surprising
-  error or warning messages when mistyping arguments etc.
-}
-
+  \item{data}{
+    an optional data frame in which to interpret the variables occurring
+    in the formulas.
+  }
+  \item{weights}{
+    optional case weights in fitting. Defaults to 1.
+  }
+  \item{start}{
+    initial values for the parameters in the format
+    \code{c(alpha, beta, zeta)}, where \code{alpha} are the threshold
+    parameters (adjusted for nominal effects), \code{beta} are the
+    regression parameters and \code{zeta} are the scale parameters. 
+  }
+  \item{subset}{
+    expression saying which subset of the rows of the data should  be used
+    in the fit. All observations are included by default.
+  }
+  \item{doFit}{
+    logical for whether the model should be fit or the model
+    environment should be returned.
+  }
+  \item{na.action}{
+    a function to filter missing data. Applies to terms in all three
+    formulae. 
+  }
+  \item{contrasts}{
+    a list of contrasts to be used for some or all of
+    the factors appearing as variables in the model formula.
+  }
+  \item{model}{
+    logical for whether the model frame should be part of the returned
+    object.
+  }
+  \item{control}{
+    a list of control parameters passed on to
+    \code{\link{clm.control}}. 
+  }
+  \item{link}{
+    link function, i.e., the type of location-scale distribution
+    assumed for the latent distribution. The default \code{"logit"} link
+    gives the proportional odds model.
+  }
+  \item{threshold}{
+    specifies a potential structure for the thresholds
+    (cut-points). \code{"flexible"} provides the standard unstructured
+    thresholds, \code{"symmetric"} restricts the distance between the
+    thresholds to be symmetric around the central one or two thresholds
+    for odd or equal numbers or thresholds respectively, and
+    \code{"equidistant"} restricts the distance between consecutive
+    thresholds to be of the same size.
+  }
+  \item{\dots}{
+    additional arguments are passed on to \code{\link{clm.control}}.
+  }
 }
 \details{
+  This is a new (as of August 2011) improved implementation of CLMs. The
+  old implementation is available in \code{\link{clm2}}, but will
+  probably be removed at some point.
+  
   There are methods for the standard model-fitting functions, including
-  \code{\link{summary}}, \code{\link{vcov}},
-  \code{\link[ordinal]{predict}},
-  \code{\link[ordinal]{anova}}, \code{\link{logLik}},
-  \code{\link[=profile.clm]{profile}},
-  \code{\link[=profile.clm]{plot.profile}},
-  \code{\link[=confint.clm]{confint}},
-  \code{\link[ordinal]{update}}, \code{\link[=addterm.clm]{dropterm}},
-  \code{\link[ordinal]{addterm}}, and an \code{extractAIC} method.
-
-  The design of the implementation is inspired by an idea proposed by
-  Douglas Bates in the talk "Exploiting sparsity in model matrices"
-  presented at the DSC conference in Copenhagen, July 14 2009.
-  Basically an environment is set up with all the information needed to
-  optimize the likelihood function. Extractor functions are then used to
-  get the value of likelihood at current or given parameter values and
-  to extract current values of the parameters. All computations are
-  performed inside the environment and relevant variables are updated
-  during the fitting process. After optimizer termination relevant
-  variables are extracted from the environment and the remaining are
-  discarded.
-
-  Some aspects of \code{clm}, for instance, how starting values are
-  obtained, and of the associated methods are
-  inspired by \code{\link[MASS]{polr}} from package \code{MASS}.
-
+  \code{\link{summary}},
+  \code{\link{anova}},
+  \code{\link{model.frame}},
+  \code{\link{model.matrix}},
+  \code{\link{drop1}},
+  \code{\link{dropterm}},
+  \code{\link{step}},
+  \code{\link{stepAIC}},
+  \code{\link{extractAIC}},
+  \code{\link{AIC}},
+  \code{\link{coef}},
+  \code{\link{nobs}},
+  \code{\link{profile}},
+  \code{\link{confint}},
+  \code{\link{vcov}} and
+  \code{\link[=slice.clm]{slice}}.
+  %% \code{slice}.
+  
 }
 \value{
   If \code{doFit = FALSE} the result is an environment
   representing the model ready to be optimized.
   If \code{doFit = TRUE} the result is an
-  object of class \code{"clm"} with the following components:
+  object of class \code{"clm2"} with the components listed below.
+  
+  Note that some components are only present if \code{scale} and
+  \code{nominal} are used.
 
-  \item{beta}{the parameter estimates of the location part.
+  \item{alpha}{a vector of threshold parameters.
   }
-  \item{zeta}{the parameter estimates of the scale part on the log
-    scale; the scale parameter estimates on the original scale are given
-    by \code{exp(zeta)}.
+  \item{beta}{a vector of regression parameters.
   }
-  \item{Alpha}{vector or matrix of the threshold parameters.
+  \item{zeta}{a vector of scale regression parameters.
   }
-  \item{Theta}{vector or matrix of the thresholds.
+  \item{coefficients}{a vector of coefficients of the form
+    \code{c(alpha, beta, zeta)}
   }
-  \item{xi}{vector of threshold parameters, which, given a
-    threshold function (e.g. \code{"equidistant"}), and possible nominal
-    effects define the class boundaries, \code{Theta}.
+  \item{aliased}{list of length 3 or less with components \code{alpha},
+    \code{beta} and \code{zeta} each being logical vectors containing
+    alias information for the parameters of the same names. 
   }
-  \item{lambda}{the value of lambda if lambda is supplied or estimated,
-    otherwise missing.
+  \item{start}{the parameter values at which optimizations has started. 
   }
-  \item{coefficients}{the coefficients of the intercepts
-    (\code{theta}), the location  (\code{beta}), the scale
-    (\code{zeta}), and the link function parameter (\code{lambda}).
+  \item{fitted.values}{the fitted probabilities.
   }
-  \item{df.residual}{the number of residual degrees of freedoms,
-    calculated using the weights.
+  \item{logLik}{the value of the log-likelihood at the estimated
+    optimum. 
   }
-  \item{fitted.values}{vector of fitted values for each
-    observation. An observation here is each of the scalar elements of
-    the multinomial table and not a multinomial vector.
+  \item{edf}{the estimated degrees of freedom, i.e., the number of
+    parameters in the model fit.
   }
-  \item{convergence}{\code{TRUE} if the gradient
-    based convergence criterion is met and \code{FALSE} otherwise.
+  \item{nobs}{the number of observations counted as \code{sum(weights)}.
   }
-  \item{gradient}{vector of gradients for all the parameters
-    at termination of the optimizer.
+  \item{n}{the number of observations counted as \code{nrow(X)}, where
+    \code{X} is the design matrix.
   }
-  \item{optRes}{list with results from the optimizer. The contents of the
-    list depends on the choice of optimizer.
+  \item{gradient}{a vector of gradients for the coefficients at the
+    estimated optimum.
   }
-  \item{logLik}{the log likelihood of the model at
-    optimizer termination.
+  \item{maxGradient}{the maximum absolute gradient, i.e.,
+    \code{max(abs(gradient))}. 
   }
-  \item{Hessian}{if the model was fitted with \code{Hess = TRUE}, this
-    is the Hessian matrix of the parameters at the optimum.
+  \item{Hessian}{the Hessian matrix for the parameters at the estimated
+    optimum. 
   }
-  \item{scale}{\code{model.frame} for the scale model.
+  \item{convergence}{convergence code where 0 indicates successful
+    convergence, 1 indicates the iteration limit was reached before
+    convergence and 2 indicates the step factor was reduced below minimum
+    before convergence was reached. 
   }
-  \item{location}{\code{model.frame} for the location model.
+  \item{link}{character, the link function used.
   }
-  \item{nominal}{\code{model.frame} for the nominal model.
+  \item{threshold}{character, the threshold structure used.
   }
-  \item{edf}{the (effective) number of degrees of freedom used by the
+  \item{call}{the mathed call.
+  }
+  \item{contrasts}{(where relevant) the contrasts used for the \code{formula} part of the
+    model. 
+  }
+  \item{S.contrasts}{(where relevant) the contrasts used for the \code{scale} part of the
+    model. 
+  }
+  \item{nom.contrasts}{(where relevant) the contrasts used for the \code{nominal} part of the
     model.
   }
-  \item{start}{the starting values.
+  \item{terms}{the terms object for the \code{formula} part.
   }
-  \item{convTol}{convergence tolerance for the maximum absolute
-    gradient of the parameters at termination of the optimizer.
+  \item{S.terms}{(where relevant) the terms object for the \code{scale} part.
   }
-  \item{method}{character, the optimizer.
+  \item{nom.terms}{(where relevant) the terms object for the \code{nominal} part.
   }
-  \item{y}{the response variable.
+  \item{xlevels}{(where relevant) a record of the levels of the factors used in fitting
+    for the \code{formula} part.
   }
-  \item{lev}{the names of the levels of the response variable.
+  \item{S.xlevels}{(where relevant) a record of the levels of the factors used in fitting
+    for the \code{scale} part.
   }
-  \item{nobs}{the (effective) number of observations, calculated as the
-    sum of the weights.
+  \item{nom.xlevels}{(where relevant) a record of the levels of the factors used in fitting
+    for the \code{nominal} part.
   }
-  \item{threshold}{character, the threshold function used in the model.
+  \item{tJac}{the transpose of the Jacobian for the threshold structure.
   }
-  \item{estimLambda}{\code{1} if lambda is estimated in one of the
-    flexible link functions and \code{0} otherwise.
+  \item{y.levels}{the levels of the response variable.
   }
-  \item{link}{character, the link function used in the model.
+  \item{info}{a table of basic model information for printing.
   }
-  \item{call}{the matched call.
+  \item{model}{if requested (the default), the
+    \code{\link{model.frame}} containing variables from \code{formula},
+    \code{scale} and \code{nominal} parts. 
   }
-  \item{contrasts}{contrasts applied to terms in location and scale
-    models.
+  \item{na.action}{(where relevant) information returned by
+    \code{\link{model.frame}} on the special handling of \code{NA}s. 
   }
-  \item{na.action}{the function used to filter missing data.
-  }
+  
+%%  ~Describe the value returned
+%%  If it is a LIST, use
+%%  \item{comp1 }{Description of 'comp1'}
+%%  \item{comp2 }{Description of 'comp2'}
+%% ...
 }
-\author{Rune Haubo B Christensen}
-\references{
-  Agresti, A. (2002) \emph{Categorical Data Analysis.} Second edition.  Wiley.
-
-  Aranda-Ordaz, F. J. (1983) An Extension of the Proportional-Hazards
-  Model for Grouped Data. \emph{Biometrics}, 39, 109-117.
-
-  Genter, F. C. and Farewell, V. T. (1985) Goodness-of-link testing in
-  ordinal regression models. \emph{The Canadian Journal of Statistics},
-  13(1), 37-44.
-
-  Christensen, R. H. B., Brockhoff, P. B. and Cleaver, G. (2010)
-  Statistical and Thurstonian models for the A-not A protocol with and
-  without sureness. Manuscript for \emph{Food Quality and Preference}.
+\author{
+  Rune Haubo B Christensen
 }
 \examples{
-options(contrasts = c("contr.treatment", "contr.poly"))
-data(soup)
 
-## More manageable data set:
-(tab26 <- with(soup, table("Product" = PROD, "Response" = SURENESS)))
-dimnames(tab26)[[2]] <- c("Sure", "Not Sure", "Guess", "Guess", "Not Sure", "Sure")
-dat26 <- expand.grid(sureness = as.factor(1:6), prod = c("Ref", "Test"))
-dat26$wghts <- c(t(tab26))
+data(wine)
+fm1 <- clm(rating ~ temp * contact, data = wine)
+fm1 ## print method
+summary(fm1)
+fm2 <- update(fm1, ~.-temp:contact)
+anova(fm1, fm2)
 
-m1 <- clm(sureness ~ prod, scale = ~prod, data = dat26,
-          weights = wghts, link = "logistic")
+dropterm(fm1, test = "Chi")
+drop1(fm1, test = "Chi")
+add1(fm1, ~.+judge, test = "Chi")
+addterm(fm1, ~.+judge, test = "Chi")
 
-## print, summary, vcov, logLik, AIC:
-m1
-summary(m1)
-vcov(m1)
-logLik(m1)
-AIC(m1)
-coef(m1)
-coef(summary(m1))
+fm2 <- step(fm1)
+summary(fm2)
+fm3 <- stepAIC(fm1)
+summary(fm3)
 
-## link functions:
-m2 <- update(m1, link = "probit")
-m3 <- update(m1, link = "cloglog")
-m4 <- update(m1, link = "loglog")
-m5 <- update(m1, link = "cauchit", start = coef(m1))
-m6 <- update(m1, link = "Aranda-Ordaz", lambda = 1)
-m7 <- update(m1, link = "Aranda-Ordaz")
-m8 <- update(m1, link = "log-gamma", lambda = 1)
-m9 <- update(m1, link = "log-gamma")
+coef(fm1)
+vcov(fm1)
+AIC(fm1)
+extractAIC(fm1)
+logLik(fm1)
+fitted(fm1)
 
-## nominal effects:
-mN1 <-  clm(sureness ~ 1, nominal = ~ prod, data = dat26,
-            weights = wghts, link = "logistic")
-anova(m1, mN1)
+confint(fm1) ## type = "profile"
+confint(fm1, type = "Wald")
+pr1 <- profile(fm1)
+confint(pr1)
 
-## optimizer / method:
-update(m1, scale = ~ 1, method = "Newton")
-update(m1, scale = ~ 1, method = "nlminb")
-update(m1, scale = ~ 1, method = "optim")
-\dontshow{
-update(m1, scale = ~ 1, method = "model.frame")
-update(m1, location = ~.-prod, scale = ~ 1,
-       nominal = ~ prod, method = "model.frame")
-}
+## plotting the profiles:
+par(mfrow = c(2, 2))
+plot(pr1, root = TRUE) ## check for linearity 
+par(mfrow = c(2, 2))
+plot(pr1)
+par(mfrow = c(2, 2))
+plot(pr1, approx = TRUE)
+par(mfrow = c(2, 2))
+plot(pr1, Log = TRUE)
+par(mfrow = c(2, 2))
+plot(pr1, Log = TRUE, relative = FALSE)
 
-## threshold functions
-mT1 <- update(m1, threshold = "symmetric")
-mT2 <- update(m1, threshold = "equidistant")
-anova(m1, mT1, mT2)
+## other link functions:
+fm4.lgt <- update(fm1, link = "logit") ## default
+fm4.prt <- update(fm1, link = "probit")
+fm4.ll <- update(fm1, link = "loglog")
+fm4.cll <- update(fm1, link = "cloglog")
+fm4.cct <- update(fm1, link = "cauchit")
+anova(fm4.lgt, fm4.prt, fm4.ll, fm4.cll, fm4.cct)
 
-## Extend example from polr in package MASS:
-## Fit model from polr example:
+## structured thresholds:
+fm5 <- update(fm1, threshold = "symmetric")
+fm6 <- update(fm1, threshold = "equidistant")
+anova(fm1, fm5, fm6)
+
+## the slice methods:
+slice.fm1 <- slice(fm1)
+par(mfrow = c(3, 3))
+plot(slice.fm1)
+## see more at '?slice.clm'
+
+## Example from MASS::polr:
 data(housing, package = "MASS")
 fm1 <- clm(Sat ~ Infl + Type + Cont, weights = Freq, data = housing)
-fm1
 summary(fm1)
-## With probit link:
-summary(update(fm1, link = "probit"))
-## Allow scale to depend on Cont-variable
-summary(fm2 <- update(fm1, scale =~ Cont))
-anova(fm1, fm2)
-## which seems to improve the fit
 
-#################################
-## It is possible to fit multinomial models (i.e. with nominal
-## effects) as the following example shows:
-library(nnet)
-(hous1.mu <- multinom(Sat ~ 1, weights = Freq, data = housing))
-(hous1.clm <- clm(Sat ~ 1, weights = Freq, data = housing))
+## Another example:
+data(soup, package = "ordinal")
 
-## It is the same likelihood:
-all.equal(logLik(hous1.mu), logLik(hous1.clm))
+fm.soup <- clm(SURENESS ~ PRODID, data = soup)
+summary(fm.soup)
 
-## and the same fitted values:
-fitHous.mu <-
-    t(fitted(hous1.mu))[t(col(fitted(hous1.mu)) == unclass(housing$Sat))]
-all.equal(fitted(hous1.clm), fitHous.mu)
-
-## The coefficients of multinom can be retrieved from the clm-object
-## by:
-Pi <- diff(c(0, plogis(hous1.clm$xi), 1))
-log(Pi[2:3]/Pi[1])
-
-## A larger model with explanatory variables:
-(hous.mu <- multinom(Sat ~ Infl + Type + Cont, weights = Freq, data = housing))
-(hous.clm <- clm(Sat ~ 1, nominal = ~ Infl + Type + Cont, weights = Freq,
-                 data = housing))
-
-## Almost the same likelihood:
-all.equal(logLik(hous.mu), logLik(hous.clm))
-
-## And almost the same fitted values:
-fitHous.mu <-
-    t(fitted(hous.mu))[t(col(fitted(hous.mu)) == unclass(housing$Sat))]
-all.equal(fitted(hous.clm), fitHous.mu)
-all.equal(round(fitted(hous.clm), 5), round(fitHous.mu), 5)
 }
 \keyword{models}
+

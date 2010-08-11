@@ -1,9 +1,9 @@
-\name{profile.clmm}
-\alias{profile.clmm}
-\alias{confint.clmm}
-\alias{confint.profile.clmm}
-\alias{profile.clmm}
-\alias{plot.profile.clmm}
+\name{profile.clmm2}
+\alias{profile.clmm2}
+\alias{confint.clmm2}
+\alias{confint.profile.clmm2}
+\alias{profile.clmm2}
+\alias{plot.profile.clmm2}
 \title{
   Confidence intervals and profile likelihoods for the standard
   deviation for the random term in cumulative link mixed models
@@ -14,30 +14,30 @@
   mixed model, or plots the associated profile likelihood function.
 }
 \usage{
-\method{confint}{profile.clmm}(object, parm = seq_along(Pnames), level = 0.95, \dots)
+\method{confint}{profile.clmm2}(object, parm = seq_along(Pnames), level = 0.95, \dots)
 
-\method{profile}{clmm}(fitted, alpha = 0.01, range, nSteps = 20, trace = 1, \dots)
+\method{profile}{clmm2}(fitted, alpha = 0.01, range, nSteps = 20, trace = 1, \dots)
 
-\method{plot}{profile.clmm}(x, parm = seq_along(Pnames), level = c(0.95, 0.99),
+\method{plot}{profile.clmm2}(x, parm = seq_along(Pnames), level = c(0.95, 0.99),
         Log = FALSE, relative = TRUE, fig = TRUE, n = 1e3, ..., ylim = NULL)
 }
 \arguments{
   \item{object}{
-    a fitted \code{profile.clmm} object.
+    a fitted \code{profile.clmm2} object.
   }
   \item{fitted}{
-    a fitted \code{\link{clmm}} object.
+    a fitted \code{\link{clmm2}} object.
   }
-  \item{x}{a \code{profile.clmm} object.
+  \item{x}{a \code{profile.clmm2} object.
   }
   \item{parm}{
-    For \code{confint.profile.clmm}:
+    For \code{confint.profile.clmm2}:
     a specification of which parameters are to be given confidence
     intervals, either a vector of numbers or a vector of names. If
     missing, all parameters are considered.
     Currently only \code{"stDev"} or \code{1} are supported.
 
-    For \code{plot.profile.clmm}:
+    For \code{plot.profile.clmm2}:
     a specification of which parameters the profile likelihood are to be
     plotted for, either a vector of numbers or a vector of names. If
     missing, all parameters are considered.
@@ -86,12 +86,12 @@
 
 }
 \details{
-  A \code{confint.clmm} method deliberately does not exist due to the
+  A \code{confint.clmm2} method deliberately does not exist due to the
   time consuming nature of the computations. The user is required to
   compute the profile object first and then call \code{confint} on the
   profile object to obtain profile likelihood confidence intervals.
 
-  In \code{plot.profile.clm}: at least one of \code{Log} and
+  In \code{plot.profile.clm2}: at least one of \code{Log} and
   \code{relative} arguments have to be \code{TRUE}.
 }
 \value{
@@ -100,7 +100,7 @@
   limits. These will be labelled as (1-level)/2 and
   1 - (1-level)/2 in \% (by default 2.5\% and 97.5\%).
 
-  \code{plot.profile.clm} invisibly returns the profile object.
+  \code{plot.profile.clm2} invisibly returns the profile object.
 }
 \author{Rune Haubo B Christensen}
 \seealso{
@@ -117,7 +117,7 @@ cbpp2 <- within(cbpp2, {
 })
 
 ## Fit with Laplace approximation:
-fm1 <- clmm(incidence ~ period, random = herd, weights = freq,
+fm1 <- clmm2(incidence ~ period, random = herd, weights = freq,
             data = cbpp2, Hess = 1)
 
 pr.fm1 <- profile(fm1)

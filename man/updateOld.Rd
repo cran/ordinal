@@ -1,20 +1,20 @@
-\name{update.clm}
-\alias{update.clm}
-\alias{update.clmm}
+\name{update.clm2}
+\alias{update.clm2}
+\alias{update.clmm2}
 \title{Update method for cumulative link models}
 \description{
-  Update method for cumulative link models fitted with \code{clm}.
+  Update method for cumulative link models fitted with \code{clm2}.
   This makes it possible to use e.g.
   \code{update(obj, location = ~ . - var1, scale = ~ . + var2)}
 }
 \usage{
-\method{update}{clm}(object, formula., location, scale, nominal,...,
+\method{update}{clm2}(object, formula., location, scale, nominal,...,
         evaluate = TRUE)
-\method{update}{clmm}(object, formula., location, scale, nominal,...,
+\method{update}{clmm2}(object, formula., location, scale, nominal,...,
         evaluate = TRUE)
 }
 \arguments{
-  \item{object}{a \code{\link{clm}} object.
+  \item{object}{a \code{\link{clm2}} object.
   }
   \item{formula.}{not used---unfortunately this argument is part of the
     default method.
@@ -42,7 +42,7 @@
 \examples{
 options(contrasts = c("contr.treatment", "contr.poly"))
 data(soup)
-m1 <-  clm(SURENESS ~ PROD, scale = ~PROD, data = soup,
+m1 <-  clm2(SURENESS ~ PROD, scale = ~PROD, data = soup,
            link = "logistic")
 
 m2 <- update(m1, link = "probit")
@@ -53,7 +53,7 @@ mT1 <- update(m1, threshold = "symmetric")
 
 ## Fit model from polr example:
 data(housing, package = "MASS")
-fm1 <- clm(Sat ~ Infl + Type + Cont, weights = Freq, data = housing)
+fm1 <- clm2(Sat ~ Infl + Type + Cont, weights = Freq, data = housing)
 update(fm1, location = ~ . - Type, scale =~ Cont)
 
 }

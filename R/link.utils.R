@@ -1,9 +1,12 @@
 #################################
 ## pfun:
 
-pgumbel <- function(q, location = 0, scale = 1, lower.tail = TRUE)
-### CDF for the gumbel distribution
+pgumbel <-
+  function(q, location = 0, scale = 1, lower.tail = TRUE, max = TRUE)
+### CDF for Gumbel max and min distributions 
 ### Currently only unit length location and scale are supported.
+{
+  if(max)  ## right skew, loglog link
     .C("pgumbel",
        q = as.double(q),
        length(q),
@@ -11,10 +14,7 @@ pgumbel <- function(q, location = 0, scale = 1, lower.tail = TRUE)
        as.double(scale)[1],
        as.integer(lower.tail),
        NAOK = TRUE)$q
-
-pgumbel2 <- function(q, location = 0, scale = 1, lower.tail = TRUE)
-### CDF for the 'swapped' gumbel distribution
-### Currently only unit length location and scale are supported.
+  else ## left skew, cloglog link
     .C("pgumbel2",
        q = as.double(q),
        length(q),
@@ -22,6 +22,29 @@ pgumbel2 <- function(q, location = 0, scale = 1, lower.tail = TRUE)
        as.double(scale)[1],
        as.integer(lower.tail),
        NAOK = TRUE)$q
+}
+
+## pgumbel <- function(q, location = 0, scale = 1, lower.tail = TRUE)
+## ### CDF for the gumbel distribution
+## ### Currently only unit length location and scale are supported.
+##     .C("pgumbel",
+##        q = as.double(q),
+##        length(q),
+##        as.double(location)[1],
+##        as.double(scale)[1],
+##        as.integer(lower.tail),
+##        NAOK = TRUE)$q
+## 
+## pgumbel2 <- function(q, location = 0, scale = 1, lower.tail = TRUE)
+## ### CDF for the 'swapped' gumbel distribution
+## ### Currently only unit length location and scale are supported.
+##     .C("pgumbel2",
+##        q = as.double(q),
+##        length(q),
+##        as.double(location)[1],
+##        as.double(scale)[1],
+##        as.integer(lower.tail),
+##        NAOK = TRUE)$q
 
 pgumbelR <- function(q, location = 0, scale = 1, lower.tail = TRUE)
 ### R equivalent of pgumbel()
@@ -66,20 +89,22 @@ plgammaR <- function(eta, lambda, lower.tail = TRUE) {
     if(!lower.tail) 1 - p else p
 }
 
-plgamma <- function(eta, lambda, lower.tail = TRUE)
+plgamma <- function(q, lambda, lower.tail = TRUE)
     .C("plgamma",
-       eta = as.double(eta),
-       length(eta),
+       q = as.double(q),
+       length(q),
        as.double(lambda[1]),
        as.integer(lower.tail[1]),
-       NAOK = TRUE)$eta
+       NAOK = TRUE)$q
 
 #################################
 ## dfun:
 
-dgumbel <- function(x, location = 0, scale = 1, log = FALSE)
-### PDF for the gumbel distribution
-### Currently only unit length location and scale are supported.
+dgumbel <-
+  function(x, location = 0, scale = 1, log = FALSE, max = TRUE)
+### PDF for the Gumbel max and mon distributions
+{
+  if(max)  ## right skew, loglog link
     .C("dgumbel",
        x = as.double(x),
        length(x),
@@ -87,21 +112,42 @@ dgumbel <- function(x, location = 0, scale = 1, log = FALSE)
        as.double(scale)[1],
        as.integer(log),
        NAOK = TRUE)$x
+  else ## left skew, cloglog link
+    .C("dgumbel2",
+       x = as.double(x),
+       length(x),
+       as.double(location)[1],
+       as.double(scale)[1],
+       as.integer(log),
+       NAOK = TRUE)$x
+} 
 
-dgumbel2 <- function(x, location = 0, scale = 1, log = FALSE) {
-### PDF for the 'swapped' gumbel distribution
-### Currently only unit length location and scale are supported.
-  stopifnot(length(location) == 1 && ## test here?
-            length(scale) == 1 &&
-            length(log) == 1)
-  .C("dgumbel2",
-     x = as.double(x),
-     length(x),
-     as.double(location)[1],
-     as.double(scale)[1],
-     as.integer(log),
-     NAOK = TRUE)$x
-}
+## Deprecated:
+## dgumbel <- function(x, location = 0, scale = 1, log = FALSE)
+## ### PDF for the gumbel distribution
+## ### Currently only unit length location and scale are supported.
+##     .C("dgumbel",
+##        x = as.double(x),
+##        length(x),
+##        as.double(location)[1],
+##        as.double(scale)[1],
+##        as.integer(log),
+##        NAOK = TRUE)$x
+## 
+## dgumbel2 <- function(x, location = 0, scale = 1, log = FALSE) {
+## ### PDF for the 'swapped' gumbel distribution
+## ### Currently only unit length location and scale are supported.
+##   stopifnot(length(location) == 1 && ## test here?
+##             length(scale) == 1 &&
+##             length(log) == 1)
+##   .C("dgumbel2",
+##      x = as.double(x),
+##      length(x),
+##      as.double(location)[1],
+##      as.double(scale)[1],
+##      as.integer(log),
+##      NAOK = TRUE)$x
+## }
 
 dgumbelR <- function(x, location = 0, scale = 1, log = FALSE)
 ### dgumbel in R
@@ -163,19 +209,33 @@ dlgamma <- function(x, lambda, log = FALSE) {
 #################################
 ## gfun:
 
-ggumbel <- function(x)
+ggumbel <- function(x, max = TRUE) {
 ### gradient of dgumbel(x) wrt. x
+  if(max) ## right skew, loglog link
     .C("ggumbel",
        x = as.double(x),
        length(x),
        NAOK = TRUE)$x
-
-ggumbel2 <- function(x)
-### gradient of dgumbel(x) wrt. x
+  else ## left skew, cloglog link
     .C("ggumbel2",
        x = as.double(x),
        length(x),
        NAOK = TRUE)$x
+}
+
+## ggumbel <- function(x)
+## ### gradient of dgumbel(x) wrt. x
+##     .C("ggumbel",
+##        x = as.double(x),
+##        length(x),
+##        NAOK = TRUE)$x
+## 
+## ggumbel2 <- function(x)
+## ### gradient of dgumbel(x) wrt. x
+##     .C("ggumbel2",
+##        x = as.double(x),
+##        length(x),
+##        NAOK = TRUE)$x
 
 ggumbelR <- function(x){
 ### ggumbel in R
@@ -268,6 +328,29 @@ glgamma <- function(x, lambda) {
      as.double(lambda[1]),
      NAOK = TRUE)$x
 }
+
+##################################################################
+## Random numbers:
+
+rgumbel <- function(n, location = 0, scale = 1, max = TRUE) {
+  if(max)
+    location - scale * log(-log(runif(n)))
+  else
+    location + scale * log(-log(runif(n)))
+}
+
+##################################################################
+## quantile functions:
+
+qgumbel <-
+  function(p, location = 0, scale = 1, lower.tail = TRUE, max = TRUE)
+{ 
+  if(max)  ## right skew, loglog link
+    location - scale * log(-log(p))
+  else ## left skew, cloglog link
+    location + scale * log(-log(1 - p))
+}
+
 
 ##################################################################
 PFUN <- function(x, lambda = 1, link)

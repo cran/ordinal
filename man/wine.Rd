@@ -4,12 +4,11 @@
   Bitterness of wine
 }
 \description{
-  The \code{wine} data set is adopted from Randall(1989) and represents
-  from a 
+  The \code{wine} data set is adopted from Randall(1989) and from a
   factorial experiment on factors determining the bitterness of
   wine. Two treatment factors (temperature and contact) each have two
   levels. Temperature and contact between juice and skins can be
-  controlled when crushing grapes during wine production. Nine judges
+  controlled when cruching grapes during wine production. Nine judges
   each assessed wine from two bottles from each of the four treatment
   conditions, hence there are 72 observations in all. 
 }
@@ -78,7 +77,7 @@ colnames(tab) <-
 tab
 
 
-## A simple model for the wine data:
+## A simple model:
 m1 <- clm(rating ~ temp * contact, data = wine)
 summary(m1)
 

@@ -1,289 +1,161 @@
 \name{clmm}
 \alias{clmm}
-\title{Cumulative link mixed models}
+%- Also NEED an '\alias' for EACH other topic documented here.
+\title{
+  Cumulative Link Mixed Models
+}
 \description{
-  Fits cumulative link mixed models, i.e. cumulative link models with
-  random effects via the Laplace approximation or the standard and the
-  adaptive Gauss-Hermite quadrature approximation. The functionality in
-  \code{\link{clm}} is also implemented here. Currently only a single
-  random term is allowed in the location-part of the model.
+  Fits Cumulative Link Mixed Models with one or more random effects via
+  the Laplace approximation
 }
 \usage{
-clmm(location, scale, nominal, random, data, weights, start, subset,
-     na.action, contrasts, Hess = FALSE, model = TRUE, sdFixed,
-     link = c("logistic", "probit", "cloglog", "loglog",
-     "cauchit", "Aranda-Ordaz", "log-gamma"), lambda,
-     doFit = TRUE, control, nAGQ = 1,
-     threshold = c("flexible", "symmetric", "equidistant"), ...)
+clmm(formula, data, weights, start, subset, na.action, contrasts, Hess =
+TRUE, model = TRUE, link = c("logit", "probit", "cloglog", "loglog",
+"cauchit"), doFit = TRUE, control, threshold = c("flexible",
+"symmetric", "equidistant"), ...)
+
+%% also document getNLA(rho, par) here and include examples
 }
+%- maybe also 'usage' for other objects documented here.
 \arguments{
-  \item{location}{
-    as in \code{\link{clm}}.
-  }
-  \item{scale}{
-    as in \code{\link{clm}}.
-  }
-  \item{nominal}{
-    as in \code{\link{clm}}.
-  }
-  \item{random}{
-    a factor for the random effects in the location-part of the model.
+  \item{formula}{
+    a two-sided linear formula object describing the fixed-effects part
+    of the model, with the response on the left of a ~ operator and the
+    terms, separated by + operators, on the right. The vertical bar
+    character "|" separates an expression for a model matrix and a
+    grouping factor. 
   }
   \item{data}{
-    as in \code{\link{clm}}.
-}
-\item{weights}{
-    as in \code{\link{clm}}.
-}
-\item{start}{
-  initial values for the parameters in the format
-  \code{c(alpha, beta, log(zeta), lambda, log(stDev))} where
-  \code{stDev} is the standard deviation of the random effects.
-}
-\item{subset}{
-    as in \code{\link{clm}}.
-}
-\item{na.action}{
-    as in \code{\link{clm}}.
-}
-\item{contrasts}{
-    as in \code{\link{clm}}.
-}
-\item{Hess}{
-  logical for whether the Hessian (the inverse of the observed
-  information matrix) should be computed.
-  Use \code{Hess = TRUE} if you intend to call \code{summary} or
-  \code{vcov} on the fit and \code{Hess = FALSE} in all other instances
-  to save computing time.
-}
-\item{model}{
-  as in \code{\link{clm}}.
-}
-\item{sdFixed}{
-  If \code{sdFixed} is specified (a positive scalar), a model is fitted
-  where the standard deviation for the random term is fixed at the value
-  of \code{sdFixed}. If \code{sdFixed} is left unspecified, the standard
-  deviation of the random term is estimated from data.
-}
-\item{link}{
-  as in \code{\link{clm}}.
-}
-\item{lambda}{
-    as in \code{\link{clm}}.
-}
-\item{doFit}{
-  as in \code{\link{clm}} although it can also be one of \code{c("no",
-    "R" "C")}, where \code{"R"} use the R-implementation for fitting,
-  \code{"C"} (default) use C-implementation for fitting and \code{"no"}
-  behaves as \code{FALSE} and returns the environment. 
-}
-\item{control}{
-  a call to \code{\link{clmm.control}}.
-}
-\item{threshold}{
-    as in \code{\link{clm}}.
-}
-\item{nAGQ}{
-    the number of quadrature points to be used in the adaptive
-    Gauss-Hermite quadrature approximation to the marginal
-    likelihood. Defaults to \code{1} which leads to the Laplace
-    approximation. An odd number of quadrature points is encouraged and
-    3, 5 or 7 are usually enough to achive high precision. Negative
-    values give the standard, i.e. non-adaptive Gauss-Hermite
-    quadrature. 
-}
-\item{\dots}{
-  additional arguments are passed on to \code{\link{clm.control}} and
-  possibly further on to the optimizer, which can lead to surprising
-  error or warning messages when mistyping arguments etc.
-}
-
+    an optional data frame in which to interpret the variables occurring
+    in the formula.
+  }
+  \item{weights}{
+    optional case weights in fitting. Defaults to 1.
+  }
+  \item{start}{
+    optional initial values for the parameters in the format
+    \code{c(alpha, beta, tau)}, where \code{alpha} are the threshold
+    parameters, \code{beta} are the fixed regression parameters and
+    \code{tau} are variance parameters for the random effects on the log
+    scale.
+  }
+  \item{subset}{
+    expression saying which subset of the rows of the data should  be
+    used in the fit. All observations are included by default. 
+  }
+  \item{na.action}{
+    a function to filter missing data.
+  }
+  \item{contrasts}{
+    a list of contrasts to be used for some or all of
+    the factors appearing as variables in the model formula.
+  }
+  \item{Hess}{
+    logical for whether the Hessian (the inverse of the observed
+    information matrix)
+    should be computed.
+    Use \code{Hess = TRUE} if you intend to call \code{summary} or
+    \code{vcov} on the fit and \code{Hess = FALSE} in all other instances
+    to save computing time.
+  }
+  \item{model}{
+    logical for whether the model frames should be part of the returned
+    object.
+  }
+  \item{link}{
+    link function, i.e. the type of location-scale distribution
+    assumed for the latent distribution. The default \code{"logit"} link
+    gives the proportional odds mixed model.
+  }
+  \item{doFit}{
+    logical for whether the model should be fit or the model
+    environment should be returned.
+  }
+  \item{control}{
+    a call to \code{\link{clmm.control}}
+  }
+  \item{threshold}{
+    specifies a potential structure for the thresholds
+    (cut-points). \code{"flexible"} provides the standard unstructured
+    thresholds, \code{"symmetric"} restricts the distance between the
+    thresholds to be symmetric around the central one or two thresholds
+    for odd or equal numbers or thresholds respectively, and
+    \code{"equidistant"} restricts the distance between consecutive
+    thresholds to the same value.
+  }
+  \item{\dots}{
+    additional arguments are passed on to \code{\link{clm.control}}.
+  }
 }
 \details{
-  There are methods for the standard model-fitting functions, including
-  \code{\link{summary}}, \code{\link{vcov}},
-  \code{\link[=profile.clmm]{profile}},
-  \code{\link[=profile.clmm]{plot.profile}},
-  \code{\link[=confint.profile.clmm]{confint}},
-  \code{\link[ordinal]{anova}}, \code{\link{logLik}},
-  \code{\link[=predict.clmm]{predict}}
-  and an \code{extractAIC} method.
-
-  A Newton scheme is used to obtain the conditional modes of the random
-  effects for Laplace and AGQ approximations, and a non-linear
-  optimization is performed over the fixed parameter set to get the
-  maximum likelihood estimates.
-  The Newton
-  scheme uses the observed Hessian rather than the expected as is done
-  in e.g. \code{\link[lme4]{glmer}}, so results from the Laplace
-  approximation for binomial fits should in general be more precise -
-  particularly for other links than the \code{"logistic"}.
-
-  Core parts of the function are implemented in C-code for speed. For
-  binomial fits with a single random factor \code{clmm} is now faster
-  than \code{\link[lme4]{glmer}} for at least some models.
-
-  The function calls \code{\link{clm}} to up an
-  environment and to get starting values.
+  This is a new (as of August 2011) improved implementation of CLMMs. The
+  old implementation is available in \code{\link{clmm2}}. Some features
+  are not yet available in \code{clmm}; for instance quadrature methods,
+  scale effects, nominal effects and flexible link functions are
+  currently only  available in \code{clmm2}. \code{clmm} is expected to
+  take over \code{clmm2} at some point. 
+  
+  There are standard print, summary and anova methods implemented for
+  \code{"clmm"} objects.
 }
-\value{
-  If \code{doFit = FALSE} the result is an environment
-  representing the model ready to be optimized.
-  If \code{doFit = TRUE} the result is an
-  object of class \code{"clmm"} with the following components:
-
-  \item{stDev}{
-    the standard deviation of the random effects.
-  }
-  \item{Niter}{
-    the total number of iterations in the Newton updates of the
-    conditional modes of the random effects.
-  }
-  \item{grFac}{
-    the grouping factor defining the random effects.
-  }
-  \item{nAGQ}{
-    the number of quadrature points used in the adaptive Gauss-Hermite
-    Quadrature approximation to the marginal likelihood.
-  }
-  \item{ranef}{
-    the conditional modes of the random effects, sometimes referred to
-    as "random effect estimates".
-  }
-  \item{condVar}{
-    the conditional variances of the random effects at their conditional
-    modes.
-  }
-  \item{beta}{the parameter estimates of the location part.
-  }
-  \item{zeta}{the parameter estimates of the scale part on the log
-    scale; the scale parameter estimates on the original scale are given
-    by \code{exp(zeta)}.
-  }
-  \item{Alpha}{vector or matrix of the threshold parameters.
-  }
-  \item{Theta}{vector or matrix of the thresholds.
-  }
-  \item{xi}{vector of threshold parameters, which, given a
-    threshold function (e.g. \code{"equidistant"}), and possible nominal
-    effects define the class boundaries, \code{Theta}.
-  }
-  \item{lambda}{the value of lambda if lambda is supplied or estimated,
-    otherwise missing.
-  }
-  \item{coefficients}{the coefficients of the intercepts
-    (\code{theta}), the location  (\code{beta}), the scale
-    (\code{zeta}), and the link function parameter (\code{lambda}).
-  }
-  \item{df.residual}{the number of residual degrees of freedoms,
-    calculated using the weights.
-  }
-  \item{fitted.values}{vector of fitted values conditional on the values
-    of the random effects. Use \code{\link[=predict.clm]{predict}} to
-    get the fitted 
-    values for a random effect of zero. An observation here is taken to
-    be each of the scalar elements of the multinomial table and not a
-    multinomial vector. 
-  }
-  \item{convergence}{\code{TRUE} if the optimizer terminates wihtout
-    error and \code{FALSE} otherwise.
-  }
-  \item{gradient}{vector of gradients for the unit-variance random
-    effects at their conditional modes.
-  }
-  \item{optRes}{list with results from the optimizer. The contents of the
-    list depends on the choice of optimizer.
-  }
-  \item{logLik}{the log likelihood of the model at
-    optimizer termination.
-  }
-  \item{Hessian}{if the model was fitted with \code{Hess = TRUE}, this
-    is the Hessian matrix of the parameters at the optimum.
-  }
-  \item{scale}{\code{model.frame} for the scale model.
-  }
-  \item{location}{\code{model.frame} for the location model.
-  }
-  \item{nominal}{\code{model.frame} for the nominal model.
-  }
-  \item{edf}{the (effective) number of degrees of freedom used by the
-    model.
-  }
-  \item{start}{the starting values.
-  }
-  \item{method}{character, the optimizer.
-  }
-  \item{y}{the response variable.
-  }
-  \item{lev}{the names of the levels of the response variable.
-  }
-  \item{nobs}{the (effective) number of observations, calculated
-    as the sum of the weights.
-  }
-  \item{threshold}{character, the threshold function used in the model.
-  }
-  \item{estimLambda}{\code{1} if lambda is estimated in one of the
-    flexible link functions and \code{0} otherwise.
-  }
-  \item{link}{character, the link function used in the model.
-  }
-  \item{call}{the matched call.
-  }
-  \item{contrasts}{contrasts applied to terms in location and scale
-    models.
-  }
-  \item{na.action}{the function used to filter missing data.
-  }
+\value{ a list containing
+  \item{alpha}{threshold parameters.}
+  \item{beta}{fixed effect regression parameters.}
+  \item{stDev}{standard deviation of the random effect terms.}
+  \item{tau}{\code{log(stDev)} - the scale at which the log-likelihood
+    function is optimized.}
+  \item{coefficients}{the estimated model parameters = \code{c(alpha,
+      beta, tau)}.}
+  \item{Hessian}{Hessian of the model coefficients.}
+  \item{edf}{the estimated degrees of freedom used by the model =
+    \code{length(coefficients)}.} 
+  \item{nobs}{\code{sum(weights)}.}
+  \item{n}{length(y).}
+  \item{fitted.values}{fitted values evaluated with the random effects
+    at their conditional modes.}
+  \item{df.residual}{residual degrees of freedom; \code{length(y) -
+      sum(weights)}} 
+  \item{tJac}{Jacobian of the threshold function corresponding to the
+    mapping from standard flexible thresholds to those used in the
+    model.}
+  \item{terms}{the terms object for the fixed effects.}
+  \item{contrasts}{contrasts applied to the fixed model terms.}
+  \item{na.action}{the function used to filter missing data.}
+  \item{call}{the matched call.}
+  \item{logLik}{value of the log-likelihood function for the model at
+    the optimum.}
+  \item{Niter}{number of Newton iterations in the inner loop update of
+    the conditional modes of the random effects.}
+  \item{optRes}{list of results from the optimizer.}
+  \item{ranef}{list of the conditional modes of the random effects.}
+  \item{condVar}{list of the conditional variance of the random effects
+    at their conditional modes.}
+  
 }
-\author{Rune Haubo B Christensen}
-\references{
-  Agresti, A. (2002) \emph{Categorical Data Analysis.} Second edition.  Wiley.
-
+%% \references{ bla
+%% %% ~put references to the literature/web site here ~
+%% }
+\author{
+  Rune Haubo B Christensen
 }
 \examples{
-options(contrasts = c("contr.treatment", "contr.poly"))
+
+## Get test data:
 data(soup)
 
-## More manageable data set:
-dat <- subset(soup, as.numeric(as.character(RESP)) <=  24)
-dat$RESP <- dat$RESP[drop=TRUE]
+## Cumulative link mixed model with two random terms:
+mm1 <- clmm(SURENESS ~ PROD + (1|RESP) + (1|RESP:PROD), data = soup,
+            link = "probit", threshold = "equidistant")
+mm1
+summary(mm1)
 
-m1 <- clmm(SURENESS ~ PROD, random = RESP, data = dat, link="probit",
-           Hess = TRUE, method="ucminf", threshold = "symmetric")
-
-m1
-summary(m1)
-logLik(m1)
-vcov(m1)
-extractAIC(m1)
-anova(m1, update(m1, location = SURENESS ~ 1, Hess = FALSE))
-anova(m1, update(m1, random = NULL))
-
-## Use adaptive Gauss-Hermite quadrature rather than the Laplace
-## approximation:
-update(m1, Hess = FALSE, nAGQ = 3)
-
-## Use standard Gauss-Hermite quadrature:
-update(m1, Hess = FALSE, nAGQ = -7)
-
-##################################################################
-## Binomial example with data from the lme4-package:
-data(cbpp, package = "lme4")
-cbpp2 <- rbind(cbpp[,-(2:3)], cbpp[,-(2:3)])
-cbpp2 <- within(cbpp2, {
-    incidence <- as.factor(rep(0:1, each=nrow(cbpp)))
-    freq <- with(cbpp, c(incidence, size - incidence))
-})
-
-## Fit with Laplace approximation:
-fm1 <- clmm(incidence ~ period, random = herd, weights = freq,
-            data = cbpp2, Hess = 1)
-summary(fm1)
-
-## Fit with the adaptive Gauss-Hermite quadrature approximation:
-fm2 <- clmm(incidence ~ period, random = herd, weights = freq,
-            data = cbpp2, Hess = 1, nAGQ = 7)
-summary(fm2)
+## test random effect:
+mm2 <- clmm(SURENESS ~ PROD + (1|RESP), data = soup,
+            link = "probit", threshold = "equidistant")
+anova(mm1, mm2)
 
 }
+% Add one or more standard keywords, see file 'KEYWORDS' in the
+% R documentation directory.
 \keyword{models}
+
