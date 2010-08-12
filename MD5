@@ -1,4 +1,4 @@
-499fdc43ca358a91b18e0ea67afac143 *DESCRIPTION
+20fc4fb0f56f4e65035a269ce3a17279 *DESCRIPTION
 f6d4ce068ff3cf5c34d6c79c6ea1feb6 *NAMESPACE
 e943c48ac27110d41df9324f4d058055 *R/clm.R
 0e789b9a8128a328c552980965bcc134 *R/clm.methods.R
@@ -22,10 +22,10 @@ de5d075c95248681323ce9e571e7d0a2 *data/soup.rda
 549998815773e2e3040e6bc01e22fd6b *inst/CITATION
 fe651ce28cb8b466305715ce0fc428ee *inst/LICENCE
 87f445b990aa7f55731dcab0091ed15d *inst/doc/clmm2_tutorial.Rnw
-c36e9baf77dba514f57376753497b8a2 *inst/doc/clmm2_tutorial.pdf
+8f1f96bd0a5fd4a93a71ac227303f1cc *inst/doc/clmm2_tutorial.pdf
 e54f2a17c68ccbfe00569a0519198c99 *inst/doc/ordinal.bib
 232a3c8d2c61ca1e1fb90de11fdba167 *inst/doc/primer.Rnw
-fb90f559454986ea347ffd830c1e43cc *inst/doc/primer.pdf
+af614d41a82367bdd4d220eef1d6b533 *inst/doc/primer.pdf
 8c292b61fd0a2d2c06f44748c605d703 *man/addtermOld.Rd
 d172438f01abc612b1473ad4e91259c3 *man/anovaOld.Rd
 fe1c75d1510c57e9220aa1075d838d94 *man/clm.Rd
