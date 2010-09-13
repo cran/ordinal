@@ -9,52 +9,63 @@
   A direct fitter of cumulative link models.
 }
 \usage{
-clm.fit(y, X, weights = rep(1, nrow(X)), offset = rep(0, nrow(X)),
-control = list(), start,
-link = c("logit", "probit", "cloglog", "loglog", "cauchit"),
-threshold = c("flexible", "symmetric", "equidistant"))
+
+clm.fit(y, X, S, N, weights = rep(1, nrow(X)),
+  offset = rep(0, nrow(X)), S.offset = rep(0, nrow(X)),
+  control = list(), start,
+  link = c("logit", "probit", "cloglog", "loglog", "cauchit"),
+  threshold = c("flexible", "symmetric", "equidistant"))
 
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{y}{the response variable; a factor, preferably and ordered
     factor. 
-    %%     ~~Describe \code{y} here~~
-}
-\item{X}{the design matrix for the regression parameters.
-%%     ~~Describe \code{X} here~~
-}
+  }
+  \item{X, S, N}{optional design matrices for the regression parameters, 
+    scale parameters and nominal parameters respectively.
+  }
   \item{weights}{optional case weights.
-%%     ~~Describe \code{weights} here~~
-}
+  }
   \item{offset}{an optional offset.
-%%     ~~Describe \code{offset} here~~
-}
+  }
+  \item{S.offset}{an optional offset for the scale part of the model. 
+  }
   \item{control}{a list of control parameters, optionally a call to
     \code{\link{clm.control}}. 
-%%     ~~Describe \code{control} here~~
-}
+  }
   \item{start}{an optional list of starting values of the form
-    \code{c(alpha, beta)} for the thresholds (\code{alpha}) and
-    regression parameters (\code{beta}). 
-%%     ~~Describe \code{start} here~~
-}
+    \code{c(alpha, beta, zeta)} for the thresholds and nominal effects
+    (\code{alpha}), regression parameters (\code{beta}) and scale
+    parameters (\code{zeta}).
+  }
   \item{link}{the link function.
-%%     ~~Describe \code{link} here~~
-}
+  }
   \item{threshold}{the threshold structure, see further at
     \code{\link{clm}}.
-%%     ~~Describe \code{threshold} here~~
+  }
 }
+\details{
+  This function does almost the same thing that \code{\link{clm}} does:
+  it fits a cumulative link model. The main differences are that
+  \code{clm.fit} does not setup design matrices from formulae and only
+  does minimal post processing after parameter estimation.
+
+  Compared to \code{\link{clm}}, \code{clm.fit} does little to warn the
+  user of any problems with data or model. However, \code{clm.fit} will
+  attempt to identify column rank defecient designs. Any unidentified
+  parameters are indicated in the \code{aliased} component of the fit.
+
+  In contrast to \code{\link{clm}}, \code{clm.fit} allows non-positive
+  weights.   
 }
-%% \details{ bla
-%% %%  ~~ If necessary, more details than the description above ~~
-%% }
+
 \value{
   A list with the following components:
   \item{par}{the maximum likelihood estimate of the model parameters on 
-    the form \code{c(alpha, beta)} for the thresholds (\code{alpha}) and  
-    regression parameters (\code{beta}). 
+    the form \code{c(alpha, beta, zeta)} for the thresholds and nominal
+    effects (\code{alpha}), regression parameters (\code{beta}) and
+    scale parameters (\code{zeta}). 
   }
   \item{gradient}{gradient of the log-likelihood function for the
     parameters at the optimum.
@@ -72,23 +83,25 @@ threshold = c("flexible", "symmetric", "equidistant"))
   \item{maxGradient}{the maximum absolute gradient:
     \code{max(abs(gradient))}.
   }
-  \item{niter}{a vector of length 2: the number of iteration and the
-    number of step halvings respectively.
+  \item{niter}{depends on the optimizer. For the default Newton
+    optimizer it is a vector of length 2: the number of iteration and
+    the number of step halvings respectively.
   }
   \item{fitted}{the fitted values (probabilities).
   }
-%%  ~Describe the value returned
-%%  If it is a LIST, use
-%%  \item{comp1 }{Description of 'comp1'}
-%%  \item{comp2 }{Description of 'comp2'}
-%% ...
+  \item{coef.names}{a list of vectors of names of the coefficients as
+    inferred from the column names of the design matrices.
+  }
+  \item{aliased}{a list of logical vectors; \code{TRUE} is a parameter
+    is not identified due to column rank deficiency in the design 
+    matrices and \code{FALSE} otherwise. 
+  }
 }
 %% \references{ bla
 %%   %% ~put references to the literature/web site here ~
 %% }
 \author{
   Rune Haubo B Christensen
-%%  ~~who you are~~
 }
 %% \note{ bla
 %% %%  ~~further notes~~
@@ -96,9 +109,9 @@ threshold = c("flexible", "symmetric", "equidistant"))
 %% 
 %% %% ~Make other sections like Warning with \section{Warning }{....} ~
 %% 
-%% \seealso{ bla
-%% %% ~~objects to See Also as \code{\link{help}}, ~~~
-%% }
+\seealso{
+  \code{\link{clm}}
+}
 \examples{
 
 ## A simple example:

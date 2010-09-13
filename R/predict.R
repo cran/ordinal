@@ -139,7 +139,7 @@ predict.clm <-
            "linear.predictor" = lin.pred.predict.clm(env=env, cov=cov,
              se.fit=se.fit, interval=interval, level=level)
            )
-### Arrange predictions in matrices if response is missiong from
+### Arrange predictions in matrices if response is missing from
 ### newdata arg or type=="class":
   if(!has.response || type == "class") {
     pred <- lapply(pred, function(x) {
@@ -152,7 +152,7 @@ predict.clm <-
         factor(max.col(x), levels=seq_along(ylev), labels=ylev) })
   }
 ### Filter missing values (if relevant):
-  if (missing(newdata) && !is.null(object$na.action))
+  if(missing(newdata) && !is.null(object$na.action))
     pred <- lapply(pred, function(x) napredict(object$na.action, x))
   return(pred)
 }
@@ -172,7 +172,8 @@ prob.predict.clm <-
       pred$se.fit <- se.pr
     if(interval) {
       pred.logit <- qlogis(pred$fit)
-      se.logit <- dlogis(pred$fit) * se.pr
+      ## se.logit <- dlogis(pred$fit) * se.pr
+      se.logit <- se.pr / (pred$fit * (1 - pred$fit))
       a <- (1 - level)/2
       pred$lwr <- plogis(pred.logit + qnorm(a) * se.logit)
       pred$upr <- plogis(pred.logit - qnorm(a) * se.logit)

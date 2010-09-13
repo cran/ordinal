@@ -1,73 +1,104 @@
+## This file contains 
+
+
+
+## Important sourses of inspiration for the ordinal package:
+## 
+## 1: The presentation by Douglas Bates at DSC in Copenhagen for
+## inspiring me to use an environment with values that gets updated
+## during the fitting process.
+## 2. MASS::polr was an important source for my initial understanding
+## of CLMs. There is very little (if anything at all) in the current
+## implementation that resembles that of MASS::polr, but for instance
+## the naming of the thresholds in print and summary output is quite
+## similar to that of MASS::polr.
+## 3. Function gauss.hermite adopted with only minor modifications
+## from package statMod(?)
+
+
 clmm <-
   function(formula, data, weights, start, subset, 
            na.action, contrasts, Hess = TRUE, model = TRUE,
            link = c("logit", "probit", "cloglog", "loglog", 
              "cauchit"), ##, "Aranda-Ordaz", "log-gamma"), ## lambda, 
-           doFit = TRUE, control,
+           doFit = TRUE, control = list(), nAGQ = 1L,
            threshold = c("flexible", "symmetric", "equidistant"), ...)
 {
 ### Extract the matched call and initial testing:
   mc <- match.call(expand.dots = FALSE)
-  ## call clm() when there are no random effects.
-
+### FIXME: Possibly call clm() when there are no random effects? 
   link <- match.arg(link)
   threshold <- match.arg(threshold)
   if(missing(formula))  stop("Model needs a formula")
   if(missing(contrasts)) contrasts <- NULL
-
   ## set control parameters:
-  if(missing(control)) control <- clmm.control(...)
-  if(!setequal(names(control), c("method", "ctrl", "optCtrl")))
-    stop("specify 'control' via clmm.control()")
+  control <- do.call(clmm.control, c(control, list(...)))
+  nAGQ <- as.integer(round(nAGQ))
 
   ## Extract y, X, Zt, offset (off), weights (wts):
   frames <- clmm.model.frame(mc, contrasts)
   if(control$method == "model.frame") return(frames)
-
   ## Test rank deficiency and possibly drop some parameters:
   ## X is guarantied to have an intercept at this point.
   frames$X <- drop.coef(frames$X)
-
   ## Compute the transpose of the Jacobian for the threshold function,
   ## tJac and the names of the threshold parameters, alpha.names:
   ths <- makeThresholds(frames$y, threshold)
 
-  ## set and update rho environment:
+  ## Set rho environment:
   rho <- with(frames, {
     clm.newRho(parent.frame(), y=y, X=X, weights=wts,
                offset=off, tJac=ths$tJac) })
-  rho.clm2clmm(rho=rho, Zt=frames$Zt, grList=frames$grList,
-               ctrl=control$ctrl)
   
 ### NOTE: alpha.names, beta.names, random.names, tau.names?
 ### nalpha, nbeta, nrandom, ntau
   nbeta <- rho$nbeta <- ncol(frames$X) - 1 ## no. fixef parameters
   nalpha <- rho$nalpha <- ths$nalpha ## no. threshold parameters
-  ntau <- length(frames$grList) ## no. variance parameters
-### FIXME: save ntau in rho?
+  ntau <- rho$ntau <- length(frames$grList) ## no. variance parameters
 
-  ## set starting values for the parameters:
+  ## Set inverse link function and its two first derivatives (pfun,
+  ## dfun and gfun) in rho: 
+  setLinks(rho, link)
+
+  ## Set starting values for the parameters:
   if(missing(start)) start <- clmm.start(frames, link, threshold)
   stopifnot(is.numeric(start) && 
             length(start) == (nalpha + nbeta + ntau))
   rho$par <- start
+
+  ## Update rho with RE information:
+  if(ntau == 1L) {
+    rho.clm2clmm.ssr(rho=rho, grList=frames$grList,
+                     ctrl=control$ctrl)
+    set.AGQ(rho, nAGQ)
+  }
+  else
+    rho.clm2clmm(rho=rho, Zt=frames$Zt, grList=frames$grList,
+                 ctrl=control$ctrl)
+  if(nAGQ != 1 && ntau > 1)
+    stop("Quadrature methods are not available with
+more than one random effects term", call.=FALSE)
   
-  ## Set pfun, dfun and gfun in rho:
-  setLinks(rho, link)
-  
-  ## possibly return the environment, rho without fitting:
+  ## Possibly return the environment, rho without fitting:
   if(!doFit)  return(rho)
 
-  ## fit the clmm:
-  fit <- clmm.fit.env(rho, control = control$optCtrl, Hess)
-    
+  ## Fit the clmm:
+  fit <-
+    if(ntau == 1L) clmm.fit.ssr(rho, control = control$optCtrl, Hess)
+    else  clmm.fit.env(rho, control = control$optCtrl, Hess)
+  
   ## Modify and return results:
+  fit$nAGQ <- nAGQ
   fit$link <- link
   fit$start <- start
   fit$threshold <- threshold
   fit$call <- match.call()
-  fit$contrasts <- contrasts
   fit$tJac <- ths$tJac
+  fit$contrasts <- attr(frames$X, "contrasts")
+  fit$na.action <- attr(frames$mf, "na.action")
+  fit$terms <- frames$terms
+  fit$xlevels <- .getXlevels(fit$terms, frames$mf)
+  fit$y.levels <- levels(frames$y)
   res <- clmm.finalize(fit=fit, frames=frames,
                        alpha.names=ths$alpha.names) 
   
@@ -139,7 +170,7 @@ clmm.model.frame <- function(mc, contrasts) {
   ## test that only random effects on the intercept are specified:
   grChar <- unlist(lapply(barList, function(x) as.character(x[[2]])))
   if(any(grChar != "1"))
-    stop(gettextf("random terms has to be on the form '(1|factor)'"),
+    stop(gettextf("random terms have to be on the form '(1|factor)'"),
          call. = FALSE)
   
   ## test that all variables for the random effects are factors and
@@ -168,7 +199,8 @@ clmm.model.frame <- function(mc, contrasts) {
   ## set fixef terms attribute of fullmf:
   attr(fullmf, "terms") <- fixedTerms
   res <- list(y = y, X = X, Zt = Zt, wts = as.double(wts),
-              off = as.double(off), mf = fullmf, grList = grList)
+              off = as.double(off), mf = fullmf, terms = fixedTerms,
+              grList = grList)
   ## Note: X is with dimnames and an intercept is guarantied.
   return(res)
 }
@@ -186,34 +218,50 @@ rho.clm2clmm <- function(rho, Zt, grList, ctrl)
   rho$ntau <- length(rho$nlev) ## no. random terms
   rho$tau <- rep(0, rho$ntau) ## with(rho, exp(par[nalpha + nbeta + 1:s]))
   rho$varVec <- rep.int(rho$tau, rho$nlev)
+  rho$tau.names <- names(grList)
   rho$Vt <- crossprod(Diagonal(x = rho$varVec), rho$Zt)
   ## rho$Lambda <- Diagonal(x = rep.int(rho$tau, rho$nlev))
   ## rho$Vt <- crossprod(rho$Lambda, rho$Zt)
   rho$L <- Cholesky(tcrossprod(rho$Vt), LDL = TRUE, super = FALSE,
                     Imult = 1)
-  rho$Niter <- 0
+  rho$Niter <- 0L
   rho$u <- rho$uStart <- rep(0, rho$nrandom)
   rho$.f <- if(package_version(packageDescription("Matrix")$Version) >
                "0.999375-30") 2 else 1
 }
 
 clmm.fit.env <-
-  function(rho, control = list(), Hess = FALSE) {
-  ## fit the model with Laplace:
+  function(rho, control = list(), Hess = FALSE)
+{
+  ## Fit the model with Laplace:
   fit <- ucminf(rho$par, function(par) getNLA(rho, par),
                 control = control)
   
-  ## ensure evaluation at optimum:
+  ## Ensure random mode estimation at optimum:
   nllFast.u(rho)
   update.u(rho)
+  
+  ## Format ranef modes and condVar:
+  ranef <- rep.int(rho$tau, rho$nlev) * rho$u
+  condVar <- as.vector(diag(solve(rho$L)) *
+                       rep.int(rho$tau^2, rho$nlev))
+  names(ranef) <- names(condVar) <-
+    as.vector(unlist(rho$random.names))  
+  ranef <- split(x=-ranef, f=rep.int(rho$tau.names, rho$nlev))
+  condVar <- split(x=condVar, f=rep.int(rho$tau.names, rho$nlev)) 
+### NOTE: parameterization of random effects should change sign; this
+### would avoid changing the sign at this point.
 
-  ## prepare list of results:
-  res <- list(coefficients = fit$par, optRes = fit,
-              logLik = -fit$value, fitted = rho$fitted,
-              random = rho$u, L = rho$L, Niter = rho$Niter)
-### FIXME: set res$condVar
+  ## Prepare list of results:
+  res <- list(coefficients = fit$par,
+              optRes = fit,
+              logLik = -fit$value,
+              fitted.values = rho$fitted,
+              ranef = ranef,
+              condVar = condVar,
+              Niter = rho$Niter)
 
-  ## compute hessian?
+  ## Compute hessian?
   if(Hess)
     res$Hessian <-
       hessian(function(par) getNLA(rho, par), x = fit$par,
@@ -356,7 +404,7 @@ the random effects"
   }
   else if(conv != 0 && rho$ctrl$innerCtrl == "giveError")
         stop(message, "\n  at iteration ", rho$Niter)
-  rho$Niter <- rho$Niter + i
+  rho$Niter <- rho$Niter + i - 1
     rho$L <- hess.u(rho)
   if(!is.finite(rho$nll))
     return(FALSE)
@@ -402,10 +450,7 @@ clmm.finalize <-
     edf <- length(coefficients) ## estimated degrees of freedom
     nobs <- sum(frames$wts)
     n <- length(frames$wts)
-    fitted.values <- fitted
     df.residual = nobs - edf
-    terms <- frames$terms
-    na.action <- frames$na.action
     info <-
       data.frame("link" = link,
                  "threshold" = threshold,
@@ -420,18 +465,6 @@ clmm.finalize <-
                  ## BIC is not part of output since it is not clear what
                  ## the no. observations are. 
                  )
-    ## compute ranef estimates and conditional variance:
-    ranef <- rep.int(stDev, nlev) * random
-    names(ranef) <- as.vector(unlist(random.names))
-    ranef <- split(x=-ranef, f=rep.int(names(frames$grList), nlev))
-### NOTE: parameterization of random effects should change sign; this
-### would avoid changing the sign at this point.
-    condVar <- as.vector(diag(solve(L)) * rep.int(stDev^2, nlev))
-    names(condVar) <- as.vector(unlist(random.names))
-    condVar <- split(x=condVar, f=rep.int(names(frames$grList), nlev)) 
-
-    ## remove excess elements:
-    rm(list = c("L")) 
   })
   ## set class and return fit:
   class(fit) <- "clmm"
@@ -440,7 +473,7 @@ clmm.finalize <-
 
 clmm.control <-
   function(method = c("ucminf", "model.frame"),
-           ..., trace = 0, maxIter = 50, gradTol = 1e-3,
+           ..., trace = 0, maxIter = 50, gradTol = 1e-4,
            maxLineIter = 50,
            innerCtrl = c("warnOnly", "noWarn", "giveError"))
 {
@@ -464,3 +497,4 @@ clmm.control <-
   
   list(method = method, ctrl = ctrl, optCtrl = optCtrl)
 }
+

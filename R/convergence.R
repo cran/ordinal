@@ -57,6 +57,7 @@ convergence.clm <-
   return(invisible(tab))  
 }
 
+
 cor.dec <- function(error) {
 ### computes the no. correct decimals in a number if 'error' is the
 ### error in the number. 

@@ -1,7 +1,16 @@
 print.clmm <- 
   function(x, digits = max(3, getOption("digits") - 3), ...)
 {
-  cat("Cumulative Link Mixed Model fitted with the Laplace approximation\n",
+  if(x$nAGQ >= 2)
+    cat(paste("Cumulative Link Mixed Model fitted with the adaptive",
+              "Gauss-Hermite \nquadrature approximation with",
+              x$nAGQ ,"quadrature points"), "\n\n")
+  else if(x$nAGQ <= -1)
+    cat(paste("Cumulative Link Mixed Model fitted with the",
+              "Gauss-Hermite \nquadrature approximation with",
+              abs(x$nAGQ) ,"quadrature points"), "\n\n")
+  else
+    cat("Cumulative Link Mixed Model fitted with the Laplace approximation\n",
       fill=TRUE)
   cat("formula:", deparse(x$call$formula), fill=TRUE)
   if(!is.null(data.name <- x$call$data))
@@ -75,7 +84,16 @@ print.summary.clmm <-
   function(x, digits = max(3, getOption("digits") - 3),
            signif.stars = getOption("show.signif.stars"), ...)
 {
-  cat("Cumulative Link Mixed Model fitted with the Laplace approximation\n",
+  if(x$nAGQ >= 2)
+    cat(paste("Cumulative Link Mixed Model fitted with the adaptive",
+              "Gauss-Hermite \nquadrature approximation with",
+              x$nAGQ ,"quadrature points"), "\n\n")
+  else if(x$nAGQ <= -1)
+    cat(paste("Cumulative Link Mixed Model fitted with the",
+              "Gauss-Hermite \nquadrature approximation with",
+              abs(x$nAGQ) ,"quadrature points"), "\n\n")
+  else
+    cat("Cumulative Link Mixed Model fitted with the Laplace approximation\n",
       fill=TRUE)
   cat("formula:", deparse(x$call$formula), fill=TRUE)
   if(!is.null(data.name <- x$call$data))
@@ -119,8 +137,18 @@ print.summary.clmm <-
   return(invisible(x))
 }
 
-anova.clmm <- function(object, ...)
-  anova.clm(object, ...)
+## anova.clmm <- function(object, ...)
+##   anova.clm(object, ...)
+
+anova.clmm <- function(object, ...) {
+### This essentially calls anova.clm(object, ...), but the names of
+### the models were not displayed correctly in the printed output
+### unless the following dodge is enforced.
+  mc <- match.call()
+  arg.list <- as.list(mc)
+  arg.list[[1]] <- NULL
+  return(do.call(anova.clm, arg.list))
+}
 
 logLik.clmm <- function(object, ...)
   structure(object$logLik, df = object$edf, class = "logLik")

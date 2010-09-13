@@ -11,8 +11,8 @@
 \usage{
 clmm(formula, data, weights, start, subset, na.action, contrasts, Hess =
 TRUE, model = TRUE, link = c("logit", "probit", "cloglog", "loglog",
-"cauchit"), doFit = TRUE, control, threshold = c("flexible",
-"symmetric", "equidistant"), ...)
+"cauchit"), doFit = TRUE, control = list(), nAGQ = 1L,
+threshold = c("flexible", "symmetric", "equidistant"), ...)
 
 %% also document getNLA(rho, par) here and include examples
 }
@@ -73,6 +73,20 @@ TRUE, model = TRUE, link = c("logit", "probit", "cloglog", "loglog",
   }
   \item{control}{
     a call to \code{\link{clmm.control}}
+  }
+  \item{nAGQ}{
+    integer; the number of quadrature points to use in the adaptive
+    Gauss-Hermite quadrature approximation to the likelihood
+    function. The default (\code{1}) gives the Laplace
+    approximation. Higher values generally provide higher precision at
+    the expense of longer computation times, and
+    values between 5 and 10 generally provide accurate maximum
+    likelihood estimates. Negative values give the non-adaptive
+    Gauss-Hermite quadrature approximation, which is generally faster
+    but less 
+    accurate than the adaptive version. See the references for further
+    details. Quadrature methods are only available with a single random
+    effects term; the Laplace approximation is always available. 
   }
   \item{threshold}{
     specifies a potential structure for the thresholds

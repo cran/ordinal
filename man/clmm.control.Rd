@@ -9,7 +9,7 @@
 }
 \usage{
 clmm.control(method = c("ucminf", "model.frame"), ..., trace = 0,
-maxIter = 50, gradTol = 0.001, maxLineIter = 50, innerCtrl =
+maxIter = 50, gradTol = 1e-4, maxLineIter = 50, innerCtrl =
 c("warnOnly", "noWarn", "giveError")) 
 }
 %- maybe also 'usage' for other objects documented here.

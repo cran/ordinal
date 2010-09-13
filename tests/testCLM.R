@@ -58,11 +58,11 @@ mN1 <- clm(sureness ~ 1, nominal = ~ prod, data = dat26,
 anova(m1, mN1)
 ## optimizer / method:
 update(m1, scale = ~ 1, method = "Newton")
-## update(m1, scale = ~ 1, method = "ucminf")
-## update(m1, scale = ~ 1, method = "nlminb")
-## update(m1, scale = ~ 1, method = "optim")
+update(m1, scale = ~ 1, method = "ucminf")
+update(m1, scale = ~ 1, method = "nlminb")
+update(m1, scale = ~ 1, method = "optim")
 update(m1, scale = ~ 1, method = "model.frame")
-update(m1, location = ~.-prod, scale = ~ 1,
+update(m1, ~.-prod, scale = ~ 1,
        nominal = ~ prod, method = "model.frame")
 ## threshold functions
 mT1 <- update(m1, threshold = "symmetric")
@@ -127,42 +127,48 @@ summary(fm1, corr = 1)
 ## Missing values:
 ## Bug-report from Jonathan Williams
 ## <Jonathan.Williams@dpag.ox.ac.uk>, 18 March 2010 12:42
-##  (some currently fails)
 data(soup, package = "ordinal")
 soup$SURENESS[10] <- NA
 c1a <- clm(ordered(SURENESS)~PROD, data=soup); summary(c1a)
-## c2a <- clm(ordered(SURENESS)~PROD, scale = ~PROD, data=soup); summary(c2a)
-## c3a <- clm(ordered(SURENESS)~1, scale = ~PROD, data=soup);
-## summary(c3a)
+c2a <- clm(ordered(SURENESS)~PROD, scale = ~PROD, data=soup)
+summary(c2a)
+c3a <- clm(ordered(SURENESS)~1, scale = ~PROD, data=soup)
+summary(c3a)
 data(soup, package = "ordinal")
 soup$PROD[1] <- NA
-c1a <- clm(ordered(SURENESS)~PROD, data=soup); summary(c1a)
-c2a <- clm(ordered(SURENESS)~PROD, scale = ~PROD, data=soup); summary(c2a)
-## c3a <- clm(ordered(SURENESS)~1, scale = ~PROD, data=soup); summary(c3a)
+c1a <- clm(ordered(SURENESS)~PROD, data=soup)
+summary(c1a)
+c2a <- clm(ordered(SURENESS)~PROD, scale = ~PROD, data=soup)
+summary(c2a)
+c3a <- clm(ordered(SURENESS)~1, scale = ~PROD, data=soup)
+summary(c3a)
 soup$SURENESS[10] <- NA
-c1a <- clm(ordered(SURENESS)~PROD, data=soup); summary(c1a)
-## c2a <- clm(ordered(SURENESS)~PROD, scale = ~PROD, data=soup); summary(c2a)
-## c3a <- clm(ordered(SURENESS)~1, scale = ~PROD, data=soup); summary(c3a)
+c1a <- clm(ordered(SURENESS)~PROD, data=soup)
+summary(c1a)
+c2a <- clm(ordered(SURENESS)~PROD, scale = ~PROD, data=soup)
+summary(c2a)
+c3a <- clm(ordered(SURENESS)~1, scale = ~PROD, data=soup)
+summary(c3a)
 
 ## na.actions:
-## c4a <- clm(ordered(SURENESS)~PROD, scale = ~PROD, data=soup,
-##            na.action=na.omit)
-## summary(c4a)
+c4a <- clm(ordered(SURENESS)~PROD, scale = ~PROD, data=soup,
+           na.action=na.omit)
+summary(c4a)
 
 tC1 <- try(clm(ordered(SURENESS)~PROD, scale = ~PROD, data=soup,
                na.action=na.fail), silent = TRUE)
 stopifnot(class(tC1) == "try-error")
 
-## c4a <- clm(ordered(SURENESS)~PROD, scale = ~PROD, data=soup,
-##            na.action=na.exclude)
-## summary(c4a)
+c4a <- clm(ordered(SURENESS)~PROD, scale = ~PROD, data=soup,
+           na.action=na.exclude)
+summary(c4a)
 
-## tC2 <- try(clm(ordered(SURENESS)~PROD, scale = ~PROD, data=soup,
-##                na.action=na.pass), silent = TRUE)
-## stopifnot(class(tC2) == "try-error")
+tC2 <- try(clm(ordered(SURENESS)~PROD, scale = ~PROD, data=soup,
+                na.action=na.pass), silent = TRUE)
+stopifnot(class(tC2) == "try-error")
 
 ## Subset:
-data(soup)
+data(soup, package="ordinal")
 c4a <- clm(ordered(SURENESS)~PROD, scale = ~PROD, data=soup,
            subset = 1:100)
 c4a <- clm(ordered(SURENESS)~1, scale = ~PROD, data=soup,

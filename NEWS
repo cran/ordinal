@@ -1,0 +1,90 @@
+This file documents updates and changes in package ordinal since version
+2010.03-04
+
+March 04 2010:
+
+- First version of the package is created.
+
+2010-04-06:
+
+- removing class "clm.fit" from results of finalizeRho.
+- moving offset computations from logLik and gradient funtions to
+  newRho function.
+- Bug fixed in grad.lambda
+- checks and warning messages added to profile.clm
+- a warning is now given if the profile fits do not converge
+- profile.clm has grown the argument 'stepWarn', which gives a
+  warning if the no. profile steps in each direction (up or down) is
+  less than stepWarn (default 8), which indicates that the profile is
+  unreliable.
+- Bug in loglog-link for clmm fits fixed.
+- Missing values are handled better in clm and clmm.
+- clmm has grown an argument 'sdFixed' which assigns a fixed value of
+  the standard deviation of the random effects. Optimization is
+  performed with respect to the remaining parameters.
+- profile.clmm, confint.profile.clmm and plot.profile.clmm are now
+  available. Profiling is restricted to the standard deviation
+  parameter of the random effects.
+- control.clm and control.clmm now handles the control parameters.
+
+2010-05-06:
+
+- allowing the formulas to be constructed outside clm and clmm
+  (the formulas are evaluated in the parent frame before the variable
+  names are extracted)
+
+2010-05-17:
+
+- Better evaluation in case of non-standard formula usage allowing
+  e.g. clm(data$y ~ data$x).
+- Better handling of ill-defined variance-covariance matrix of the
+  parameters in summary methods for clm and clmm objects.
+
+2010-06-12:
+
+- Standard Gauss-Hermite quadrature is now available via the nAGQ
+  argument to clmm.
+- Core functions implemented in C for speed. This includes all link
+  functions, update of the conditional modes of the random effects,
+  adaptive Gauss-Hermite quadrature and standard, i.e. non-adaptive
+  Gauss-Hermite quadrature. Select R or C implementation via the
+  argument doFit to clmm.
+- Bug in random effects estimates and their conditional modes
+  corrected. 
+
+2010-07-06:
+
+- Bug in predict when 'newdata' was supplied is now corrected.
+
+2010-07-23:
+
+- Better descriptions of random effect estimates and fitted values in
+  the clmm help page.
+
+2010-10-22:
+
+- Updated help page for predict.clm/clmm.
+
+2010-12-13:
+
+- Bug in predict.clm corrected for models with nominal effects and
+  newdata supplied (thanks to Simon Blomberg for the bug report).
+
+2011-04-21:
+
+- Better message from summary.clmm when Hess = FALSE
+- endpoint thresholds are now closer to infinity. This is due to a bug
+  report from Ioannis Kosmidis (March 30, 2011); the model estimates
+  weren't right with very large scale effects. Tests are added to
+  testCLM.R 
+- gradTol in clm.control now defaults to 1e-5 rather than 1e-4.
+  convTol is retained at 1e-4, so we are asking for closer convergence
+  than we require.
+- getGnll no longer returns Inf if !all(pr > 0)
+- link utility functions are moved from clm.R to linkUtils.R
+- extensive testing for NaN-specials in C-code for the link functions
+  is added. 
+- details section added to clmm.control.Rd with comment about using
+  "central" gradients with the ucminf optimizer.
+- examples updated in confint.Rd
+

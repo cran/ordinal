@@ -18,45 +18,33 @@ clm <-
   control <- do.call(clm.control, c(control, list(...)))
   
   ## identify model as 'simple clm' or 'extended clm':
-  Class <- if(missing(scale))
-    c("sclm", "clm") else c("eclm", "clm")
+  Class <- if(!missing(scale) || link == "cauchit")
+    c("eclm", "clm") else c("sclm", "clm")
   
   ## Compute: y, X, wts, off, mf:
   frames <- eclm.model.frame(mc, contrasts)
-  if(control$method == "model.frame") return(frames)
 
-### Better handling of names and alias information here?
-
-  ## Test column rank deficiency and possibly drop some parameters:
-  ## X is with intercept at this point.
-  frames <- drop.cols(frames, silent=TRUE)
-### FIXME: drop intercept from X and S in drop.cols?
-  
   ## Compute the transpose of the Jacobian for the threshold function,
   ## tJac and the names of the threshold parameters, alpha.names:
-  ths <- makeThresholds(frames$y, threshold)
-  ## adjust alpha.names with nominal effects:
-  nalpha <- length(ths$alpha.names)
-  if(NCOL(frames$NOM) > 1) {
-    frames$coef.names$alpha <- ths$alpha.names <-
-      paste(rep(ths$alpha.names, ncol(frames$NOM)), ".",
-            rep(frames$coef.names$alpha, each=nalpha), sep="")
-    frames$aliased$alpha <- rep(frames$aliased$alpha, each=nalpha)
-  }
-  else {
-    frames$coef.names$alpha <- ths$alpha.names
-    frames$aliased$alpha <- rep(0, nalpha)
-  }
-  ## frames$aliased is a list with alias information
-  ## frames$coef.names is a list with names information
+  frames$ths <- makeThresholds(frames$y, threshold)
+
+  ## Return model.frame?
+  if(control$method == "model.frame") return(frames)
   
-  ## set envir rho with variables: B1, B2, o1, o2, wts, fitted:
+  ## Test column rank deficiency and possibly drop some
+  ## parameters. Also set the lists aliased and coef.names:
+  ## (X is with intercept at this point.)
+  frames <- drop.cols(frames, silent=TRUE)
+### Note: intercept could be dropped from X and S in drop.cols?
+### Currently they are dropped in eclm.newRho instead.
+  
+  ## Set envir rho with variables: B1, B2, o1, o2, wts, fitted:
   rho <- with(frames, {
     eclm.newRho(parent.frame(), y=y, X=X, NOM=frames$NOM, S=frames$S, 
                 weights=wts, offset=off, S.offset=frames$S.off,
                 tJac=ths$tJac) })
 
-  ## set appropriate logLik and deriv functions in rho:
+  ## Set appropriate logLik and deriv functions in rho:
   if("eclm" %in% Class) {
     rho$clm.nll <- eclm.nll
     rho$clm.grad <- eclm.grad
@@ -66,27 +54,26 @@ clm <-
     rho$clm.grad <- clm.grad
     rho$clm.hess <- clm.hess
   }
-### FIXME: set class to eclm if link = "cauchit"?
 
-  ## set starting values for the parameters:
+  ## Set starting values for the parameters:
   start <- set.start(rho, start=start, get.start=missing(start),
                      threshold=threshold, link=link, frames=frames)
-  rho$par <- start
+  rho$par <- as.vector(start) ## remove attributes
   
   ## Set pfun, dfun and gfun in rho:
   setLinks(rho, link)
 
-  ## possibly return the environment rho without fitting:
+  ## Possibly return the environment rho without fitting:
   if(!doFit) return(rho)
   
-  ## fit the clm:
+  ## Fit the clm:
   if(control$method == "Newton") {
     fit <- if("eclm" %in% Class) clm.fit.NR(rho, control) else
     clm.fit.env(rho, control)
   } else
-  fit <- clm.fit.optim(rho, control$method, control)
-### FIXME: add arg non.conv = c("error", "warn", "message") to allow
-### non-converged fits to be returned?
+  fit <- clm.fit.optim(rho, control$method, control$ctrl)
+### NOTE: we could add arg non.conv = c("error", "warn", "message") to
+### allow non-converged fits to be returned.
 
   ## Modify and return results:
   res <- eclm.finalize(fit, weights=frames$wts,
@@ -94,6 +81,9 @@ clm <-
                        aliased=frames$aliased) 
   res$link <- link
   res$start <- start
+  if(control$method == "Newton" &&
+     !is.null(start.iter <- attr(start, "start.iter")))
+    res$niter <- res$niter + start.iter
   res$threshold <- threshold
   res$call <- match.call()
   res$contrasts <- attr(frames$X, "contrasts")
@@ -110,7 +100,7 @@ clm <-
     res$S.terms <- frames$S.terms
     res$S.xlevels <- .getXlevels(res$S.terms, frames$mf)
   }
-  res$tJac <- ths$tJac
+  res$tJac <- frames$ths$tJac
   res$y.levels <- levels(frames$y)
   res$info <- with(res, {
     data.frame("link" = link,
@@ -145,28 +135,30 @@ eclm.model.frame <- function(mc, contrasts) {
   if(!is.null(mc$nominal)) forms$nominal <- mc$nominal
   ## ensure formula, scale and nominal are formulas:
   forms <- lapply(forms, function(x) {
-    if(is.character(x)) as.formula(x, env = parent.frame(2)) else x })
-  ## if(!all(sapply(forms, function(x) inherits(x, "formula"))))
-  ##   stop("formula, scale and nominal should be formulas", call.=FALSE)
+    try(formula(deparse(x), env = parent.frame(2)), silent=TRUE) })
+  if(any(sapply(forms, function(f) class(f) == "try-error")))
+    stop("unable to interpret 'formula', 'scale' or 'nominal'")
+
   fullForm <- do.call(getFullForm, forms)
   ## set environment of 'fullForm' to the environment of 'formula': 
   form.envir <- environment(eval(mc$formula)) 
   environment(fullForm) <- form.envir
 
   ## Extract the full model.frame(mf):
-  m <- match(c("data", "subset", "weights",
-               "na.action", "offset"), names(mc), 0)
+  m <- match(c("data", "subset", "weights", "na.action"),
+             names(mc), 0) 
   mf <- mc[c(1, m)]
   mf$formula <- fullForm
   mf$drop.unused.levels <- TRUE
   mf[[1]] <- as.name("model.frame")
-  ## mf.call <- mf ## save call
   fullmf <- eval(mf, envir = parent.frame(2))
+  mf$na.action <- "na.pass" ## filter NAs by hand below
 
   ## Extract X:
   ## get X from fullmf to handle e.g., NAs and subset correctly
   mf$formula <- mc$formula
   X.mf <- eval(mf, envir = parent.frame(2))
+  ## X.mf <- eval(mf)
   X.terms <- attr(X.mf, "terms")
   X <- model.matrix(X.terms, fullmf, contrasts)
   n <- nrow(X)
@@ -177,22 +169,25 @@ eclm.model.frame <- function(mc, contrasts) {
     warning("an intercept is needed and assumed in 'formula'",
             call.=FALSE)
   } ## intercept in X is guaranteed.
+  off <- getOffset(X.mf)
+  ## Filter NAs if any:
+  if(!is.null(naa <- na.action(fullmf)))
+    off <- off[-naa]
 
   ## Extract model response:
-  y <- model.response(X.mf, "any") ## any storage mode
+  y <- model.response(fullmf, "any") ## any storage mode
   if(!is.factor(y)) stop("response needs to be a factor", call.=FALSE)
   
   ## list of results:
-  res <- list(y=y, X=X, wts=getWeights(fullmf), off=getOffset(X.mf),
+  res <- list(y=y, X=X, wts=getWeights(fullmf), off=off,
               mf=fullmf, terms=X.terms)
 
   ## Extract S (design matrix for the scale effects):
   if(!is.null(mc$scale)) {
-    mf$formula <- mc$scale
+    mf$formula <- forms$scale
     S.mf <- eval(mf, envir = parent.frame(2))
     if(!is.null(model.response(S.mf)))
       stop("response not allowed in 'scale'", call.=FALSE)
-    res$S.off <- getOffset(S.mf)
     res$S.terms <- attr(S.mf, "terms")
     S <- model.matrix(res$S.terms, fullmf, contrasts)
     ## Test for intercept in S:
@@ -203,12 +198,17 @@ eclm.model.frame <- function(mc, contrasts) {
               call.=FALSE)
     } ## intercept in S is guaranteed.
     res$S <- S
+    res$S.off <- getOffset(S.mf)
+    ## Filter NAs if any:
+    if(!is.null(naa <- na.action(fullmf)))
+      res$S.off <- res$S.off[-naa]
   }
   
   ## Extract NOM (design matrix for the nominal effects):
   if(!is.null(mc$nominal)) {
-    mf$formula <- mc$nominal
+    mf$formula <- forms$nominal
     nom.mf <- eval(mf, envir = parent.frame(2))
+    ## nom.mf <- eval(mf)
     if(!is.null(model.response(nom.mf)))
       stop("response not allowed in 'nominal'", call.=FALSE)
     if(!is.null(model.offset(nom.mf)))
@@ -268,7 +268,8 @@ eclm.newRho <-
   rho$n.psi <- ncol(rho$B1) ## no. linear model parameters
   rho$k <- 0
   ## there may be scale offset without scale predictors:
-  rho$sigma <- rho$Soff <- if(is.null(S.offset)) 1 else exp(S.offset) 
+  rho$sigma <- rho$Soff <-
+    if(is.null(S.offset)) rep(1, n) else exp(S.offset) 
   ## save scale model:
   if(!is.null(S)) {
     rho$S <- S[, -1, drop=FALSE]
@@ -288,29 +289,29 @@ clm.fit.optim <-
   function(rho, method = c("ucminf", "nlminb", "optim"), control=list()) 
 {
   method <- match.arg(method)
-  control <- do.call(clm.control, control)
-### FIXME: set control arguments correctly
+  ## optimize the likelihood:
   optRes <-
     switch(method,
            "nlminb" = nlminb(rho$par,
              function(par) eclm.nll(rho, par),
-             function(par) eclm.grad2(rho, par)),
-           ## control=rho$control),             
+             function(par) eclm.grad2(rho, par),
+             control=control),        
            "ucminf" = ucminf(rho$par, 
              function(par) eclm.nll(rho, par),
-             function(par) eclm.grad2(rho, par)),
-           ## control=rho$control),             
+             function(par) eclm.grad2(rho, par),
+             control=control),             
            "optim" = optim(rho$par,
              function(par) eclm.nll(rho, par),
              function(par) eclm.grad2(rho, par),
-             method="BFGS"),
-           ## control=rho$ctrl),
+             method="BFGS",
+             control=control),
            )
+  ## save results:
   rho$par <- optRes[[1]]
   res <- list(par = rho$par,
               logLik = -eclm.nll(rho),
               gradient = eclm.grad(rho),
-              ## Hessian = clm.hess(rho),
+              Hessian = eclm.hess(rho),
               fitted = rho$fitted)
   res$maxGradient = max(abs(res$gradient))
   res$optRes <- optRes
@@ -434,6 +435,7 @@ clm.fit.NR <-
     min.ev <- min(eigen(hessian, symmetric=TRUE, only.values=TRUE)$values)
     tol <- 1e-5
     if(min.ev < 0) {
+### if(min.ev <= tol) {
       inflate <- abs(min.ev) + 1 # + tol
       ## inflate <- ceiling(abs(min.ev + tol))
       hessian <- hessian + diag(inflate, nrow(hessian))

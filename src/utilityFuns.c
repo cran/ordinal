@@ -874,6 +874,7 @@ void NRalgv3(int *trace, int *maxIter, double *gradTol,
 	stepFactor = fmin2(1.0, stepFactor * 2.0);
 	(*Niter)++;
     }
+    (*Niter)--;
 }
 
 //------------------------------------------------------------------

@@ -1,5 +1,5 @@
 ##################################################################
-#  file ordinalv3/R/clmm.R
+#  file ordinalv3/R/clmm2.R
 #
 #  Author: Rune Haubo Bojesen Christensen, rhbc@imm.dtu.dk
 #  Last modified: May 2010

@@ -9,7 +9,7 @@ slice.clm <-
   ## argument matching and testing:
   stopifnot(is.numeric(lambda) && lambda > 0)
   stopifnot(is.numeric(grid) && grid >= 1)
-  grid <- as.integer(grid)
+  grid <- as.integer(round(grid))
   par <- coef(object, na.rm=TRUE)
   par.names <- names(par)
   npar <- length(par)
@@ -35,19 +35,21 @@ slice.clm <-
   ## log-likelihood:
   curv <- sqrt(1/diag(object$Hessian)) ## curvature in nll wrt. par
   par.range <- par + curv %o% c(-lambda, lambda)
-  ## par.seq - list of length npar:
+  ## par.seq - list of length npar with a sequence of values for each
+  ## parameter :
   par.seq <- lapply(parm, function(ind) {
     seq(par.range[ind, 1], par.range[ind, 2], length = grid) })
   ## compute relative logLik for all par.seq for each par:
   logLik <- lapply(seq_along(parm), function(i) { # for each par
     rho$par <- par ## reset par values to MLE
-    sapply(par.seq[[ i ]], function(par.val) { # for each val
+    sapply(par.seq[[ i ]], function(par.val) { # for each par.seq value
       rho$par[ parm[i] ] <- par.val
       -clm.nll(rho) - ml ## relative logLik
     })
   })
   
-  ## collect results in a list of data.frames:
+  ## collect parameter sequences and relative logLik in a list of
+  ## data.frames: 
   res <- lapply(seq_along(parm), function(i) {
     structure(data.frame(par.seq[[ i ]], logLik[[ i ]]),
               names = c(parm.names[i], "logLik"))
@@ -76,6 +78,7 @@ plot.slice.clm <-
            ask = prod(par("mfcol")) < length(parm) && dev.interactive(),
            ...)
 {
+  ## Initiala argument matching and testing:
   type <- match.arg(type)
   stopifnot(is.numeric(parm))
   parm <- as.integer(parm)

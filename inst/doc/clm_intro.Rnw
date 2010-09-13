@@ -1834,11 +1834,11 @@ plot(slice.fm1, parm = 5)
 <<slice16, echo=FALSE, results=hide, fig=TRUE, include=TRUE, width=3, height=3>>=
 plot(slice.fm1, parm = 6)
 @ 
-\caption{Slices of the (negative) log-likelihood function for
+\caption{Slices of the log-likelihood function for
   parameters in a 
   model for the bitterness-of-wine data. Dashed lines indicate
   quadratic approximations to the log-likelihood function and
-  vertical bars the indicate maximum likelihood estimates.}
+  vertical bars indicate maximum likelihood estimates.}
 \label{fig:slice1}
 \end{figure}
 
