@@ -93,6 +93,7 @@ summary(m2)
 #################################
 ## Other ways to construct formulas:
 y <- factor(sample(1:4,20,replace=TRUE))
+set.seed(12345)
 x <- rnorm(20)
 data <- data.frame(y=y,x=x)
 rm(x, y)

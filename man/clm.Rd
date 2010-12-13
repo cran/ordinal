@@ -236,7 +236,7 @@ clm(location, scale, nominal, data, weights, start, subset,
 }
 \author{Rune Haubo B Christensen}
 \references{
-  Agresti, A. (2002) \emph{Categorical Data.} Second edition.  Wiley.
+  Agresti, A. (2002) \emph{Categorical Data Analysis.} Second edition.  Wiley.
 
   Aranda-Ordaz, F. J. (1983) An Extension of the Proportional-Hazards
   Model for Grouped Data. \emph{Biometrics}, 39, 109-117.

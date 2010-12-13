@@ -1,15 +1,18 @@
 \name{predict.clm}
 \alias{predict.clm}
+\alias{predict.clmm}
 \title{Predict Method for CLM fits}
 \description{
   Obtains predictions from a cumulative link (mixed) model.
 }
 \usage{
 \method{predict}{clm}(object, newdata, ...)
+
+%% \method{predict}{clmm}(object, newdata, ...)
 }
 \arguments{
   \item{object}{a fitted object of class inheriting from
-    \code{clm}. This include \code{clmm} objects.}
+    \code{clm} including \code{clmm} objects.}
   \item{newdata}{optionally, a data frame in which to look for variables
     with which to predict. Observe that the response variable should
     also be present.}

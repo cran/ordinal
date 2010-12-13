@@ -60,3 +60,7 @@ March 04 2010:
 
 - Better descriptions of random effect estimates and fitted values in
   the clmm help page.
+
+2010-10-22:
+
+- Updated help page for predict.clm/clmm.

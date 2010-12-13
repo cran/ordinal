@@ -908,19 +908,18 @@ predict.clm <- function(object, newdata, ...)
         o2 <- c(-100 * B2[,1])
         B1 <- B2[,-nlevels(y), drop=FALSE]
         B2 <- B2[,-1, drop=FALSE]
-        if(!is.null(object$tJac)) {
-            B1 <- B1 %*% object$tJac
-            B2 <- B2 %*% object$tJac
-        }
+        locationPar <- c(t(object$Theta))
         if(!is.null(object$nominal)) {
-            LL1 <- lapply(1:rho$ncolXX, function(x) rho$B1 * XX[,x])
-            rho$B1 <- do.call(cbind, LL1)
-            LL2 <- lapply(1:rho$ncolXX, function(x) rho$B2 * XX[,x])
-            rho$B2 <- do.call(cbind, LL2)
+          ncolXX <- ncol(XX)
+          LL1 <- lapply(1:ncolXX, function(x) B1 * XX[,x])
+          B1 <- do.call(cbind, LL1)
+          LL2 <- lapply(1:ncolXX, function(x) B2 * XX[,x])
+          B2 <- do.call(cbind, LL2)
         }
         if(ncol(X) > 0) {
             B1 <- cbind(B1, -X)
             B2 <- cbind(B2, -X)
+            locationPar <- c(locationPar, object$beta)
         }
         pfun <- switch(object$link,
                        logistic = plogis,
@@ -933,17 +932,16 @@ predict.clm <- function(object, newdata, ...)
         sigma <- 1
         if(length(object$zeta) > 0)
             sigma <- sigma * exp(drop(Z %*% object$zeta))
-        eta1 <- (drop(B1 %*% c(object$xi, object$beta)) + o1)/sigma
-        eta2 <- (drop(B2 %*% c(object$xi, object$beta)) + o2)/sigma
+        eta1 <- (drop(B1 %*% locationPar) + o1) / sigma
+        eta2 <- (drop(B2 %*% locationPar) + o2) / sigma
         if(object$link %in% c("Aranda-Ordaz", "log-gamma"))
-          ## if(!is.null(object$lambda))
           pr <- pfun(eta1, object$lambda) - pfun(eta2, object$lambda)
         else
           pr <- pfun(eta1) - pfun(eta2)
     }
     if(missing(newdata) && !is.null(object$na.action))
         pr <- napredict(object$na.action, pr)
-    drop(pr)
+    as.vector(pr)
 }
 
 gof <- function(object, ...) {
