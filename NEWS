@@ -64,3 +64,8 @@ March 04 2010:
 2010-10-22:
 
 - Updated help page for predict.clm/clmm.
+
+2010-12-13:
+
+- Bug in predict.clm corrected for models with nominal effects and
+  newdata supplied (thanks to Simon Blomberg for the bug report).
