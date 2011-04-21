@@ -22,7 +22,7 @@
 clm.control <-
     function(method = c("ucminf", "Newton", "nlminb", "optim",
              "model.frame"), ..., convTol = 1e-4,
-             trace = 0, maxIter = 100, gradTol = 1e-4,
+             trace = 0, maxIter = 100, gradTol = 1e-5,
              maxLineIter = 10)
 {
     method <- match.arg(method)
@@ -39,16 +39,17 @@ clm.control <-
         stop("convTol should be > 0")
     if(method == "ucminf" && !"grtol" %in% names(ctrl))
         ctrl$grtol <- gradTol
-    if(method == "ucminf" && convTol > ctrl$grtol)
-        stop("convTol should be <= grtol/gradTol")
-    if(method == "Newton" && convTol > gradTol)
-        stop("convTol should be <= gradTol")
+##     if(method == "ucminf" && convTol > ctrl$grtol)
+##         stop("convTol should be <= grtol/gradTol")
+##     if(method == "Newton" && convTol > gradTol)
+##         stop("convTol should be <= gradTol")
 
     list(method = method, convTol = convTol, ctrl = ctrl)
 }
 
 newRho <- function(parent, XX, X, Z, y, weights, Loffset, Soffset,
                    link, lambda, theta, threshold, Hess, control)
+### FIXME: Could remove theta argument? 
 {
     rho <- new.env(parent = parent)
     rho$X <- X
@@ -130,10 +131,22 @@ newRho <- function(parent, XX, X, Z, y, weights, Loffset, Soffset,
     rho$lev <- levels(y)
     rho$ntheta <- nlevels(y) - 1
     rho$B2 <- 1 * (col(matrix(0, n, rho$ntheta + 1)) == c(unclass(y)))
-    rho$o1 <- c(100 * rho$B2[, rho$ntheta + 1]) - rho$Loffset
-    rho$o2 <- c(-100 * rho$B2[,1]) - rho$Loffset
-    rho$B1 <- rho$B2[,-(rho$ntheta + 1), drop=FALSE]
-    rho$B2 <- rho$B2[,-1, drop=FALSE]
+### Setting elements parts of o[12] to [+-]Inf cause problems in
+### getGnll and clmm-related functions because 1) 0*Inf = NaN, while
+### 0*large.value = 0, so several computations have to be handled
+### specially and 2) Inf-values are not by default allowed in .C calls
+### and all specials would have to be handled separately.
+    ## o1 <- B2[, rho$ntheta + 1, drop = TRUE]
+    ## o1[o1 == 1] <- Inf
+    ## rho$o1 <- o1 - rho$Loffset
+    ## o2 <- B2[,1, drop = TRUE]
+    ## o2[o2 == 1] <- -Inf
+    ## rho$o2 <- o2 - rho$Loffset
+    inf.value <- 1e5
+    rho$o1 <- c(inf.value * rho$B2[, rho$ntheta + 1]) - rho$Loffset
+    rho$o2 <- c(-inf.value * rho$B2[,1]) - rho$Loffset
+    rho$B1 <- rho$B2[,-(rho$ntheta + 1), drop = FALSE]
+    rho$B2 <- rho$B2[,-1, drop = FALSE]
     makeThresholds(rho, threshold)
     rho$B1 <- rho$B1 %*% rho$tJac
     rho$B2 <- rho$B2 %*% rho$tJac
@@ -213,60 +226,67 @@ setStart <- function(rho)
 getPar <- function(rho) rho$par
 
 getNll <- function(rho, par)  {
-    if(!missing(par))
-        rho$par <- par
-    with(rho, {
-        if(estimLambda > 0)
-            lambda <- par[nxi + p + k + 1:estimLambda]
-        sigma <-
-            if(k > 0) expSoffset * exp(drop(Z %*% par[nxi+p + 1:k]))
-            else expSoffset
-        eta1 <- (drop(B1 %*% par[1:(nxi + p)]) + o1)/sigma
-        eta2 <- (drop(B2 %*% par[1:(nxi + p)]) + o2)/sigma
-        pr <-
-            if(nlambda) pfun(eta1, lambda) - pfun(eta2, lambda)
-            else pfun(eta1) - pfun(eta2)
-        if (all(pr > 0)) -sum(weights * log(pr))
-        else Inf
-    })
+  if(!missing(par))
+    rho$par <- par
+  with(rho, {
+    if(estimLambda > 0)
+      lambda <- par[nxi + p + k + 1:estimLambda]
+    sigma <-
+      if(k > 0) expSoffset * exp(drop(Z %*% par[nxi+p + 1:k]))
+      else expSoffset
+    eta1 <- (drop(B1 %*% par[1:(nxi + p)]) + o1)/sigma
+    eta2 <- (drop(B2 %*% par[1:(nxi + p)]) + o2)/sigma
+    pr <-
+      if(nlambda) pfun(eta1, lambda) - pfun(eta2, lambda)
+      else pfun(eta1) - pfun(eta2)
+    if(all(is.finite(pr)) && all(pr > 0)) -sum(weights * log(pr))
+    else Inf
+  })
 }
 
 getGnll <- function(rho, par)  {
-    if(!missing(par))
-        rho$par <- par
-    with(rho, {
-        if(estimLambda > 0)
-            lambda <- par[nxi + p + k + 1:estimLambda]
-        sigma <-
-            if(k > 0) expSoffset * exp(drop(Z %*% par[nxi+p + 1:k]))
-            else expSoffset
-        eta1 <- (drop(B1 %*% par[1:(nxi + p)]) + o1)/sigma
-        eta2 <- (drop(B2 %*% par[1:(nxi + p)]) + o2)/sigma
-        if(nlambda) {
-            pr <- pfun(eta1, lambda) - pfun(eta2, lambda)
-            p1 <- dfun(eta1, lambda)
-            p2 <- dfun(eta2, lambda)
-        }
-        else {
-            pr <- pfun(eta1) - pfun(eta2)
-            p1 <- dfun(eta1)
-            p2 <- dfun(eta2)
-        }
-        prSig <- pr * sigma
-        gradSigma <-
-            if(k > 0) crossprod(Z, weights * (eta1*p1 - eta2*p2)/pr)
-            else numeric(0)
-        gradThetaBeta <-
-            if(nxi > 0) -crossprod((B1*p1 - B2*p2), weights/prSig)
-            else -crossprod((X * (p2 - p1)), weights/prSig)
-        grad <-
-            if (all(pr > 0)) c(gradThetaBeta, gradSigma)
-            else rep(Inf, nxi + p + k)
-    })
-    if(rho$estimLambda > 0)
-        c(rho$grad, grad.lambda(rho, rho$lambda, rho$link))
-    else
-        rho$grad
+  if(!missing(par))
+    rho$par <- par
+  with(rho, {
+    if(estimLambda > 0)
+      lambda <- par[nxi + p + k + 1:estimLambda]
+    sigma <-
+      if(k > 0) expSoffset * exp(drop(Z %*% par[nxi+p + 1:k]))
+      else expSoffset
+    eta1 <- (drop(B1 %*% par[1:(nxi + p)]) + o1)/sigma
+    eta2 <- (drop(B2 %*% par[1:(nxi + p)]) + o2)/sigma
+    if(nlambda) {
+      pr <- pfun(eta1, lambda) - pfun(eta2, lambda)
+      p1 <- dfun(eta1, lambda)
+      p2 <- dfun(eta2, lambda)
+    }
+    else {
+      pr <- pfun(eta1) - pfun(eta2)
+      p1 <- dfun(eta1)
+      p2 <- dfun(eta2)
+    }
+    prSig <- pr * sigma
+    ## eta1 * p1 is complicated because in theory eta1 contains
+    ## Inf(-Inf) where p1 contains 0 and 0 * Inf = NaN...
+    ## eta.p1 <- ifelse(p1 == 0, 0, eta1 * p1)
+    ## eta.p2 <- ifelse(p2 == 0, 0, eta2 * p2)
+    gradSigma <-
+      ## if(k > 0) crossprod(Z, weights * (eta.p1 - eta.p2)/pr)
+      if(k > 0) crossprod(Z, weights * (eta1 * p1 - eta2 * p2)/pr)
+      else numeric(0)
+    gradThetaBeta <-
+      if(nxi > 0) -crossprod((B1*p1 - B2*p2), weights/prSig)
+      else -crossprod((X * (p2 - p1)), weights/prSig)
+    grad <-
+    ##   if (all(is.finite(pr)) && all(pr > 0))
+    ##     c(gradThetaBeta, gradSigma)
+    ##   else rep(Inf, nxi + p + k)
+      c(gradThetaBeta, gradSigma)
+  })
+  if(rho$estimLambda > 0)
+    c(rho$grad, grad.lambda(rho, rho$lambda, rho$link))
+  else
+    rho$grad
 }
 
 getHnll <- function(rho, par)  {
@@ -730,42 +750,55 @@ print.clm <- function(x, ...)
 
 vcov.clm <- function(object, ...)
 {
-    if(is.null(object$Hessian)) {
-        message("\nRe-fitting to get Hessian\n")
-	utils::flush.console()
-        object <- update(object, Hess=TRUE, start=object$coefficients)
-    }
-    dn <- names(object$coefficients)
-    structure(solve(object$Hessian), dimnames = list(dn, dn))
+  if(is.null(object$Hessian)) {
+    message("\nRe-fitting to get Hessian\n")
+    utils::flush.console()
+    object <- update(object, Hess=TRUE, start=object$coefficients)
+  }
+  dn <- names(object$coefficients)
+  H <- object$Hessian
+  ## To handle NaNs in the Hessian resulting from parameter
+  ## unidentifiability:  
+  if(any(His.na <- !is.finite(H))) {
+    H[His.na] <- 0
+    VCOV <- ginv(H)
+    VCOV[His.na] <- NaN
+  }
+  else
+    VCOV <- ginv(H)
+  structure(VCOV, dimnames = list(dn, dn))
 }
 
 summary.clm <- function(object, digits = max(3, .Options$digits - 3),
-                         correlation = FALSE, ...)
+                        correlation = FALSE, ...)
 {
-    coef <- matrix(0, object$edf, 4,
-                   dimnames = list(names(object$coefficients),
+  coef <- matrix(0, object$edf, 4,
+                 dimnames = list(names(object$coefficients),
                    c("Estimate", "Std. Error", "z value", "Pr(>|z|)")))
-    coef[, 1] <- object$coefficients
-    vc <- try(vcov(object), silent = TRUE)
-    if(class(vc) == "try-error") {
-        warning("Variance-covariance matrix of the parameters is not defined")
-        coef[, 2:4] <- NaN
-        if(correlation) warning("Correlation matrix is unavailable")
-        object$condHess <- NaN
-        } else {
-        coef[, 2] <- sd <- sqrt(diag(vc))
-        object$condHess <-
-            with(eigen(object$Hessian, only.values = TRUE),
-                 abs(max(values) / min(values)))
-        coef[, 3] <- coef[, 1]/coef[, 2]
-        coef[, 4] <- 2*pnorm(abs(coef[, 3]), lower.tail=FALSE)
-        if(correlation)
-            object$correlation <- (vc/sd)/rep(sd, rep(object$edf, object$edf))
-    }
-    object$coefficients <- coef
-    object$digits <- digits
+  coef[, 1] <- object$coefficients
+  vc <- try(vcov(object), silent = TRUE)
+  if(class(vc) == "try-error") {
+    warning("Variance-covariance matrix of the parameters is not defined")
+    coef[, 2:4] <- NaN
+    if(correlation) warning("Correlation matrix is unavailable")
+    object$condHess <- NaN
+  }
+  else {
+    coef[, 2] <- sd <- sqrt(diag(vc))
+    ## Cond is Inf if Hessian contains NaNs:
+    object$condHess <-
+      if(any(is.na(object$Hessian))) Inf
+      else with(eigen(object$Hessian, only.values = TRUE),
+                abs(max(values) / min(values)))
+    coef[, 3] <- coef[, 1]/coef[, 2]
+    coef[, 4] <- 2*pnorm(abs(coef[, 3]), lower.tail=FALSE)
+    if(correlation)
+        object$correlation <- (vc/sd)/rep(sd, rep(object$edf, object$edf))
+  }
+  object$coefficients <- coef
+  object$digits <- digits
     class(object) <- "summary.clm"
-    object
+  object
 }
 
 print.summary.clm <- function(x, digits = x$digits, signif.stars =
@@ -1394,269 +1427,6 @@ addterm.clm <-
 
 ## addterm <- function(object, ...) UseMethod("addterm")
 ## dropterm <- function(object, ...) UseMethod("dropterm")
-
-##################################################################
-### pfun, dfun and gfun definitions:
-
-PFUN <- function(x, link)
-    .C("pfun",
-       x = as.double(x),
-       length(x),
-       as.integer(link))$x
-
-DFUN <- function(x, link)
-    .C("dfun",
-       x = as.double(x),
-       length(x),
-       as.integer(link))$x
-
-GFUN <- function(x, link)
-    .C("gfun",
-       x = as.double(x),
-       length(x),
-       as.integer(link))$x
-
-## These functions still needs to be checked to see if they work as
-## intented
-
-#################################
-## pfun:
-
-pgumbel <- function(q, location = 0, scale = 1, lower.tail = TRUE)
-### CDF for the gumbel distribution
-### Currently only unit length location and scale are supported.
-    .C("pgumbel",
-       q = as.double(q),
-       length(q),
-       as.double(location)[1],
-       as.double(scale)[1],
-       as.integer(lower.tail))$q
-
-pgumbel2 <- function(q, location = 0, scale = 1, lower.tail = TRUE)
-### CDF for the 'swapped' gumbel distribution
-### Currently only unit length location and scale are supported.
-    .C("pgumbel2",
-       q = as.double(q),
-       length(q),
-       as.double(location)[1],
-       as.double(scale)[1],
-       as.integer(lower.tail))$q
-
-pgumbelR <- function(q, location = 0, scale = 1, lower.tail = TRUE)
-### R equivalent of pgumbel()
-{
-    q <- (q - location)/scale
-    p <- exp(-exp(-q))
-    if (!lower.tail) 1 - p else p
-}
-
-pgumbel2R <- function(q, location = 0, scale = 1, lower.tail = TRUE)
-{
-    q <- (-q - location)/scale
-    p <- exp(-exp(-q))
-    if (!lower.tail) p else 1 - p
-}
-
-pAOR <- function(q, lambda, lower.tail = TRUE) {
-    if(lambda < 1e-6)
-        stop("'lambda' has to be positive. lambda = ", lambda, " was supplied")
-    p <- 1 - (lambda * exp(q) + 1)^(-1/lambda)
-    if(!lower.tail) 1 - p else p
-}
-
-pAO <- function(q, lambda, lower.tail = TRUE)
-    .C("pAO",
-       q = as.double(q),
-       length(q),
-       as.double(lambda[1]),
-       as.integer(lower.tail))$q
-
-
-plgammaR <- function(eta, lambda, lower.tail = TRUE) {
-    q <- lambda
-    v <- q^(-2) * exp(q * eta)
-    if(q < 0)
-        p <- 1 - pgamma(v, q^(-2))
-    if(q > 0)
-        p <- pgamma(v, q^(-2))
-    if(isTRUE(all.equal(0, q, tolerance = 1e-6)))
-        p <- pnorm(eta)
-    if(!lower.tail) 1 - p else p
-}
-
-plgamma <- function(eta, lambda, lower.tail = TRUE)
-    .C("plgamma",
-       eta = as.double(eta),
-       length(eta),
-       as.double(lambda[1]),
-       as.integer(lower.tail[1]))$eta
-
-#################################
-## dfun:
-
-dgumbel <- function(x, location = 0, scale = 1, log = FALSE)
-### PDF for the gumbel distribution
-### Currently only unit length location and scale are supported.
-    .C("dgumbel",
-       x = as.double(x),
-       length(x),
-       as.double(location)[1],
-       as.double(scale)[1],
-       as.integer(log))$x
-
-dgumbel2 <- function(x, location = 0, scale = 1, log = FALSE)
-### PDF for the 'swapped' gumbel distribution
-### Currently only unit length location and scale are supported.
-    .C("dgumbel2",
-       x = as.double(x),
-       length(x),
-       as.double(location)[1],
-       as.double(scale)[1],
-       as.integer(log))$x
-
-dgumbelR <- function(x, location = 0, scale = 1, log = FALSE)
-### dgumbel in R
-{
-    q <- (x - location)/scale
-    log.d <- -exp(-q) - q - log(scale)
-    if (!log) exp(log.d) else log.d
-}
-
-dgumbel2R <- function(x, location = 0, scale = 1, log = FALSE)
-{
-    q <- (-x - location)/scale
-    log.d <- -exp(-q) - q - log(scale)
-    if (!log) exp(log.d) else log.d
-}
-
-dAOR <- function(eta, lambda, log = FALSE) {
-### exp(eta) * (lambda * exp(eta) + 1)^(-1-1/lambda)
-    if(lambda < 1e-6)
-        stop("'lambda' has to be positive. lambda = ", lambda, " was supplied")
-    log.d <- eta - (1 + 1/lambda) * log(lambda * exp(eta) + 1)
-    if(!log) exp(log.d) else log.d
-}
-
-dAO <- function(eta, lambda, log = FALSE)
-    .C("dAO",
-       eta = as.double(eta),
-       length(eta),
-       as.double(lambda[1]),
-       as.integer(log))$eta
-
-dlgammaR <- function(x, lambda, log = FALSE) {
-    q <- lambda
-    q.2 <- q^(-2)
-    qx <- q * x
-    log.d <- log(abs(q)) + q.2 * log(q.2) -
-        lgamma(q.2) + q.2 * (qx - exp(qx))
-    if (!log) exp(log.d) else log.d
-}
-
-dlgamma <- function(x, lambda, log = FALSE)
-    .C("dlgamma",
-       x = as.double(x),
-       length(x),
-       as.double(lambda[1]),
-       as.integer(log[1]))$x
-
-#################################
-## gfun:
-
-ggumbel <- function(x)
-### gradient of dgumbel(x) wrt. x
-    .C("ggumbel",
-       x = as.double(x),
-       length(x))$x
-
-ggumbel2 <- function(x)
-### gradient of dgumbel(x) wrt. x
-    .C("ggumbel2",
-       x = as.double(x),
-       length(x))$x
-
-ggumbelR <- function(x){
-### ggumbel in R
-    q <- exp(-x)
-    eq <- exp(-q)
-    -eq*q + eq*q*q
-}
-
-ggumbel2R <- function(x) -ggumbelR(-x)
-
-glogis <- function(x)
-### gradient of dlogis
-    .C("glogis",
-       x = as.double(x),
-       length(x))$x
-
-gnorm <- function(x)
-### gradient of dnorm(x) wrt. x
-    .C("gnorm",
-       x = as.double(x),
-       length(x))$x
-
-gcauchy <- function(x)
-### gradient of dcauchy(x) wrt. x
-    .C("gcauchy",
-       x = as.double(x),
-       length(x))$x
-
-glogisR <- function(x) {
-### glogis in R
-    q <- exp(-x)
-    2*q^2*(1 + q)^-3 - q*(1 + q)^-2
-}
-
-gnormR <- function(x)
-### gnorm in R
-    -x * dnorm(x)
-
-gcauchyR <- function(x)
-### gcauchy(x) in R
-    -2*x/pi*(1+x^2)^-2
-
-gAOR <- function(eta, lambda) {
-    lex <- lambda * exp(eta)
-    dAO(eta, lambda) * (1 - (1 + 1/lambda) * lex/(1 + lex))
-}
-
-gAO <- function(eta, lambda)
-    .C("gAO",
-       eta = as.double(eta),
-       length(eta),
-       as.double(lambda[1]))$eta
-
-glgammaR <- function(x, lambda)
-    (1 - exp(lambda * x))/lambda * dlgamma(x, lambda)
-
-glgamma <- function(x, lambda)
-    .C("glgamma",
-       x = as.double(x),
-       length(x),
-       as.double(lambda[1]))$x
-
-##################################################################
-PFUN <- function(x, lambda = 1, link)
-    .C("pfun",
-       x = as.double(x),
-       length(x),
-       as.double(lambda),
-       as.integer(link))$x
-
-DFUN <- function(x, lambda = 1, link)
-    .C("dfun",
-       x = as.double(x),
-       length(x),
-       as.double(lambda),
-       as.integer(link))$x
-
-GFUN <- function(x, lambda = 1, link)
-    .C("gfun",
-       x = as.double(x),
-       length(x),
-       as.double(lambda),
-       as.integer(link))$x
 
 ##################################################################
 ## Additional utility functions:

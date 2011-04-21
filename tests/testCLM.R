@@ -187,3 +187,47 @@ m1 <- clm(SURENESS ~ PROD, scale = ~PROD)
 summary(m1)
 detach(soup)
 
+##################################################################
+### Parameter estimates were not correct with large scale effects due
+### to end cut-points being \pm 100. This is not enough for
+### location-scale model, but seems to be for location only models.
+### Bug report from Ioannis Kosmidis <ioannis@stats.ucl.ac.uk>:
+
+### A 2x3 contigency table that will give a large estimated value of
+### zeta 
+x <- rep(0:1, each = 3)
+response <- factor(rep(c(1, 2, 3), times = 2))
+freq <- c(1, 11, 1, 13, 1, 14)
+totals <- rep(tapply(freq, x, sum), each = 3)
+Dat <- data.frame(response, x, freq)
+
+### Fitting a cumulative link model with dispersion effects
+modClm <- clm(response ~ x, scale = ~ x, weights = freq, data = Dat,
+             control = clm.control(grtol = 1e-10, convTol = 1e-10))
+
+### The maximized log-likelihood for this saturated model should be
+sum(freq*log(freq/totals))
+# > sum(freq*log(freq/totals))
+# [1] -29.97808
+### but apparently clm fails to maximixe the log-likelihood
+modClm$logLik
+# > modClm$logLik
+# [1] -30.44452
+
+stopifnot(isTRUE(all.equal(sum(freq*log(freq/totals)), modClm$logLik)))
+
+### The estimates reported by clm are
+coef(modClm)
+coef.res <- structure(c(-2.48490664104217, 2.48490665578163,
+                        2.48490659188594,  
+                        3.54758796387530), .Names = c("1|2", "2|3",
+                                             "x", "x")) 
+stopifnot(isTRUE(all.equal(coef.res, coef(modClm))))
+# > modClm$coefficients
+#      1|2       2|3         x         x
+# -2.297718  2.297038  1.239023  2.834285
+### while they should be (from my own software)
+#      1|2       2|3         x    disp.x
+#-2.484907  2.484907  2.484907  3.547588
+
+##################################################################

@@ -150,22 +150,17 @@ m1 <- clm(sureness ~ prod, scale = ~prod, data = dat26,
 
 ## profile
 pr1 <- profile(m1)
-par(mfrow = c(2,2))
+par(mfrow = c(2, 2))
 plot(pr1)
 
 m9 <- update(m1, link = "log-gamma")
-pr9 <- profile(m9)
-par(mfrow = c(2,2))
+pr9 <- profile(m9, whichL = numeric(0), whichS = numeric(0))
+par(mfrow = c(1, 1))
 plot(pr9)
 
-par(mfrow = c(2,2))
 plot(pr9, Log=TRUE, relative = TRUE)
-par(mfrow = c(2,2))
 plot(pr9, Log=TRUE, relative = TRUE, ylim = c(-4, 0))
-par(mfrow = c(2,2))
 plot(pr9, Log=TRUE, relative = FALSE)
-par(mfrow = c(1,1))
-plot(pr9, Log=TRUE, relative = FALSE, parm = 3)
 
 ## confint
 confint(pr9)

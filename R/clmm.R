@@ -629,6 +629,9 @@ summary.clmm <- function(object, digits = max(3, .Options$digits - 3),
                          list(names(coefficients[seq_len(edf-estimStDev)]),
                         c("Estimate", "Std. Error", "z value", "Pr(>|z|)"))))
     coef[, 1] <- object$coefficients[seq_len(edf-estimStDev)]
+    if(is.null(object$Hessian)) {
+      stop("Model needs to be fitted with Hess = TRUE")
+    }
     vc <- try(vcov(object), silent = TRUE)
     if(class(vc) == "try-error") {
         warning("Variance-covariance matrix of the parameters is not defined")

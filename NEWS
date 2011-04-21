@@ -69,3 +69,22 @@ March 04 2010:
 
 - Bug in predict.clm corrected for models with nominal effects and
   newdata supplied (thanks to Simon Blomberg for the bug report).
+
+2011-04-21:
+
+- Better message from summary.clmm when Hess = FALSE
+- endpoint thresholds are now closer to infinity. This is due to a bug
+  report from Ioannis Kosmidis (March 30, 2011); the model estimates
+  weren't right with very large scale effects. Tests are added to
+  testCLM.R 
+- gradTol in clm.control now defaults to 1e-5 rather than 1e-4.
+  convTol is retained at 1e-4, so we are asking for closer convergence
+  than we require.
+- getGnll no longer returns Inf if !all(pr > 0)
+- link utility functions are moved from clm.R to linkUtils.R
+- extensive testing for NaN-specials in C-code for the link functions
+  is added. 
+- details section added to clmm.control.Rd with comment about using
+  "central" gradients with the ucminf optimizer.
+- examples updated in confint.Rd
+

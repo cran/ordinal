@@ -35,6 +35,11 @@ clmm.control(method = c("ucminf", "nlminb", "model.frame"), ...,
     fails to converge.
   }
 }
+\details{
+  When the default optimizer, \code{ucminf} is used, the default values
+  of that optimizers control options are changed to \code{grtol = 1e-5}
+  and \code{grad = "central"}. 
+}
 \value{
   a list of control parameters.
 }

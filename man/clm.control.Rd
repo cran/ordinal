@@ -7,7 +7,7 @@
 \usage{
 clm.control(method = c("ucminf", "Newton", "nlminb", "optim",
             "model.frame"), ..., convTol = 1e-4,
-            trace = 0, maxIter = 100, gradTol = 1e-4,
+            trace = 0, maxIter = 100, gradTol = 1e-5,
             maxLineIter = 10)
 }
 \arguments{
@@ -34,7 +34,7 @@ clm.control(method = c("ucminf", "Newton", "nlminb", "optim",
     Defaults to \code{100}.
   }
   \item{gradTol}{the maximum absolute gradient. This is the termination
-    criterion and defaults to \code{1e-4}.
+    criterion and defaults to \code{1e-5}.
   }
   \item{maxLineIter}{the maximum number of step halfings allowed if
     a Newton(-Raphson) step over shoots. Defaults to \code{10}.

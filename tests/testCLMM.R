@@ -40,6 +40,9 @@ summary(fm1)
 (m1 <- update(fm1, link = "probit", Hess = 0))
 update(fm1, link = "loglog", Hess = 0)
 update(fm1, link = "cloglog", Hess = 0)
+update(fm1, link = "Aranda-Ordaz", Hess = 0)
+update(fm1, link = "log-gamma", Hess = 0)
+
 strt <- c(coef(m1)[1:4], log(coef(m1)[5]))
 ## FAILS:
 fm1.try <-
@@ -48,10 +51,7 @@ fm1.try <-
                control = list(maxIter = 1000, maxLineIter = 1000,
                trace = 1)), silent = TRUE)
 class(fm1.try) == "try-error" ## TRUE
-(fm1 <- update(fm1, link = "Aranda-Ordaz", Hess = 0))
-(fm1 <- update(fm1, link = "log-gamma", Hess = 0))
 (fm1 <- update(fm1, link = "Aranda-Ordaz", Hess = 0, lambda = 1))
-(fm1 <- update(fm1, link = "log-gamma", Hess = 0, lambda = 1))
 
 
 ## Fit with the adaptive Gauss-Hermite quadrature approximation:
@@ -61,8 +61,18 @@ summary(fm2)
 
 #################################
 ### Setting sdFixed:
+##  fm1 <- clmm(incidence ~ period, random = herd, weights = freq,
+##              data = cbpp2, Hess = 0, link = "Aranda-Ordaz",
+##              sdFixed = .5)
+##  fm1
+##  
+##  fm1 <- clmm(incidence ~ period, random = herd, weights = freq,
+##              data = cbpp2, Hess = 0, link = "log-gamma",
+##              sdFixed = .5)
+##  fm1
+
 fm1 <- clmm(incidence ~ period, random = herd, weights = freq,
-            data = cbpp2, Hess = 0, link = "Aranda-Ordaz",
+            data = cbpp2, Hess = 0, link = "probit",
             sdFixed = .5)
 fm1
 
