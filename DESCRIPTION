@@ -1,13 +1,13 @@
 Package: ordinal
 Type: Package
 Title: Regression Models for Ordinal Data
-Version: 2011.04-21
-Date: 2011-04-21
+Version: 2011.05-10
+Date: 2011-05-10
 Author: Rune Haubo B Christensen
 Maintainer: Rune Haubo B Christensen <rhbc@imm.dtu.dk>
 Imports: numDeriv
-Depends: R (>= 2.10), MASS, ucminf
-Suggests: nlme, lme4, nnet
+Depends: MASS, ucminf
+Suggests: nlme, lme4, nnet, xtable
 Description: This package implements likelihood based models for
         ordinal (ordered categorical) data based on cumulative
         probabilities in the framework of cumulative link (mixed)
@@ -19,8 +19,6 @@ Description: This package implements likelihood based models for
         random effects. Further, a range of estimation procedures and a
         range of auxiliary functions are implemented.
 License: GPL (>= 2)
+Packaged: 2011-05-16 11:27:30 UTC; rhbc
 Repository: CRAN
-Repository/R-Forge/Project: ordinal
-Repository/R-Forge/Revision: 30
-Date/Publication: 2011-05-02 10:06:25
-Packaged: 2011-04-29 20:58:49 UTC; rforge
+Date/Publication: 2011-05-16 12:16:31

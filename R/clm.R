@@ -772,6 +772,8 @@ vcov.clm <- function(object, ...)
 summary.clm <- function(object, digits = max(3, .Options$digits - 3),
                         correlation = FALSE, ...)
 {
+  if(is.null(object$Hessian))
+    stop("Model needs to be fitted with Hess = TRUE")
   coef <- matrix(0, object$edf, 4,
                  dimnames = list(names(object$coefficients),
                    c("Estimate", "Std. Error", "z value", "Pr(>|z|)")))
