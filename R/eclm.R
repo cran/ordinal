@@ -130,18 +130,28 @@ eclm.model.frame <- function(mc, contrasts) {
 ### contrasts - contrasts for the model terms
 
   ## Collect all variables in a full formula:
-  forms <- list(mc$formula)
-  if(!is.null(mc$scale)) forms$scale <- mc$scale
-  if(!is.null(mc$nominal)) forms$nominal <- mc$nominal
+  ## evaluate the formulae in the enviroment in which clm was called
+  ## (parent.frame(2)) to get them evaluated properly:
+  forms <- list(eval.parent(mc$formula, 2))
+  if(!is.null(mc$scale)) forms$scale <- eval.parent(mc$scale, 2)
+  if(!is.null(mc$nominal)) forms$nominal <- eval.parent(mc$nominal, 2)
+  ## get the environment of the formula. If this does not have an
+  ## enviroment (it could be a character), then use the parent frame. 
+  form.envir <-
+    if(!is.null(env <- environment(forms[[1]]))) env
+    else parent.frame(2)
   ## ensure formula, scale and nominal are formulas:
-  forms <- lapply(forms, function(x) {
-    try(formula(deparse(x), env = parent.frame(2)), silent=TRUE) })
+  ## forms <- lapply(forms, function(x) {
+  ##   try(formula(deparse(x), env = form.envir), silent=TRUE) })
+  for(i in 1:length(forms)) {
+    forms[[i]] <- try(formula(deparse(forms[[i]]),
+                              env = form.envir), silent=TRUE)
+  }
   if(any(sapply(forms, function(f) class(f) == "try-error")))
     stop("unable to interpret 'formula', 'scale' or 'nominal'")
-
-  fullForm <- do.call(getFullForm, forms)
+  ## collect all variables in a full formula:
+  fullForm <- do.call(getFullForm, forms)  
   ## set environment of 'fullForm' to the environment of 'formula': 
-  form.envir <- environment(eval(mc$formula)) 
   environment(fullForm) <- form.envir
 
   ## Extract the full model.frame(mf):
@@ -151,14 +161,14 @@ eclm.model.frame <- function(mc, contrasts) {
   mf$formula <- fullForm
   mf$drop.unused.levels <- TRUE
   mf[[1]] <- as.name("model.frame")
+  if(is.null(mf$data)) mf$data <- form.envir 
   fullmf <- eval(mf, envir = parent.frame(2))
   mf$na.action <- "na.pass" ## filter NAs by hand below
 
   ## Extract X:
   ## get X from fullmf to handle e.g., NAs and subset correctly
-  mf$formula <- mc$formula
+  mf$formula <- forms[[1]]
   X.mf <- eval(mf, envir = parent.frame(2))
-  ## X.mf <- eval(mf)
   X.terms <- attr(X.mf, "terms")
   X <- model.matrix(X.terms, fullmf, contrasts)
   n <- nrow(X)

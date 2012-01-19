@@ -33,7 +33,6 @@ clm(as.formula(f), data=wine)
 #################################
 
 ### finding variables in the environment of the formula:
-data(wine)
 makeform <- function() {
   f1 <- as.formula(rating ~ temp + contact)
   rating <- wine$rating
@@ -62,5 +61,64 @@ f2 <- as.formula(rating ~ temp + contact)
 (try(fm2 <- clm(f2), silent=TRUE))
 environment(f2) <- environment(f1)
 fm2 <- clm(f2)
-#################################
 
+
+#################################
+## Use of formula-objects in location, scale and nominal:
+## Bug-report from Lluís Marco Almagro <lluis.marco@upc.edu>
+## 5 May 2010 17:58
+f <- formula(rating ~ temp)
+fs <- formula( ~ contact)
+m2 <- clm(f, scale = fs, data = wine)
+summary(m2)
+
+#################################
+## Other ways to construct formulas:
+set.seed(12345)
+y <- factor(sample(1:4,20,replace=TRUE))
+x <- rnorm(20)
+data <- data.frame(y=y,x=x)
+rm(x, y)
+fit <- clm(data$y ~ data$x)
+fit
+fit <- clm(data[,1] ~ data[,2])
+fit
+## This previously failed, but now works:
+fit <- clm(data$y ~ data$x, ~data$x)
+fit
+
+#################################
+## Evaluation within other functions:
+## date: January 18th 2012.
+## 
+## The problem was raised by Stefan Herzog (stefan.herzog@unibas.ch)
+## January 12th 2012 in trying to make clm work with glmulti.
+
+fun.clm <- function(formula, data)
+### This only works because clm via eclm.model.frame is careful to
+### evaluate the 'formula' in the parent environment such it is not the
+### character "formula" that is attempted evaluated.
+  clm(formula, data = data)
+
+fun2.clm <- function(formula, data, weights, subset) {
+### This should be the safe way to ensure evaluation of clm in the
+### right environment.
+  mc <- match.call()
+  mc[[1]] <- as.name("clm")
+  eval.parent(mc)
+}
+
+fun.clm(rating ~ temp + contact, data=wine) ## works
+fun2.clm(rating ~ temp + contact, data=wine) ## works
+
+form1 <- "rating ~ temp + contact"
+fun.clm(form1, data=wine) ## works
+fun2.clm(form1, data=wine) ## works
+
+form2 <- formula(rating ~ temp + contact)
+fun.clm(form2, data=wine) ## works
+fun2.clm(form2, data=wine) ## works
+## Notice that clm is not able to get the name of the data (wine)
+## correct when using fun.clm.
+
+#################################

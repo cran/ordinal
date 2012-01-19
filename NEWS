@@ -88,3 +88,7 @@ March 04 2010:
   "central" gradients with the ucminf optimizer.
 - examples updated in confint.Rd
 
+2012-01-19:
+
+- Changed evaluation of formula on clm to make clm more forgiving for
+  evaluation inside other functions.

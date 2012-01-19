@@ -124,6 +124,8 @@ clmm.model.frame <- function(mc, contrasts) {
   ## Set the appropriate environments:
   environment(fullForm) <- environment(fixedForm) <-
     environment(eval(mc$formula))
+### FIXME: possibly environment(eval.parent(mc$formula, 2)) is
+### better?? 
 
   ## Extract full model.frame (fullmf):
   m <- match(c("data", "subset", "weights", "na.action", "offset"),

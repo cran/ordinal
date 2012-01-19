@@ -19,7 +19,8 @@ summary(m1)
 vcov(m1)
 
 logLik(m1)
-ll.m1 <- structure(-2687.74456343981, df = 7, class = "logLik")
+ll.m1 <- structure(-2687.74456343981, df = 7L, nobs = 1847,
+                   class = "logLik")
 stopifnot(all.equal(logLik(m1), ll.m1))
 
 AIC(m1)
@@ -81,30 +82,6 @@ summary(fm2 <- update(fm1, scale =~ Cont))
 summary(fm3 <- update(fm1, location =~.-Cont, nominal =~ Cont))
 anova(fm1, fm2, fm3)
 ## which seems to improve the fit
-
-#################################
-## Use of formula-objects in location, scale and nominal:
-## Bug-report from Lluís Marco Almagro <lluis.marco@upc.edu>
-## 5 May 2010 17:58
-f <- formula(sureness ~ prod)
-fs <- formula( ~ prod)
-m2 <- clm(f, scale = fs, data = dat26, weights = wghts)
-summary(m2)
-
-#################################
-## Other ways to construct formulas:
-set.seed(12345)
-y <- factor(sample(1:4,20,replace=TRUE))
-x <- rnorm(20)
-data <- data.frame(y=y,x=x)
-rm(x, y)
-fit <- clm(data$y ~ data$x)
-fit
-fit <- clm(data[,1] ~ data[,2])
-fit
-## This previously failed, but now works:
-fit <- clm(data$y ~ data$x, ~data$x)
-fit
 
 #################################
 ## Better handling of ill-defined variance-covariance matrix of the

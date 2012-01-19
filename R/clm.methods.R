@@ -1,11 +1,13 @@
 print.clm <- 
   function(x, digits = max(3, getOption("digits") - 3), ...)
 {
-  cat("formula:", deparse(x$call$formula), fill=TRUE)
+  cat("formula:", deparse(formula(x$terms)), fill=TRUE)
+### NOTE: deparse(x$call$formula) will not always work since this may
+### not always be appropriately evaluated.
   if(!is.null(x$call$scale))
-    cat("scale:  ", deparse(x$call$scale), fill=TRUE)
+    cat("scale:  ", deparse(formula(x$S.terms)), fill=TRUE)
   if(!is.null(x$call$nominal))
-    cat("nominal:", deparse(x$call$nominal), fill=TRUE)
+    cat("nominal:", deparse(formula(x$nom.terms)), fill=TRUE)
   if(!is.null(data.name <- x$call$data))
     cat("data:   ", deparse(data.name), fill=TRUE)
   if(!is.null(x$call$subset))
@@ -103,11 +105,13 @@ print.summary.clm <-
   function(x, digits = max(3, getOption("digits") - 3),
            signif.stars = getOption("show.signif.stars"), ...)
 {
-  cat("formula:", deparse(x$call$formula), fill=TRUE)
+  cat("formula:", deparse(formula(x$terms)), fill=TRUE)
+### NOTE: deparse(x$call$formula) will not always work since this may
+### not always be appropriately evaluated.
   if(!is.null(x$call$scale))
-    cat("scale:  ", deparse(x$call$scale), fill=TRUE)
+    cat("scale:  ", deparse(formula(x$S.terms)), fill=TRUE)
   if(!is.null(x$call$nominal))
-    cat("nominal:", deparse(x$call$nominal), fill=TRUE)
+    cat("nominal:", deparse(formula(x$nom.terms)), fill=TRUE)
   if(!is.null(data.name <- x$call$data))
     cat("data:   ", deparse(data.name), fill=TRUE)
   if(!is.null(x$call$subset))
@@ -159,7 +163,8 @@ print.summary.clm <-
 }
   
 logLik.clm <- function(object, ...)
-  structure(object$logLik, df = object$edf, class = "logLik")
+  structure(object$logLik, df = object$edf, nobs=object$nobs,
+            class = "logLik")
 
 extractAIC.clm <- function(fit, scale = 0, k = 2, ...) {
   edf <- fit$edf
