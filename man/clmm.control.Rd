@@ -9,8 +9,8 @@
 }
 \usage{
 clmm.control(method = c("ucminf", "model.frame"), ..., trace = 0,
-maxIter = 50, gradTol = 1e-4, maxLineIter = 50, innerCtrl =
-c("warnOnly", "noWarn", "giveError")) 
+maxIter = 50, gradTol = 1e-4, maxLineIter = 50,  useMatrix = FALSE,
+innerCtrl = c("warnOnly", "noWarn", "giveError")) 
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -33,6 +33,13 @@ c("warnOnly", "noWarn", "giveError"))
   }
   \item{maxLineIter}{the maximum number of step halfings allowed if
     a Newton(-Raphson) step over shoots during the inner optimization.
+  }
+  \item{useMatrix}{if \code{TRUE}, a general implementation of the
+    Laplace approximation using the Matrix package is used, while if
+    \code{FALSE} (default), a C implementation of the Laplace
+    approximation valid only for models with a single random effects
+    term is used when possible.
+    \code{TRUE} is not valid for models fitted with quadrature methods.  
   }
   \item{innerCtrl}{the use of warnings/errors if the inner optimization
     fails to converge.

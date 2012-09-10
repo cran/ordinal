@@ -1,3 +1,5 @@
+### FIXME: Could make use of getFittedC throughout this file...
+
 .negLogLikMfastR <- function(rho) { ## negative log-likelihood
 ### .negLogLikMfast in R
     with(rho, {

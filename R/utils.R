@@ -1,3 +1,32 @@
+getFitted <- function(eta1, eta2, pfun, ...) {
+  ## eta1, eta2: linear predictors
+  ## pfun: cumulative distribution function
+  ##
+  ## Compute fitted values while maintaining high precision in the
+  ## result - if eta1 and eta2 are both large, fitted is the
+  ## difference between two numbers very close to 1, which leads to
+  ## imprecision and potentially errors.
+  ##
+  ## Note that (eta1 > eta2) always holds, hence (eta2 > 0) happens
+  ## relatively rarely.
+  k2 <- eta2 > 0
+  fitted <- pfun(eta1) - pfun(eta2)
+  fitted[k2] <- pfun(eta2[k2], lower.tail=FALSE) -
+    pfun(eta1[k2], lower.tail=FALSE)
+  fitted
+}
+
+getFittedC <-
+  function(eta1, eta2,
+           link = c("logit", "probit", "cloglog", "loglog", "cauchit",
+             "Aranda-Ordaz", "log-gamma"), lambda=1)
+### Same as getFitted only this is implemented in C and handles all
+### link functions including the flexible ones.
+{
+  link <- match.arg(link)
+  .Call("get_fitted", eta1, eta2, link, lambda)
+}
+
 getWeights <- function(mf) {
 ### mf - model.frame
   n <- nrow(mf)
@@ -31,13 +60,18 @@ getFullForm <- function(form, ..., envir=parent.frame()) {
   forms <- list(...)
   if(lf <- length(forms)) {
     rhs <- character(0)
+    ## Collect rhs terms in a single vector of rh-sides:
     for(i in 1:lf) {
-      rhs <- c(rhs, deparse(forms[[i]][[2]]))
+      rhs <- c(rhs, Deparse(forms[[i]][[2]]))
       if(length(forms[[i]]) >= 3)
-        rhs <- c(rhs, deparse(forms[[i]][[3]]))
+        rhs <- c(rhs, Deparse(forms[[i]][[3]]))
     }
+    ## add '+' inbetween terms:
     rhs <- paste(rhs, collapse=" + ")
-    form <- paste(deparse(form), rhs, sep=" + ")
+    ## combine if 'deparse(form)' is a (long) vector:
+    form2 <- paste(deparse(form, width.cutoff=500L), collapse=" ")
+    ## combine form2 and rhs into a single string:
+    form <- paste(form2, rhs, sep=" + ")
   }
   return(as.formula(form, env=envir))
 }
@@ -198,7 +232,8 @@ setLinks <- function(rho, link) {
   rho$pfun <- switch(link,
                      logit = plogis,
                      probit = pnorm,
-                     cloglog = function(x) pgumbel(x, max=FALSE),
+                     cloglog = function(x, lower.tail=TRUE) pgumbel(x,
+                                             lower.tail=lower.tail, max=FALSE),
                      cauchit = pcauchy,
                      loglog = pgumbel,
                      "Aranda-Ordaz" = function(x, lambda) pAO(x, lambda),
@@ -459,3 +494,10 @@ getB <- function(y, NOM=NULL, X=NULL, offset=NULL, tJac=NULL) {
   list(B1=B1, B2=B2, o1=o1, o2=o2) 
 }
 
+Deparse <-
+  function(expr, width.cutoff = 500L, backtick = mode(expr) %in%  
+           c("call", "expression", "(", "function"),
+           control = c("keepInteger", "showAttributes", "keepNA"),
+           nlines = -1L)
+  deparse(expr=expr, width.cutoff= width.cutoff, backtick=backtick,
+          control=control, nlines=nlines) 

@@ -90,5 +90,37 @@ March 04 2010:
 
 2012-01-19:
 
-- Changed evaluation of formula on clm to make clm more forgiving for
+- Changed evaluation of formula in clm to make clm more forgiving for
   evaluation inside other functions.
+
+2012-05-09:
+
+- Updated evaluation of formula in clmm, cf. resent update of clm.
+
+2012-05-22:
+
+- Better evaluation of fitted probabilities. This should reduce the
+  occurance of the "sqrt(phi2) : NaNs produced" error message.
+- Improved evaluation of control parameters in clmm using the new
+  function getCtrlArgs.
+- Better warning if intercept is attempted removed in clmm.
+
+2012-05-23:
+
+- Adding useMatrix argument to clmm.control
+- Using getFitted in clm
+- Implementing getFittedC in C and updating C code for fit.clmm.ssr
+  with better and faster evaluation of fitted values   
+- Introduction of links.h, links.c and get_fitted.c in /src
+
+2012-05-29:
+
+- Correcting formula interpretation in clm to allow for really long
+  formulas.
+- Better evaluation of control arguments in clmm (adjustment of
+  getCtrlAgs).
+- Adding clmm.control.R to ./test
+
+2012-09-10:
+- Computing Newton step in clm with solve() rather than
+  .Call("La_dgesv", ...) to accomodate changes in R base. 

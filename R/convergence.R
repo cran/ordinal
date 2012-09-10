@@ -27,12 +27,17 @@ convergence.clm <-
   ## Compute approximate error in the log-likelihood function:
   env <- update(object, doFit=FALSE)
   env$par <- coef(object, na.rm=TRUE) - step
-  new.logLik <- -ordinal:::eclm.nll(env)
-  logLik.err <- object$logLik - new.logLik
-  if(new.logLik < object$logLik)
+  new.logLik <- -env$clm.nll(env)
+  new.max.grad <- max(abs(env$clm.grad(env)))
+  old.max.grad <- max(abs(object$gradient))
+  if(new.max.grad > old.max.grad)
     stop("Cannot assess convergence: ",
          "please assess the likelihood with slice()")
-  info$logLik.Error <- formatC(logLik.err, digits=2, format="e")
+  logLik.err <- object$logLik - new.logLik
+  err <- format.pval(logLik.err, digits=2, eps=1e-10)
+  if(!length(grep("<", err)))
+    err <- formatC(as.numeric(err), digits=2, format="e")
+  info$logLik.Error <- err
   tab <- coef(summ, na.rm=TRUE)[,1:2]
   se <- tab[,2]
     tab <- cbind(tab, object$gradient, step, cor.dec(step),

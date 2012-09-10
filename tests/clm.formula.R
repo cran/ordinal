@@ -25,7 +25,7 @@ fm1 <- clm(rating ~ contact, scale=as.formula(~temp), data=wine)
 fm1 <- clm(rating ~ contact, scale=as.formula("~temp"), data=wine)
 
 #################################
-## can evaluate of if 'formula' is character:
+## can evaluate if 'formula' is a character:
 f <- "rating ~ contact + temp"
 clm(f, data=wine)
 clm(as.formula(f), data=wine)
@@ -120,5 +120,16 @@ fun.clm(form2, data=wine) ## works
 fun2.clm(form2, data=wine) ## works
 ## Notice that clm is not able to get the name of the data (wine)
 ## correct when using fun.clm.
+
+#################################
+## Evaluation of long formulas: no line breaking in getFullForm:
+data(soup, package="ordinal")
+
+rhs <- paste(names(soup)[c(3, 5:12)], collapse=" + ")
+Location <- as.formula(paste("SURENESS ~ ", rhs, sep=" "))
+Scale <- as.formula("~ PROD")
+
+fm5 <- clm(Location, scale=Scale, data=soup)
+summary(fm5)
 
 #################################

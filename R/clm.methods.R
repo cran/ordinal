@@ -1,17 +1,17 @@
 print.clm <- 
   function(x, digits = max(3, getOption("digits") - 3), ...)
 {
-  cat("formula:", deparse(formula(x$terms)), fill=TRUE)
+  cat("formula:", Deparse(formula(x$terms)), fill=TRUE)
 ### NOTE: deparse(x$call$formula) will not always work since this may
 ### not always be appropriately evaluated.
   if(!is.null(x$call$scale))
-    cat("scale:  ", deparse(formula(x$S.terms)), fill=TRUE)
+    cat("scale:  ", Deparse(formula(x$S.terms)), fill=TRUE)
   if(!is.null(x$call$nominal))
-    cat("nominal:", deparse(formula(x$nom.terms)), fill=TRUE)
+    cat("nominal:", Deparse(formula(x$nom.terms)), fill=TRUE)
   if(!is.null(data.name <- x$call$data))
-    cat("data:   ", deparse(data.name), fill=TRUE)
+    cat("data:   ", Deparse(data.name), fill=TRUE)
   if(!is.null(x$call$subset))
-    cat("subset: ", deparse(x$call$subset), fill=TRUE)
+    cat("subset: ", Deparse(x$call$subset), fill=TRUE)
   cat("\n")
 
   print(x$info, row.names=FALSE, right=FALSE)
@@ -61,6 +61,8 @@ vcov.clm <- function(object, ...)
   }
   else
     VCOV <- solve(H) ## MASS::ginv(H)
+### FIXME: Use a cholesky decomposition to get vcov for better
+### precision - vcov.nls for details.
   return(structure(VCOV, dimnames = dn))
 }
 
@@ -105,17 +107,17 @@ print.summary.clm <-
   function(x, digits = max(3, getOption("digits") - 3),
            signif.stars = getOption("show.signif.stars"), ...)
 {
-  cat("formula:", deparse(formula(x$terms)), fill=TRUE)
+  cat("formula:", Deparse(formula(x$terms)), fill=TRUE)
 ### NOTE: deparse(x$call$formula) will not always work since this may
 ### not always be appropriately evaluated.
   if(!is.null(x$call$scale))
-    cat("scale:  ", deparse(formula(x$S.terms)), fill=TRUE)
+    cat("scale:  ", Deparse(formula(x$S.terms)), fill=TRUE)
   if(!is.null(x$call$nominal))
-    cat("nominal:", deparse(formula(x$nom.terms)), fill=TRUE)
+    cat("nominal:", Deparse(formula(x$nom.terms)), fill=TRUE)
   if(!is.null(data.name <- x$call$data))
-    cat("data:   ", deparse(data.name), fill=TRUE)
+    cat("data:   ", Deparse(data.name), fill=TRUE)
   if(!is.null(x$call$subset))
-    cat("subset: ", deparse(x$call$subset), fill=TRUE)
+    cat("subset: ", Deparse(x$call$subset), fill=TRUE)
   cat("\n")
 
   print(x$info, row.names=FALSE, right=FALSE)
@@ -203,11 +205,11 @@ anova.clm <- function(object, ...)
   no.tests <- length(mlist)
   ## extract formulas, links, thresholds, scale formulas, nominal
   ## formulas:
-  forms <- sapply(mlist, function(x) deparse(x$call$formula))
+  forms <- sapply(mlist, function(x) Deparse(x$call$formula))
   links <- sapply(mlist, function(x) x$link)
   thres <- sapply(mlist, function(x) x$threshold)
-  nominal <- sapply(mlist, function(x) deparse(x$call$nominal))
-  scale <- sapply(mlist, function(x) deparse(x$call$scale))
+  nominal <- sapply(mlist, function(x) Deparse(x$call$nominal))
+  scale <- sapply(mlist, function(x) Deparse(x$call$scale))
   models <- data.frame(forms)
   models.names <- 'formula:'
   if(any(!nominal %in% c("~1", "NULL"))) {
@@ -233,7 +235,7 @@ anova.clm <- function(object, ...)
   tab <- data.frame(no.par, AIC, logLiks, statistic, df, pval) 
   tab.names <- c("no.par", "AIC", "logLik", "LR.stat", "df",
                  "Pr(>Chisq)")
-  mnames <- sapply(as.list(mc), deparse)[-1]
+  mnames <- sapply(as.list(mc), Deparse)[-1]
   colnames(tab) <- tab.names
   rownames(tab) <- rownames(models) <- mnames[ord]
   colnames(models) <- models.names

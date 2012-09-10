@@ -363,10 +363,13 @@ getNAGQinR <- function(rho, par) {
         if(nlambda)
             ## PRnn <- (pfun(eta1Tmp, lambda) - pfun(eta2Tmp, lambda))^weights
             ## This is likely a computationally more safe solution:
-            PRnn <- exp(weights * log(pfun(eta1Tmp, lambda) - pfun(eta2Tmp, lambda)))
+          PRnn <- exp(weights * log(pfun(eta1Tmp, lambda) -
+                                    pfun(eta2Tmp, lambda))) 
         else
             ## PRnn <- (pfun(eta1Tmp) - pfun(eta2Tmp))^weights
             PRnn <- exp(weights * log(pfun(eta1Tmp) - pfun(eta2Tmp)))
+### FIXME: The fitted values could be evaluated with getFittedC for
+### better precision.
         for(i in 1:r)
             ## PRrn[i,] <- apply(PRnn[grFac == i, ], 2, prod)
 ### FIXME: Should this be: ???
@@ -411,31 +414,33 @@ getNAGQinC <- function(rho, par) {
 getNGHQinR <- function(rho, par) {
 ### negative log-likelihood by standard Gauss-Hermite quadrature
 ### implemented in R:
-    if(!missing(par))
-        rho$par <- par
-    .negLogLikBase(rho) ## Update lambda, stDev, sigma and eta*Fix
-    with(rho, {
-        ns <- ghqns * stDev
-        SS <- numeric(r) ## summed likelihood
-        for(i in 1:r) {
-            ind <- grFac == i
-            eta1Fi <- eta1Fix[ind]
-            eta2Fi <- eta2Fix[ind]
-            o1i <- o1[ind]
-            o2i <- o2[ind]
-            si <- sigma[ind]
-            wt <- weights[ind]
-            for(h in 1:abs(nAGQ)) {
-                eta1s <- (eta1Fi + o1i - ns[h]) / si
-                eta2s <- (eta2Fi + o2i - ns[h]) / si
-                ## SS[i] <- exp(sum(wt * log(pfun(eta1s) - pfun(eta2s)))) *
-                ##     ghqws[h] * exp(ghqns[h]^2) * dnorm(x=ghqns[h]) + SS[i]
-                SS[i] <- exp(sum(wt * log(pfun(eta1s) - pfun(eta2s)))) *
-                    ghqws[h] + SS[i]
-            }
-        }
-        -sum(log(SS)) + r * log(2*pi)/2
-    })
+  if(!missing(par))
+    rho$par <- par
+  .negLogLikBase(rho) ## Update lambda, stDev, sigma and eta*Fix
+  with(rho, {
+    ns <- ghqns * stDev
+    SS <- numeric(r) ## summed likelihood
+    for(i in 1:r) {
+      ind <- grFac == i
+      eta1Fi <- eta1Fix[ind]
+      eta2Fi <- eta2Fix[ind]
+      o1i <- o1[ind]
+      o2i <- o2[ind]
+      si <- sigma[ind]
+      wt <- weights[ind]
+      for(h in 1:abs(nAGQ)) {
+        eta1s <- (eta1Fi + o1i - ns[h]) / si
+        eta2s <- (eta2Fi + o2i - ns[h]) / si
+        ## SS[i] <- exp(sum(wt * log(pfun(eta1s) - pfun(eta2s)))) *
+        ##     ghqws[h] * exp(ghqns[h]^2) * dnorm(x=ghqns[h]) + SS[i]
+        SS[i] <- exp(sum(wt * log(pfun(eta1s) - pfun(eta2s)))) *
+          ghqws[h] + SS[i]
+### FIXME: The fitted values could be evaluated with getFittedC for
+### better precision.
+      }
+    }
+    -sum(log(SS)) + r * log(2*pi)/2
+  })
 }
 
 getNGHQinC <- function(rho, par) {

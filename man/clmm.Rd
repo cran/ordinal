@@ -6,7 +6,7 @@
 }
 \description{
   Fits Cumulative Link Mixed Models with one or more random effects via
-  the Laplace approximation
+  the Laplace approximation or quadrature methods
 }
 \usage{
 clmm(formula, data, weights, start, subset, na.action, contrasts, Hess =
@@ -104,7 +104,7 @@ threshold = c("flexible", "symmetric", "equidistant"), ...)
 \details{
   This is a new (as of August 2011) improved implementation of CLMMs. The
   old implementation is available in \code{\link{clmm2}}. Some features
-  are not yet available in \code{clmm}; for instance quadrature methods,
+  are not yet available in \code{clmm}; for instance 
   scale effects, nominal effects and flexible link functions are
   currently only  available in \code{clmm2}. \code{clmm} is expected to
   take over \code{clmm2} at some point. 

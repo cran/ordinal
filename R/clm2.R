@@ -371,8 +371,9 @@ fitNR <- function(rho) ## OK
             break
         }
         rho$Hessian <- .hessian(rho)
-        step <- .Call("La_dgesv", rho$Hessian, rho$gradient, .Machine$double.eps,
-                      PACKAGE = "base") ## solve H*step = g for 'step'
+        ## step <- .Call("La_dgesv", rho$Hessian, rho$gradient, .Machine$double.eps,
+        ##               PACKAGE = "base") ## solve H*step = g for 'step'
+        step <- as.vector(solve(rho$Hessian, rho$gradient))
         rho$par <- rho$par - stepFactor * step
         negLogLikTry <- .negLogLik(rho)
         lineIter <- 0

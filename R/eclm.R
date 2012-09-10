@@ -150,7 +150,7 @@ eclm.model.frame <- function(mc, contrasts) {
   if(any(sapply(forms, function(f) class(f) == "try-error")))
     stop("unable to interpret 'formula', 'scale' or 'nominal'")
   ## collect all variables in a full formula:
-  fullForm <- do.call(getFullForm, forms)  
+  fullForm <- do.call("getFullForm", forms)  
   ## set environment of 'fullForm' to the environment of 'formula': 
   environment(fullForm) <- form.envir
 
@@ -164,6 +164,8 @@ eclm.model.frame <- function(mc, contrasts) {
   if(is.null(mf$data)) mf$data <- form.envir 
   fullmf <- eval(mf, envir = parent.frame(2))
   mf$na.action <- "na.pass" ## filter NAs by hand below
+
+  ## browser()
 
   ## Extract X:
   ## get X from fullmf to handle e.g., NAs and subset correctly
@@ -345,13 +347,15 @@ eclm.nll <- function(rho, par) {
 ### offset but no predictors in the scale model:
     eta1 <- (drop(B1 %*% par[1:n.psi]) + o1)/sigma
     eta2 <- (drop(B2 %*% par[1:n.psi]) + o2)/sigma
-    fitted <- pfun(eta1) - pfun(eta2)
-    if(all(is.finite(fitted)) && all(fitted > 0))
+  })
+### NOTE: getFitted is not found from within rho, so we have to
+### evalueate it outside of rho
+  rho$fitted <- getFittedC(rho$eta1, rho$eta2, rho$link)
+  if(all(is.finite(rho$fitted)) && all(rho$fitted > 0))
 ### NOTE: Need test here because some fitted <= 0 if thresholds are
 ### not ordered increasingly.
-      -sum(wts * log(fitted))
-    else Inf
-  })
+    -sum(rho$wts * log(rho$fitted))
+  else Inf
 }
 
 eclm.grad <- function(rho) {
@@ -453,15 +457,16 @@ clm.fit.NR <-
         cat(paste("X is not positive definite, inflating diagonal with",
                   formatC(inflate, digits=5, format="fg"), "\n"))
     }
-    step <- .Call("La_dgesv", hessian, gradient, .Machine$double.eps,
-                  PACKAGE = "base") ## solve H*step = g for 'step'
-    step <- as.vector(step)
+    ## step <- .Call("La_dgesv", hessian, gradient, .Machine$double.eps,
+    ##               PACKAGE = "base") ## solve H*step = g for 'step'
+    step <- as.vector(solve(hessian, gradient))
+    ## step <- as.vector(step)
     rho$par <- rho$par - stepFactor * step
     nllTry <- rho$clm.nll(rho)
     lineIter <- 0
 
     ## Step halfing if nll increases:
-    while(nllTry > nll) {
+    while(nllTry > nll) { # nllTry > nll + 1e-8 ?
       stepFactor <- stepFactor/2
       rho$par <- rho$par + stepFactor * step
       nllTry <- rho$clm.nll(rho)
@@ -497,7 +502,7 @@ clm.fit.NR <-
                           format="e")))
         cat("\n")
       }
-      Trace(iter=i, stepFactor, nll,
+      Trace(iter=i+innerIter, stepFactor, nll,
             maxGrad, rho$par, first = FALSE)
     }
     ## Double stepFactor if needed:

@@ -72,16 +72,15 @@ nll.u.ssr <- function(rho) {
     tau <- exp(par[nalpha + nbeta + 1:ntau])
     eta1 <- drop(B1 %*% par[1:(nalpha + nbeta)]) + o1 - u[grFac] * tau 
     eta2 <- drop(B2 %*% par[1:(nalpha + nbeta)]) + o2 - u[grFac] * tau
-    pr <- pfun(eta1) - pfun(eta2)
-    if(any(is.na(pr)) || any(pr <= 0))
-      nll <- Inf
-    else
-      nll <- -sum(wts * log(pr)) -
-        sum(dnorm(x=u, mean=0, sd=1, log=TRUE))
-    nll
   })
-}
-  
+  rho$pr <- getFittedC(rho$eta1, rho$eta2, rho$link)
+  if(all(is.finite(rho$pr)) && all(rho$pr > 0))
+    rho$nll <- -sum(rho$wts * log(rho$pr)) -
+      sum(dnorm(x=rho$u, mean=0, sd=1, log=TRUE))
+  else
+    rho$nll <- Inf
+  rho$nll
+}  
 
 jnll.u.ssr <- function(rho)
 ### Compute the contributions to the joint nll for each level of grFac
@@ -94,8 +93,8 @@ jnll.u.ssr <- function(rho)
     tau <- exp(par[nalpha + nbeta + 1:ntau])
     eta1 <- drop(B1 %*% par[1:(nalpha + nbeta)]) + o1 - u[grFac] * tau 
     eta2 <- drop(B2 %*% par[1:(nalpha + nbeta)]) + o2 - u[grFac] * tau
-    pr <- pfun(eta1) - pfun(eta2)
   })
+  rho$pr <- getFittedC(rho$eta1, rho$eta2, rho$link)
   ## split the contributions according to grFac:
   y.u <- split(rho$wts * log(rho$pr), rho$grFac)
   ## compute the contribution to the joint logLik for each level of

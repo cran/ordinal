@@ -267,12 +267,4 @@ get.se <- function(rho, cov, type=c("eta", "gamma", "prob")) {
   })
 }
 
-## clm.nll.pred <- function(rho) { 
-##   with(rho, {
-##     eta1 <- drop(B1 %*% par) + o1
-##     eta2 <- drop(B2 %*% par) + o2
-##     fitted <- pfun(eta1) - pfun(eta2)
-##     ## -sum(wts * log(fitted))
-##   })
-## }
 
