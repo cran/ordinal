@@ -124,3 +124,6 @@ March 04 2010:
 2012-09-10:
 - Computing Newton step in clm with solve() rather than
   .Call("La_dgesv", ...) to accomodate changes in R base. 
+
+2012-09-11:
+- Using globalVariables() conditional on getRversion() >= '2.15.1'.

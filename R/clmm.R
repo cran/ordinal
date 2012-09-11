@@ -15,7 +15,8 @@
 ## 3. Function gauss.hermite adopted with only minor modifications
 ## from package statMod(?)
 
-utils::globalVariables(c("ths", "link", "threshold", "optRes", "Niter"))
+if(getRversion() >= '2.15.1')
+  utils:::globalVariables(c("ths", "link", "threshold", "optRes", "Niter"))
 
 clmm <-
   function(formula, data, weights, start, subset, 

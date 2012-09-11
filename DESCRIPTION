@@ -1,8 +1,8 @@
 Package: ordinal
 Type: Package
 Title: Regression Models for Ordinal Data
-Version: 2012.09-10
-Date: 2012-09-10
+Version: 2012.09-11
+Date: 2012-09-11
 Author: Rune Haubo B Christensen
 Maintainer: Rune Haubo B Christensen <rhbc@imm.dtu.dk>
 Imports: numDeriv
@@ -22,6 +22,6 @@ Description: This package implements cumulative link (mixed) models
         profile methods and slice methods for visualizing the
         likelihood function and checking convergence.
 License: GPL (>= 2)
-Packaged: 2012-09-10 09:25:37 UTC; s020525
+Packaged: 2012-09-11 18:07:22 UTC; s020525
 Repository: CRAN
-Date/Publication: 2012-09-10 10:22:24
+Date/Publication: 2012-09-12 05:14:28
