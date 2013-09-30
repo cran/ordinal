@@ -3,7 +3,7 @@
 \title{Cumulative link models}
 \description{
   A new improved implementation of CLMs is available in \code{\link{clm}}.
-  
+
   Fits cumulative link models with an additive model for the location
   and a multiplicative model for the scale. The function allows for
   structured thresholds. A popular special case of a CLM is the
@@ -248,13 +248,12 @@ clm2(location, scale, nominal, data, weights, start, subset,
   Christensen, R. H. B., Cleaver, G. and Brockhoff, P. B. (2011)
   Statistical and Thurstonian models for the A-not A protocol with and
   without sureness. \emph{Food Quality and Preference, 22},
-  pp. 542-549. 
+  pp. 542-549.
 }
 \examples{
 options(contrasts = c("contr.treatment", "contr.poly"))
-data(soup)
 
-## More manageable data set:
+## A tabular data set:
 (tab26 <- with(soup, table("Product" = PROD, "Response" = SURENESS)))
 dimnames(tab26)[[2]] <- c("Sure", "Not Sure", "Guess", "Guess", "Not Sure", "Sure")
 dat26 <- expand.grid(sureness = as.factor(1:6), prod = c("Ref", "Test"))
@@ -304,49 +303,52 @@ anova(m1, mT1, mT2)
 
 ## Extend example from polr in package MASS:
 ## Fit model from polr example:
-data(housing, package = "MASS")
-fm1 <- clm2(Sat ~ Infl + Type + Cont, weights = Freq, data = housing)
-fm1
-summary(fm1)
-## With probit link:
-summary(update(fm1, link = "probit"))
-## Allow scale to depend on Cont-variable
-summary(fm2 <- update(fm1, scale =~ Cont))
-anova(fm1, fm2)
-## which seems to improve the fit
+if(require(MASS)) {
+    fm1 <- clm2(Sat ~ Infl + Type + Cont, weights = Freq, data = housing)
+    fm1
+    summary(fm1)
+    ## With probit link:
+    summary(update(fm1, link = "probit"))
+    ## Allow scale to depend on Cont-variable
+    summary(fm2 <- update(fm1, scale =~ Cont))
+    anova(fm1, fm2)
+    ## which seems to improve the fit
+}
 
 #################################
 ## It is possible to fit multinomial models (i.e. with nominal
 ## effects) as the following example shows:
-library(nnet)
-(hous1.mu <- multinom(Sat ~ 1, weights = Freq, data = housing))
-(hous1.clm <- clm2(Sat ~ 1, weights = Freq, data = housing))
+if(require(nnet)) {
+    (hous1.mu <- multinom(Sat ~ 1, weights = Freq, data = housing))
+    (hous1.clm <- clm2(Sat ~ 1, weights = Freq, data = housing))
 
-## It is the same likelihood:
-all.equal(logLik(hous1.mu), logLik(hous1.clm))
+    ## It is the same likelihood:
+    all.equal(logLik(hous1.mu), logLik(hous1.clm))
 
-## and the same fitted values:
-fitHous.mu <-
-    t(fitted(hous1.mu))[t(col(fitted(hous1.mu)) == unclass(housing$Sat))]
-all.equal(fitted(hous1.clm), fitHous.mu)
+    ## and the same fitted values:
+    fitHous.mu <-
+        t(fitted(hous1.mu))[t(col(fitted(hous1.mu)) == unclass(housing$Sat))]
+    all.equal(fitted(hous1.clm), fitHous.mu)
 
-## The coefficients of multinom can be retrieved from the clm2-object
-## by:
-Pi <- diff(c(0, plogis(hous1.clm$xi), 1))
-log(Pi[2:3]/Pi[1])
+    ## The coefficients of multinom can be retrieved from the clm2-object
+    ## by:
+    Pi <- diff(c(0, plogis(hous1.clm$xi), 1))
+    log(Pi[2:3]/Pi[1])
 
-## A larger model with explanatory variables:
-(hous.mu <- multinom(Sat ~ Infl + Type + Cont, weights = Freq, data = housing))
-(hous.clm <- clm2(Sat ~ 1, nominal = ~ Infl + Type + Cont, weights = Freq,
-                 data = housing))
+    ## A larger model with explanatory variables:
+    (hous.mu <- multinom(Sat ~ Infl + Type + Cont, weights = Freq, data = housing))
+    (hous.clm <- clm2(Sat ~ 1, nominal = ~ Infl + Type + Cont, weights = Freq,
+                      data = housing))
 
-## Almost the same likelihood:
-all.equal(logLik(hous.mu), logLik(hous.clm))
+    ## Almost the same likelihood:
+    all.equal(logLik(hous.mu), logLik(hous.clm))
 
-## And almost the same fitted values:
-fitHous.mu <-
-    t(fitted(hous.mu))[t(col(fitted(hous.mu)) == unclass(housing$Sat))]
-all.equal(fitted(hous.clm), fitHous.mu)
-all.equal(round(fitted(hous.clm), 5), round(fitHous.mu), 5)
+    ## And almost the same fitted values:
+    fitHous.mu <-
+        t(fitted(hous.mu))[t(col(fitted(hous.mu)) == unclass(housing$Sat))]
+    all.equal(fitted(hous.clm), fitHous.mu)
+    all.equal(round(fitted(hous.clm), 5), round(fitHous.mu), 5)
+}
+
 }
 \keyword{models}

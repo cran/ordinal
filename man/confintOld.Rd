@@ -137,7 +137,6 @@
 }
 \examples{
 options(contrasts = c("contr.treatment", "contr.poly"))
-data(soup)
 
 ## More manageable data set:
 (tab26 <- with(soup, table("Product" = PROD, "Response" = SURENESS)))
@@ -168,13 +167,14 @@ confint(pr1)
 
 ## Extend example from polr in package MASS:
 ## Fit model from polr example:
-data(housing, package = "MASS")
-fm1 <- clm2(Sat ~ Infl + Type + Cont, scale = ~ Cont, weights = Freq,
-  data = housing)
+if(require(MASS)) {
+    fm1 <- clm2(Sat ~ Infl + Type + Cont, scale = ~ Cont, weights = Freq,
+                data = housing)
+    pr1 <- profile(fm1)
+    confint(pr1)
+    par(mfrow=c(2,2))
+    plot(pr1)
+}
 
-pr1 <- profile(fm1)
-confint(pr1)
-par(mfrow=c(2,2))
-plot(pr1)
 }
 \keyword{models}

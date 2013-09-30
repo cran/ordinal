@@ -1,23 +1,5 @@
-##################################################################
-#  file ordinalv3/R/clmm2.R
-#
-#  Author: Rune Haubo Bojesen Christensen, rhbc@imm.dtu.dk
-#  Last modified: May 2010
-#
-#  This program is free software; you can redistribute it and/or modify
-#  it under the terms of the GNU General Public License as published by
-#  the Free Software Foundation; either version 2 or 3 of the License
-#  (at your option).
-#
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU General Public License for more details.
-#
-#  A copy of the GNU General Public License is available at
-#  http://www.r-project.org/Licenses/
-#
-##################################################################
+## This file contains:
+## The main clmm2 function and some related auxiliary functions.
 
 clmm2.control <-
     function(method = c("ucminf", "nlminb", "model.frame"),
@@ -113,7 +95,7 @@ update.u2.v3 <- function(rho) {
                    pr = as.double(pr),
                    funValue = double(1),
                    gradValues = as.double(uStart),
-                   hessValues = as.double(uStart),
+                   hessValues = as.double(rep(1, length(uStart))),
                    length(pr),
                    length(uStart),
                    maxGrad = double(1),
@@ -317,8 +299,8 @@ numeric, logical or one of c('no', 'R', 'C')")
                     ," is too close to boundary.\n",
                     " Fit model with link == 'logistic' to get Hessian")
         else {
-            rhoM$Hessian <- hessian(function(x) ObjFun(rhoM, x),
-                                    method.args = list(r=2), rhoM$par)
+            rhoM$Hessian <- myhess(function(x) ObjFun(rhoM, x),
+                                    rhoM$par)
             rhoM$par <- rhoM$optRes[[1]]
         }
     }
@@ -364,7 +346,7 @@ getNAGQinR <- function(rho, par) {
             ## PRnn <- (pfun(eta1Tmp, lambda) - pfun(eta2Tmp, lambda))^weights
             ## This is likely a computationally more safe solution:
           PRnn <- exp(weights * log(pfun(eta1Tmp, lambda) -
-                                    pfun(eta2Tmp, lambda))) 
+                                    pfun(eta2Tmp, lambda)))
         else
             ## PRnn <- (pfun(eta1Tmp) - pfun(eta2Tmp))^weights
             PRnn <- exp(weights * log(pfun(eta1Tmp) - pfun(eta2Tmp)))
@@ -389,20 +371,20 @@ getNAGQinC <- function(rho, par) {
     if(any(rho$D < 0)) return(Inf)
     with(rho, {
         .C("getNAGQ",
-           nll = double(1),
-           as.integer(grFac),
-           as.double(stDev),
+           nll = double(1), ## nll
+           as.integer(grFac), ## grFac
+           as.double(stDev), ## stDev
            as.double(eta1Fix),
            as.double(eta2Fix),
            as.double(o1),
            as.double(o2),
-           as.double(sigma),
+           as.double(sigma), ## Sigma
            as.double(weights),
-           length(sigma),
-           length(uStart),
+           length(sigma), ## nx - no. obs
+           length(uStart), ## nu - no. re
            as.double(ghqns),
-           as.double(log(ghqws)),
-           as.double(ghqns^2),
+           as.double(log(ghqws)), ## lghqws
+           as.double(ghqns^2), ## ghqns2
            as.double(u),
            as.double(D),
            as.integer(abs(nAGQ)),

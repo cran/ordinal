@@ -1,92 +1,141 @@
-## This file contains functions for fitting CLMMs with a single simple
-## RE term (ssr).
+## This file contains:
+## Functions for fitting CLMMs with a single simple random-effects
+## term (ssr).
 
-
-
-rho.clm2clmm.ssr <- function(rho, grList, ctrl)
+rho.clm2clmm.ssr <- function(rho, retrms, ctrl)
 ### Version of rho.clm2clmm that is set up to use the C
 ### implementations of Laplace, AGQ and GHQ for a single random
-### effect. 
+### effect.
 {
-  rho$ctrl <- ctrl
-  rho$grFac <- grList[[1]]
-  rho$sigma <- rep(1, nrow(rho$B1))
-  rho$lambda <- 0
-  rho$nlev <- as.vector(sapply(grList, nlevels))
-  rho$random.names <- sapply(grList, levels)
-  rho$tau.names <- names(grList)
-  rho$nrandom <- sum(rho$nlev) ## no. random effects
-  rho$Niter <- 0L
-  rho$u <- rho$uStart <- rep(0, rho$nrandom)
-  rho$linkInt <- switch(rho$link,
-                        logit = 1L,
-                        probit = 2L,
-                        cloglog = 3L,
-                        loglog = 4L,
-                        cauchit = 5L)
+    gfList <- retrms$gfList
+    rho$grFac <- gfList[[1]]
+    rho$ctrl <- ctrl
+    rho$sigma <- rep(1, nrow(rho$B1))
+    rho$lambda <- 0
+    rho$nlev <- as.vector(sapply(gfList, nlevels))
+    rho$random.names <- sapply(gfList, levels)
+    rho$tau.names <- names(gfList)
+    rho$nrandom <- sum(rho$nlev) ## no. random effects
+    rho$Niter <- 0L
+    rho$neval <- 0L
+    rho$u <- rho$uStart <- rep(0, rho$nrandom)
+    rho$linkInt <- switch(rho$link,
+                          logit = 1L,
+                          probit = 2L,
+                          cloglog = 3L,
+                          loglog = 4L,
+                          cauchit = 5L)
+    rho$ST <- lapply(retrms$retrms, `[[`, "ST")
 }
 
-set.AGQ <- function(rho, nAGQ) {
-  rho$nAGQ <- nAGQ
-  if(nAGQ %in% c(0L, 1L)) return(invisible())
-  ghq <- gauss.hermite(abs(nAGQ))
-  rho$ghqns <- ghq$nodes
-  rho$ghqws <-
-    if(nAGQ > 0) ghq$weights ## AGQ
-    else log(ghq$weights) + (ghq$nodes^2)/2 ## GHQ
-}
+## set.AGQ <- function(rho, nAGQ) {
+##   rho$nAGQ <- nAGQ
+##   if(nAGQ %in% c(0L, 1L)) return(invisible())
+##   ghq <- gauss.hermite(abs(nAGQ))
+##   rho$ghqns <- ghq$nodes
+##   rho$ghqws <-
+##     if(nAGQ > 0) ghq$weights ## AGQ
+##     else log(ghq$weights) + (ghq$nodes^2)/2 ## GHQ
+## }
 
-clmm.fit.ssr <- 
-  function(rho, control = list(), Hess = FALSE)
+clmm.fit.ssr <-
+  function(rho, control = list(), method=c("nlminb", "ucminf"),
+           Hess = FALSE)
 ### Fit a clmm with a single simple random effects term using AGQ, GHQ
 ### or Laplace.
 {
-  ## Set appropriate objective function:
-  obj.fun <-
-    if(rho$nAGQ < 0) getNGHQ.ssr
-    else if(rho$nAGQ > 1) getNAGQ.ssr
-    else getNLA.ssr ## nAGQ %in% c(0, 1)
-  
-  ## Fit the model with Laplace:
-  fit <- ucminf(rho$par, function(par) obj.fun(rho, par),
-                control = control)
-  ## rho$par <- fit$par
-  
-  ## Ensure random mode estimation at optimum:
-  nllBase.uC(rho)
-  update.uC(rho)
+    optim.error <- function(fit, method)
+        if(inherits(fit, "try-error"))
+            stop("optimizer ", method, " terminated with an error", call.=FALSE)
+### FIXME: Could have an argument c(warn, fail, ignore) to optionally
+### return the fitted model despite the optimizer failing.
 
-  ## Format ranef modes and condVar:
-  ranef <- rho$u * rho$tau
-  condVar <- 1/rho$D * rho$tau^2
-  names(ranef) <- names(condVar) <- rho$random.names
-  ranef <- list(ranef)
-  condVar <- list(condVar)
-  names(ranef) <- names(condVar) <- rho$tau.names
+    method <- match.arg(method)
+    ## Set appropriate objective function:
+    obj.fun <-
+        if(rho$nAGQ < 0) getNGHQ.ssr
+        else if(rho$nAGQ > 1) getNAGQ.ssr
+        else getNLA.ssr ## nAGQ %in% c(0, 1)
 
-  ## Prepare list of results:
-  res <- list(coefficients = fit$par,
-              optRes = fit,
-              logLik = -fit$value,
-              fitted.values = rho$fitted,
-              ranef = ranef,
-              condVar = condVar,
-              Niter = rho$Niter)
-  
-  ## Compute hessian?
-  if(Hess)
-    res$Hessian <-
-      hessian(function(par) getNLA.ssr(rho, par), x = fit$par,
-              method.args = list(r = 2, show.details = TRUE))
-  
-  return(res)
+    ## Fit the model:
+    if(method == "ucminf") {
+        fit <- try(ucminf(rho$par, function(par) obj.fun(rho, par),
+                          control = control), silent=TRUE)
+        ## Check if optimizer converged without error:
+        optim.error(fit, method)
+        ## Save return value:
+        value <- fit$value
+    } else if(method == "nlminb") {
+        ## hack to remove ucminf control settings:
+        keep <- !names(control) %in% c("grad", "grtol")
+        control <- if(length(keep)) control[keep] else list()
+        fit <- try(nlminb(rho$par, function(par) obj.fun(rho, par),
+                          control = control), silent=TRUE)
+        ## Check if optimizer converged without error:
+        optim.error(fit, method)
+        ## Save return value:
+        value <- fit$objective
+    }
+    else stop("unkown optimization method: ", method)
+    ## Extract parameters from optimizer results:
+    rho$par <- fit$par
+
+    ## Ensure random mode estimation at optimum:
+    nllBase.uC(rho)
+    update.uC(rho)
+
+    rho$ST <- par2ST(rho$tau, rho$ST)
+    names(rho$ST) <- names(rho$dims$nlev.re)
+
+    ## Format ranef modes and condVar:
+    ranef <- rho$u * rho$tau
+    condVar <- 1/rho$D * rho$tau^2
+    ## names(ranef) <- names(condVar) <- rho$random.names
+    ## ranef <- list(ranef)
+    ## condVar <- list(condVar)
+    ## names(ranef) <- names(condVar) <- rho$tau.names
+
+    ## Prepare list of results:
+    res <- list(coefficients = fit$par[1:rho$dims$nfepar],
+                ST = rho$ST,
+                optRes = fit,
+                logLik = -value,
+                fitted.values = rho$fitted,
+                ranef = ranef,
+                condVar = condVar,
+                dims = rho$dims,
+                u = rho$u)
+    ## Add gradient vector and optionally Hessian matrix:
+    ## bound <- as.logical(paratBoundary2(rho))
+    ## optpar <- fit$par[!bound]
+    if(Hess) {
+        ## gH <- deriv12(function(par) obj.fun(rho, par, which=!bound),
+        gH <- deriv12(function(par) obj.fun(rho, par),
+                      x=fit$par)
+        res$gradient <- gH$gradient
+        res$Hessian <- gH$Hessian
+    } else {
+        ## res$gradient <- grad.ctr(function(par) getNLA(rho, par, which=!bound),
+        res$gradient <- grad.ctr(function(par) obj.fun(rho, par),
+                                 x=fit$par)
+    }
+    ## Setting Niter and neval after gradient and Hessian evaluations:
+    res$Niter <- rho$Niter
+    res$neval <- rho$neval
+    return(res)
 }
+
 
 getNGHQ.ssr <- function(rho, par) {
 ### negative log-likelihood by standard Gauss-Hermite quadrature
 ### implemented in C:
-  if(!missing(par))
-    rho$par <- par
+    if(!missing(par)) {
+        rho$par <- par
+        if(any(!is.finite(par)))
+            stop(gettextf(paste(c("Non-finite parameters occured:",
+                                  formatC(par, format="g")), collapse=" ")))
+    }
+    rho$neval <- rho$neval + 1L
   nllBase.uC(rho) ## Update tau, eta1Fix and eta2Fix
   with(rho, {
     .C("getNGHQ",
@@ -113,9 +162,14 @@ getNGHQ.ssr <- function(rho, par) {
 getNAGQ.ssr <- function(rho, par) {
 ### negative log-likelihood by adaptive Gauss-Hermite quadrature
 ### implemented in C:
-  if(!missing(par))
-    rho$par <- par
-  if(!update.uC(rho)) return(Inf)
+    if(!missing(par)) {
+        rho$par <- par
+        if(any(!is.finite(par)))
+            stop(gettextf(paste(c("Non-finite parameters occured:",
+                                  formatC(par, format="g")), collapse=" ")))
+    }
+    rho$neval <- rho$neval + 1L
+    if(!update.uC(rho)) return(Inf)
   if(any(rho$D < 0)) return(Inf)
   with(rho, {
     .C("getNAGQ",
@@ -144,11 +198,17 @@ getNAGQ.ssr <- function(rho, par) {
 getNLA.ssr <- function(rho, par) {
 ### negative log-likelihood by the Laplace approximation
 ### (with update.u2 in C or R):
-  if(!missing(par)) rho$par <- par
+  if(!missing(par)) {
+      rho$par <- par
+      if(any(!is.finite(par)))
+          stop(gettextf(paste(c("Non-finite parameters occured:",
+                                formatC(par, format="g")), collapse=" ")))
+  }
+    rho$neval <- rho$neval + 1L
   if(!update.uC(rho)) return(Inf)
-  if(any(rho$D < 0)) return(Inf)
-  logDetD <- sum(log(rho$D)) - rho$nrandom * log(2*pi)
-  rho$negLogLik + logDetD / 2
+  if(any(rho$D <= 0)) return(Inf)
+  logDetD <- sum(log(rho$D))
+  rho$negLogLik - rho$nrandom*log(2*pi)/2 + logDetD/2
 }
 
 nllBase.uC <- function(rho) {
@@ -177,18 +237,18 @@ update.uC <- function(rho) {
        as.double(eta1Fix),
        as.double(eta2Fix),
        as.double(sigma), ## rep(1, n)
-       as.integer(linkInt), ## 
+       as.integer(linkInt), ##
        as.double(wts), ## pre. weights
        u = as.double(uStart),
        fitted = as.double(fitted), ## pre. pr
        funValue = double(1),
        gradValues = as.double(uStart),
-       hessValues = as.double(uStart),
+       hessValues = as.double(rep(1, length(uStart))),
        length(fitted),
        length(uStart),
        maxGrad = double(1),
        conv = 0L,
-       as.double(lambda), ## 
+       as.double(lambda), ##
        Niter = as.integer(Niter) ## OBS
        )[c("u", "fitted", "funValue", "gradValues",
            "hessValues", "maxGrad", "conv", "Niter")] })

@@ -6,9 +6,10 @@
 }
 \usage{
 
-\method{predict}{clm}(object, newdata, se.fit = FALSE, interval = FALSE, 
-           level = 0.95, type = c("prob", "class", "cum.prob", "linear.predictor"),
-           na.action = na.pass, ...) 
+\method{predict}{clm}(object, newdata, se.fit = FALSE, interval = FALSE,
+           level = 0.95,
+           type = c("prob", "class", "cum.prob", "linear.predictor"),
+           na.action = na.pass, ...)
 
 }
 \arguments{
@@ -36,16 +37,16 @@
     membership defined as highest probability prediction,
     \code{"cum.prob"} gives cumulative probabilities (see details)
     and \code{"linear.predictor"} gives predictions on the scale of the
-    linear predictor.
+    linear predictor including the boundary categories.
   }
   \item{na.action}{function determining what should be done with missing
     values in \code{newdata}. The default is to predict \code{NA}.
-  } 
+  }
   \item{\dots}{further arguments passed to or from other methods.
   }
 }
 \details{
-  
+
   If \code{newdata} is supplied and the response
   variable is omitted, then predictions, standard errors and intervals
   are matrices rather than vectors with the same number of rows as
@@ -64,7 +65,8 @@
 
   If \code{type = "cum.prob"} or \code{type = "linear.predictor"} there
   will be two sets of predictions, standard errors and intervals; one
-  for j and one for j-1 in the usual notation.
+  for j and one for j-1 (in the usual notation) where j = 1, ..., J index
+  the response classes.
 
   If newdata is supplied and the response variable is omitted, then
   \code{predict.clm} returns much the same thing as \code{predict.polr}
@@ -74,7 +76,7 @@
   will have been dropped. Prediction from such a fit only makes sense if
   newdata is contained in the same subspace as the original data. That
   cannot be checked accurately, so a warning is issued
-  (cf. \code{\link{predict.lm}}). 
+  (cf. \code{\link{predict.lm}}).
 
 }
 \value{
@@ -87,7 +89,7 @@
   }
   \item{upr, lwr}{if \code{interval=TRUE} lower and upper confidence
     limits.}
-  
+
 }
 \author{Rune Haubo B Christensen}
 \seealso{
@@ -96,11 +98,10 @@
 \examples{
 
 ## simple model:
-data(wine)
 fm1 <- clm(rating ~ contact + temp, data=wine)
 summary(fm1)
 
-## Fitted values with standard errors and confidence intervals: 
+## Fitted values with standard errors and confidence intervals:
 predict(fm1, se.fit=TRUE, interval=TRUE) # type="prob"
 ## class predictions for the observations:
 predict(fm1, type="class")
@@ -112,7 +113,7 @@ newData <- expand.grid(temp = c("cold", "warm"),
 ## the four cases in newData:
 predict(fm1, newdata=newData, type="prob")
 ## now include standard errors and intervals:
-predict(fm1, newdata=newData, se.fit=TRUE, interval=TRUE, type="prob")  
+predict(fm1, newdata=newData, se.fit=TRUE, interval=TRUE, type="prob")
 
 
 }

@@ -1929,7 +1929,7 @@ obtained by using the likelihood root statistic instead; this relies
 on the so-called profile likelihood written here for an arbitrary
 scalar parameter $\beta_a$:
 \begin{equation*}
-  \ell_p(\beta_a; \bm y) = \arg\max_{\bm\theta, \bm\beta_{-a}}
+  \ell_p(\beta_a; \bm y) = \max_{\bm\theta, \bm\beta_{-a}}
   \ell(\bm\theta, \bm\beta; \bm y)~,
 \end{equation*}
 where $\bm\beta_{-a}$ is the vector of regression parameters without

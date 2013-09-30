@@ -2,11 +2,11 @@
 \alias{drop.coef}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-  Insure Full Rank Design Matrix
+  Ensure Full Rank Design Matrix
 }
 \description{
-  Coefficients (columns) are dropped from a design matrix to insure that
-  it has full rank. 
+  Coefficients (columns) are dropped from a design matrix to ensure that
+  it has full rank.
 }
 \usage{
 drop.coef(X, silent = FALSE)
@@ -16,7 +16,7 @@ drop.coef(X, silent = FALSE)
   \item{X}{
     a design matrix, e.g., the result of \code{\link{model.matrix}}
     possibly of less than full column rank, i.e., with redundant
-    parameters. Works for \code{ncol(X) >= 0} and \code{nrow(X) >= 0}. 
+    parameters. Works for \code{ncol(X) >= 0} and \code{nrow(X) >= 0}.
   }
   \item{silent}{
     should a message not be issued if X is column rank deficient?
@@ -26,10 +26,10 @@ drop.coef(X, silent = FALSE)
   Redundant columns of the design matrix are identified with the
   LINPACK implementation of the \code{\link{qr}} decomposition and
   removed. The returned design matrix will have \code{qr(X)$rank}
-  columns. 
+  columns.
 }
 \value{
-  The design matrix \code{X} without redundant columns. 
+  The design matrix \code{X} without redundant columns.
 }
 \author{
   Rune Haubo B Christensen
@@ -39,7 +39,6 @@ drop.coef(X, silent = FALSE)
 }
 \examples{
 
-data(soup, package = "ordinal")
 X <- model.matrix( ~ PRODID * DAY, data = soup)
 ncol(X)
 newX <- drop.coef(X)

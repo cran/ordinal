@@ -78,7 +78,7 @@ clmm2(location, scale, nominal, random, data, weights, start, subset,
   as in \code{\link{clm2}} although it can also be one of \code{c("no",
     "R" "C")}, where \code{"R"} use the R-implementation for fitting,
   \code{"C"} (default) use C-implementation for fitting and \code{"no"}
-  behaves as \code{FALSE} and returns the environment. 
+  behaves as \code{FALSE} and returns the environment.
 }
 \item{control}{
   a call to \code{\link{clmm2.control}}.
@@ -93,7 +93,7 @@ clmm2(location, scale, nominal, random, data, weights, start, subset,
     approximation. An odd number of quadrature points is encouraged and
     3, 5 or 7 are usually enough to achive high precision. Negative
     values give the standard, i.e. non-adaptive Gauss-Hermite
-    quadrature. 
+    quadrature.
 }
 \item{\dots}{
   additional arguments are passed on to \code{\link{clm2.control}} and
@@ -122,7 +122,7 @@ clmm2(location, scale, nominal, random, data, weights, start, subset,
   approximation for binomial fits should in general be more precise -
   particularly for other links than the \code{"logistic"}.
 
-  Core parts of the function are implemented in C-code for speed. 
+  Core parts of the function are implemented in C-code for speed.
 
   The function calls \code{\link{clm2}} to up an
   environment and to get starting values.
@@ -181,10 +181,10 @@ clmm2(location, scale, nominal, random, data, weights, start, subset,
   }
   \item{fitted.values}{vector of fitted values conditional on the values
     of the random effects. Use \code{\link[=predict.clm2]{predict}} to
-    get the fitted 
+    get the fitted
     values for a random effect of zero. An observation here is taken to
     be each of the scalar elements of the multinomial table and not a
-    multinomial vector. 
+    multinomial vector.
   }
   \item{convergence}{\code{TRUE} if the optimizer terminates wihtout
     error and \code{FALSE} otherwise.
@@ -243,7 +243,6 @@ clmm2(location, scale, nominal, random, data, weights, start, subset,
 }
 \examples{
 options(contrasts = c("contr.treatment", "contr.poly"))
-data(soup)
 
 ## More manageable data set:
 dat <- subset(soup, as.numeric(as.character(RESP)) <=  24)
@@ -268,23 +267,24 @@ update(m1, Hess = FALSE, nAGQ = 3)
 update(m1, Hess = FALSE, nAGQ = -7)
 
 ##################################################################
-## Binomial example with data from the lme4-package:
-data(cbpp, package = "lme4")
-cbpp2 <- rbind(cbpp[,-(2:3)], cbpp[,-(2:3)])
-cbpp2 <- within(cbpp2, {
-    incidence <- as.factor(rep(0:1, each=nrow(cbpp)))
-    freq <- with(cbpp, c(incidence, size - incidence))
-})
+## Binomial example with the cbpp data from the lme4-package:
+if(require(lme4)) {
+    cbpp2 <- rbind(cbpp[,-(2:3)], cbpp[,-(2:3)])
+    cbpp2 <- within(cbpp2, {
+        incidence <- as.factor(rep(0:1, each=nrow(cbpp)))
+        freq <- with(cbpp, c(incidence, size - incidence))
+    })
 
-## Fit with Laplace approximation:
-fm1 <- clmm2(incidence ~ period, random = herd, weights = freq,
-            data = cbpp2, Hess = 1)
-summary(fm1)
+    ## Fit with Laplace approximation:
+    fm1 <- clmm2(incidence ~ period, random = herd, weights = freq,
+                 data = cbpp2, Hess = 1)
+    summary(fm1)
 
-## Fit with the adaptive Gauss-Hermite quadrature approximation:
-fm2 <- clmm2(incidence ~ period, random = herd, weights = freq,
-            data = cbpp2, Hess = 1, nAGQ = 7)
-summary(fm2)
+    ## Fit with the adaptive Gauss-Hermite quadrature approximation:
+    fm2 <- clmm2(incidence ~ period, random = herd, weights = freq,
+                 data = cbpp2, Hess = 1, nAGQ = 7)
+    summary(fm2)
+}
 
 }
 \keyword{models}

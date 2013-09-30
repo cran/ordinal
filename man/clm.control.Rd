@@ -7,8 +7,10 @@
 }
 \usage{
 clm.control(method = c("Newton", "model.frame", "ucminf", "nlminb",
-   "optim"), ..., trace = 0, 
-   maxIter = 100, gradTol = 1e-06, maxLineIter = 15)
+   "optim"), ..., trace = 0L,
+   maxIter = 100L, gradTol = 1e-06, maxLineIter = 15L, relTol = 1e-6,
+   tol = sqrt(.Machine$double.eps), maxModIter = 5L,
+   convergence = c("warn", "silent", "stop", "message"))
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -21,15 +23,31 @@ clm.control(method = c("Newton", "model.frame", "ucminf", "nlminb",
   \item{maxIter}{the maximum number of Newton-Raphson iterations.
     Defaults to \code{100}.
   }
-  \item{gradTol}{the maximum absolute gradient. This is the termination
-    criterion and defaults to \code{1e-6}.
+  \item{gradTol}{the maximum absolute gradient; defaults to \code{1e-6}.
   }
   \item{maxLineIter}{the maximum number of step halfings allowed if
     a Newton(-Raphson) step over shoots. Defaults to \code{10}.
   }
+  \item{relTol}{relative convergence tolerence: relative change in the
+    parameter estimates between Newton iterations. Defaults to \code{1e-6}.
+  }
+  \item{tol}{numerical tolerence on eigenvalues to determine
+    negative-definiteness of Hessian. If the Hessian of a model fit is
+    negative definite, the fitting algorithm did not converge. If the
+    Hessian is singular, the fitting algorithm did converge albeit not
+    to a \emph{unique} optimum, so one or more parameters are not
+    uniquely determined even though the log-likelihood value is.
+  }
+  \item{maxModIter}{the maximum allowable number of consecutive
+    iterations where the Newton step needs to be modified to be a decent
+    direction. Defaults to \code{5}.
+  }
+  \item{convergence}{action to take if the fitting algorithm did not
+    converge.
+  }
   \item{\dots}{control arguments parsed on to \code{\link{ucminf}},
     \code{\link{nlminb}} or \code{\link{optim}}.
-  } 
+  }
 }
 \value{
   a list of control parameters.

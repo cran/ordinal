@@ -1,23 +1,6 @@
-##################################################################
-#  file ordinal3/R/clm.R
-#
-#  Author: Rune Haubo Bojesen Christensen, rhbc@imm.dtu.dk
-#  Last modified: May 2010
-#
-#  This program is free software; you can redistribute it and/or modify
-#  it under the terms of the GNU General Public License as published by
-#  the Free Software Foundation; either version 2 or 3 of the License
-#  (at your option).
-#
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU General Public License for more details.
-#
-#  A copy of the GNU General Public License is available at
-#  http://www.r-project.org/Licenses/
-#
-##################################################################
+## This file contains:
+## An alternate (and older) implementation of CLMs in clm2(). The new
+## and recommended implementation is available in clm(), cf. ./R/clm.R
 
 clm2.control <-
     function(method = c("ucminf", "Newton", "nlminb", "optim",
@@ -49,7 +32,7 @@ clm2.control <-
 
 newRho <- function(parent, XX, X, Z, y, weights, Loffset, Soffset, ## OK
                    link, lambda, theta, threshold, Hess, control)
-### FIXME: Could remove theta argument? 
+### FIXME: Could remove theta argument?
 {
     rho <- new.env(parent = parent)
     rho$X <- X
@@ -207,6 +190,10 @@ setStart <- function(rho) ## Ok
         alphas <- c(alphas[q1+1],cumsum(rep(spacing[q1+2], rho$nalpha-1)))
     if(rho$threshold == "symmetric" && !rho$ntheta %% 2) ## ntheta even
         alphas <- c(alphas[q1:(q1+1)], cumsum(rep(spacing[q1+1], rho$nalpha-2)))
+    if(rho$threshold == "symmetric2" && rho$ntheta %% 2) ## ntheta odd
+        alphas <- cumsum(rep(spacing[q1+2], rho$nalpha-1))
+    if(rho$threshold == "symmetric2" && !rho$ntheta %% 2) ## ntheta even
+        alphas <- cumsum(rep(spacing[q1+1], rho$nalpha-2))
     if(rho$threshold == "equidistant")
         alphas <- c(alphas[1], mean(diff(spacing)))
     ## initialize nominal effects to zero:
@@ -465,7 +452,7 @@ finalizeRho <- function(rho) { ## OK
                             ," is too close to boundary.\n",
                             " Fit model with link == 'logistic' to get Hessian")
                 else {
-                    rho$Hessian <- hessian(function(par) getNll(rho, par),
+                    rho$Hessian <- myhess(function(par) getNll(rho, par),
                                            rho$par)
                     getNll(rho, rho$optRes[[1]]) # to reset the variables:
                                         # (par, pr)
@@ -759,7 +746,7 @@ vcov.clm2 <- function(object, ...)
   dn <- names(object$coefficients)
   H <- object$Hessian
   ## To handle NaNs in the Hessian resulting from parameter
-  ## unidentifiability:  
+  ## unidentifiability:
   if(any(His.na <- !is.finite(H))) {
     H[His.na] <- 0
     VCOV <- ginv(H)

@@ -5,7 +5,7 @@
 }
 \description{
   Income distribution (percentages) in the Northeast US in 1960 and 1970
-  adopted from McCullagh (1980). 
+  adopted from McCullagh (1980).
 }
 \usage{
 income
@@ -19,7 +19,7 @@ income
       percentage of population in income class per year.
     }
     \item{\code{income}}{
-      income groups. The unit is thousands of constant (1973) US dollars.  
+      income groups. The unit is thousands of constant (1973) US dollars.
     }
   }
 }
@@ -32,8 +32,6 @@ income
   Vol. 42, No. 2., pp. 109-142.
 }
 \examples{
-
-data(income)
 
 print(income)
 
@@ -56,10 +54,10 @@ income <- paste(income.levels, c(rep("-", 6), "+"),
                 c(income.levels[-1], ""), sep = "")
 income <-
   data.frame(year=factor(rep(c("1960", "1970"), each = 7)),
-             pct = c(6.5, 8.2, 11.3, 23.5, 15.6, 12.7, 22.2, 
+             pct = c(6.5, 8.2, 11.3, 23.5, 15.6, 12.7, 22.2,
                4.3, 6, 7.7, 13.2, 10.5, 16.3, 42.1),
              income=factor(rep(income, 2), ordered=TRUE,
-               levels=income)) 
+               levels=income))
 
 }
 

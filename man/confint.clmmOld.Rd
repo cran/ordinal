@@ -109,24 +109,25 @@
 \examples{
 options(contrasts = c("contr.treatment", "contr.poly"))
 
-data(cbpp, package = "lme4")
-cbpp2 <- rbind(cbpp[,-(2:3)], cbpp[,-(2:3)])
-cbpp2 <- within(cbpp2, {
-    incidence <- as.factor(rep(0:1, each=nrow(cbpp)))
-    freq <- with(cbpp, c(incidence, size - incidence))
-})
+if(require(lme4)) { ## access cbpp data
+    cbpp2 <- rbind(cbpp[,-(2:3)], cbpp[,-(2:3)])
+    cbpp2 <- within(cbpp2, {
+        incidence <- as.factor(rep(0:1, each=nrow(cbpp)))
+        freq <- with(cbpp, c(incidence, size - incidence))
+    })
 
-## Fit with Laplace approximation:
-fm1 <- clmm2(incidence ~ period, random = herd, weights = freq,
-            data = cbpp2, Hess = 1)
+    ## Fit with Laplace approximation:
+    fm1 <- clmm2(incidence ~ period, random = herd, weights = freq,
+                 data = cbpp2, Hess = 1)
 
-pr.fm1 <- profile(fm1)
-confint(pr.fm1)
+    pr.fm1 <- profile(fm1)
+    confint(pr.fm1)
 
-par(mfrow = c(2,2))
-plot(pr.fm1)
-plot(pr.fm1, Log=TRUE, relative = TRUE)
-plot(pr.fm1, Log=TRUE, relative = FALSE)
+    par(mfrow = c(2,2))
+    plot(pr.fm1)
+    plot(pr.fm1, Log=TRUE, relative = TRUE)
+    plot(pr.fm1, Log=TRUE, relative = FALSE)
+}
 
 }
 \keyword{models}

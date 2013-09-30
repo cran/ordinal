@@ -1,6 +1,6 @@
 library(ordinal)
 options(contrasts = c("contr.treatment", "contr.poly"))
-data(soup, package="ordinal")
+
 ## More manageable data set:
 (tab26 <- with(soup, table("Product" = PROD, "Response" = SURENESS)))
 dimnames(tab26)[[2]] <- c("Sure", "Not Sure", "Guess", "Guess", "Not Sure", "Sure")
@@ -18,30 +18,27 @@ anova(m1, mN1)
 anova(m1, m2, mN1)
 
 ## dropterm
-dropterm(m1, test = "Chi")
-mB1 <- clm(SURENESS ~ PROD + GENDER + SOUPTYPE,
-           scale = ~ COLD, data = soup, link = "probit")
-dropterm(mB1, test = "Chi")       # or
+if(require(MASS)) {
+    dropterm(m1, test = "Chi")
+    mB1 <- clm(SURENESS ~ PROD + GENDER + SOUPTYPE,
+               scale = ~ COLD, data = soup, link = "probit")
+    dropterm(mB1, test = "Chi")       # or
 
-## mB2 <- clm2(SURENESS ~ PROD + GENDER + SOUPTYPE,
-##             scale = ~ COLD, data = soup, link = "probit", Hess=FALSE)
-## dropterm(mB2, test = "Chi")       # or
-## dropterm(mB1, which = "location", test = "Chi")
-## dropterm(mB1, which = "scale", test = "Chi")
+    ## addterm
+    addterm(mB1, scope = ~.^2, test = "Chi")
+    ## addterm(mB1, scope = ~ . + AGEGROUP + SOUPFREQ,
+    ##         test = "Chi", which = "location")
+    ## addterm(mB1, scope = ~ . + GENDER + SOUPTYPE,
+    ##         test = "Chi", which = "scale")
 
-## addterm
-addterm(mB1, scope = ~.^2, test = "Chi")
-## addterm(mB1, scope = ~ . + AGEGROUP + SOUPFREQ,
-##         test = "Chi", which = "location")
-## addterm(mB1, scope = ~ . + GENDER + SOUPTYPE,
-##         test = "Chi", which = "scale")
+    ## Fit model from polr example:
+    ## data(housing, package = "MASS")
 
-## Fit model from polr example:
-data(housing, package = "MASS")
-fm1 <- clm(Sat ~ Infl + Type + Cont, weights = Freq, data = housing)
-## addterm(fm1, ~ Infl + Type + Cont, test= "Chisq", which = "scale")
-dropterm(fm1, test = "Chisq")
-fm2 <- update(fm1, scale =~ Cont)
-fm3 <- update(fm1, formula =~.-Cont, nominal =~ Cont)
-anova(fm1, fm2, fm3)
+    fm1 <- clm(Sat ~ Infl + Type + Cont, weights = Freq, data = housing)
+    ## addterm(fm1, ~ Infl + Type + Cont, test= "Chisq", which = "scale")
+    dropterm(fm1, test = "Chisq")
+    fm2 <- update(fm1, scale =~ Cont)
+    fm3 <- update(fm1, formula =~.-Cont, nominal =~ Cont)
+    anova(fm1, fm2, fm3)
+}
 

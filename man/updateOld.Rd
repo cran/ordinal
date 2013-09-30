@@ -41,7 +41,7 @@
 \author{Rune Haubo B Christensen}
 \examples{
 options(contrasts = c("contr.treatment", "contr.poly"))
-data(soup)
+
 m1 <-  clm2(SURENESS ~ PROD, scale = ~PROD, data = soup,
            link = "logistic")
 
@@ -50,11 +50,6 @@ m3 <- update(m1, link = "cloglog")
 m4 <- update(m1, link = "loglog")
 anova(m1, update(m1, scale = ~.-PROD))
 mT1 <- update(m1, threshold = "symmetric")
-
-## Fit model from polr example:
-data(housing, package = "MASS")
-fm1 <- clm2(Sat ~ Infl + Type + Cont, weights = Freq, data = housing)
-update(fm1, location = ~ . - Type, scale =~ Cont)
 
 }
 \keyword{models}

@@ -1,12 +1,16 @@
 useDynLib(ordinal, .registration = TRUE)
 
+
 importFrom(graphics,
            plot)
-## importFrom(ucminf, ucminf)
+importFrom(ucminf, ucminf)
 import(Matrix)
-importFrom(numDeriv,
-           hessian,
-           grad)
+## importFrom(nlme,
+##            ranef,
+##            VarCorr)
+## importFrom(numDeriv,
+##            hessian,
+##            grad)
 importFrom(MASS,
            ginv,
            addterm,
@@ -17,7 +21,7 @@ importFrom(stats,
            nobs,
            logLik,
            profile,
-           vcov, 
+           vcov,
            extractAIC,
            anova,
            fitted## ,
@@ -34,6 +38,13 @@ export(clmm.control)
 export(slice)
 export(convergence)
 export(drop.coef)
+export(nominal_test)
+export(scale_test)
+
+## NOTE: Also exporting ranef.clmm and VarCorr.clmm to make sure the
+## clmm-methods work after loading nlme (or lme4):
+export(ranef, ranef.clmm, condVar, VarCorr, VarCorr.clmm)
+## export(ranef, ranef.clmm, condVar, condVar.clmm, VarCorr, VarCorr.clmm)
 
 export(gnorm, glogis, gcauchy,
        pgumbel, dgumbel, ggumbel, qgumbel, rgumbel,
@@ -48,6 +59,7 @@ S3method(summary, clm)
 S3method(print, summary.clm)
 
 S3method(convergence, clm)
+S3method(print, convergence.clm)
 
 S3method(slice, clm)
 S3method(plot, slice.clm)
@@ -58,6 +70,9 @@ S3method(predict, clm)
 S3method(coef, clm)
 S3method(nobs, clm)
 S3method(coef, summary.clm)
+
+S3method(scale_test, clm)
+S3method(nominal_test, clm)
 
 S3method(profile, clm)
 S3method(confint, clm)
@@ -76,10 +91,16 @@ S3method(print, summary.clmm)
 S3method(logLik, clmm)
 S3method(extractAIC, clmm)
 S3method(anova, clmm)
+S3method(nobs, clmm)
 ## S3method(profile, clmm)
 ## S3method(confint, profile.clmm)
 ## S3method(plot, profile.clmm)
 ## S3method(update, clmm)
+## S3method(fixef, clmm)
+S3method(ranef, clmm)
+S3method(condVar, clmm)
+S3method(VarCorr, clmm)
+
 
 ##################################################################
 ### clm2 stuff:

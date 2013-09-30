@@ -5,7 +5,7 @@
 
 library(ordinal)
 options(contrasts = c("contr.treatment", "contr.poly"))
-data(soup, package="ordinal")
+
 ## More manageable data set:
 (tab26 <- with(soup, table("Product" = PROD, "Response" = SURENESS)))
 dimnames(tab26)[[2]] <- c("Sure", "Not Sure", "Guess", "Guess", "Not Sure", "Sure")
@@ -69,19 +69,22 @@ update(m1, ~.-prod, scale = ~ 1,
 mT1 <- update(m1, threshold = "symmetric")
 mT2 <- update(m1, threshold = "equidistant")
 anova(m1, mT1, mT2)
+
 ## Extend example from polr in package MASS:
 ## Fit model from polr example:
-data(housing, package = "MASS")
-fm1 <- clm(Sat ~ Infl + Type + Cont, weights = Freq, data = housing)
-fm1
-summary(fm1)
-## With probit link:
-summary(update(fm1, link = "probit"))
-## Allow scale to depend on Cont-variable
-summary(fm2 <- update(fm1, scale =~ Cont))
-summary(fm3 <- update(fm1, location =~.-Cont, nominal =~ Cont))
-anova(fm1, fm2, fm3)
-## which seems to improve the fit
+if(require(MASS)) {
+    fm1 <- clm(Sat ~ Infl + Type + Cont, weights = Freq, data = housing)
+    fm1
+    summary(fm1)
+    ## With probit link:
+    summary(update(fm1, link = "probit"))
+    ## Allow scale to depend on Cont-variable
+    summary(fm2 <- update(fm1, scale =~ Cont))
+    summary(fm3 <- update(fm1, location =~.-Cont, nominal =~ Cont))
+    summary(fm4 <- update(fm2, location =~.-Cont, nominal =~ Cont))
+    anova(fm1, fm2, fm3, fm4)
+    ## which seems to improve the fit
+}
 
 #################################
 ## Better handling of ill-defined variance-covariance matrix of the
@@ -190,7 +193,7 @@ detach(soup)
 ### Bug report from Ioannis Kosmidis <ioannis@stats.ucl.ac.uk>:
 
 ### A 2x3 contigency table that will give a large estimated value of
-### zeta 
+### zeta
 x <- rep(0:1, each = 3)
 response <- factor(rep(c(1, 2, 3), times = 2))
 freq <- c(1, 11, 1, 13, 1, 14)
@@ -200,7 +203,7 @@ Dat <- data.frame(response, x, freq)
 ### Fitting a cumulative link model with dispersion effects
 modClm <- clm(response ~ x, scale = ~ x, weights = freq, data = Dat,
              control = clm.control(grtol = 1e-10, convTol = 1e-10))
-
+summary(modClm)
 ### The maximized log-likelihood for this saturated model should be
 sum(freq*log(freq/totals))
 # > sum(freq*log(freq/totals))
@@ -209,15 +212,14 @@ sum(freq*log(freq/totals))
 modClm$logLik
 # > modClm$logLik
 # [1] -30.44452
-
 stopifnot(isTRUE(all.equal(sum(freq*log(freq/totals)), modClm$logLik)))
 
 ### The estimates reported by clm are
 coef(modClm)
 coef.res <- structure(c(-2.48490664104217, 2.48490665578163,
-                        2.48490659188594,  
+                        2.48490659188594,
                         3.54758796387530), .Names = c("1|2", "2|3",
-                                             "x", "x")) 
+                                             "x", "x"))
 stopifnot(isTRUE(all.equal(coef.res, coef(modClm))))
 # > modClm$coefficients
 #      1|2       2|3         x         x
@@ -225,5 +227,6 @@ stopifnot(isTRUE(all.equal(coef.res, coef(modClm))))
 ### while they should be (from my own software)
 #      1|2       2|3         x    disp.x
 #-2.484907  2.484907  2.484907  3.547588
+convergence(modClm)
 
 ##################################################################

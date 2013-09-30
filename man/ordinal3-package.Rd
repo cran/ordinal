@@ -44,7 +44,7 @@ features are:
     fast and accurate.}
   \item{Rank-deficient designs are identified and unidentified
     coefficients exposed in \code{print} and \code{summary} methods as
-    with \code{\link{glm}}.} 
+    with \code{\link{glm}}.}
   \item{A suite of standard methods are available including \code{anova},
     \code{add}/\code{drop}-methods, \code{step}, \code{profile},
     \code{confint}.}
@@ -65,13 +65,13 @@ main features are:
     nested/crossed random effects are allowed.}
   \item{Estimation is via maximum likelihood using the Laplace
     approximation or adaptive Gauss-Hermite quadrature (one random
-    effect).} 
+    effect).}
   \item{Vector-valued and correlated random effects are not yet
     implemented.}
   \item{Random slopes (random coefficient models) are not yet
-    implemented.} 
+    implemented.}
   \item{Estimation employs sparse matrix methods from the
-    \code{\link{Matrix}} package. } 
+    \code{\link{Matrix}} package. }
   \item{During model fitting a Newton-Raphson algorithm updates the
     conditional modes of the random effects a large number of times. The
     likelihood function is optimized with a general purpose optimizer.}
@@ -92,7 +92,7 @@ Aranda-Ordaz links) and a profile method for random effect variance
 parameters in CLMMs. The new implementations are expected to take over
 the old implementations at some point, hence the latter will eventually
 be \code{\link[=.Deprecated]{deprecated}} and
-\code{\link[=.Defunct]{defunct}}.  
+\code{\link[=.Defunct]{defunct}}.
 
 }
 \author{
@@ -111,7 +111,6 @@ be \code{\link[=.Deprecated]{deprecated}} and
 \examples{
 
 ## A simple cumulative link model:
-data(wine)
 fm1 <- clm(rating ~ contact + temp, data=wine)
 summary(fm1)
 

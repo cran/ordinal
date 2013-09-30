@@ -14,25 +14,25 @@ clm.fit(y, X, S, N, weights = rep(1, nrow(X)),
   offset = rep(0, nrow(X)), S.offset = rep(0, nrow(X)),
   control = list(), start,
   link = c("logit", "probit", "cloglog", "loglog", "cauchit"),
-  threshold = c("flexible", "symmetric", "equidistant"))
+  threshold = c("flexible", "symmetric", "symmetric2", "equidistant"))
 
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{y}{the response variable; a factor, preferably and ordered
-    factor. 
+    factor.
   }
-  \item{X, S, N}{optional design matrices for the regression parameters, 
+  \item{X, S, N}{optional design matrices for the regression parameters,
     scale parameters and nominal parameters respectively.
   }
   \item{weights}{optional case weights.
   }
   \item{offset}{an optional offset.
   }
-  \item{S.offset}{an optional offset for the scale part of the model. 
+  \item{S.offset}{an optional offset for the scale part of the model.
   }
   \item{control}{a list of control parameters, optionally a call to
-    \code{\link{clm.control}}. 
+    \code{\link{clm.control}}.
   }
   \item{start}{an optional list of starting values of the form
     \code{c(alpha, beta, zeta)} for the thresholds and nominal effects
@@ -57,23 +57,23 @@ clm.fit(y, X, S, N, weights = rep(1, nrow(X)),
   parameters are indicated in the \code{aliased} component of the fit.
 
   In contrast to \code{\link{clm}}, \code{clm.fit} allows non-positive
-  weights.   
+  weights.
 }
 
 \value{
   A list with the following components:
-  \item{par}{the maximum likelihood estimate of the model parameters on 
+  \item{par}{the maximum likelihood estimate of the model parameters on
     the form \code{c(alpha, beta, zeta)} for the thresholds and nominal
     effects (\code{alpha}), regression parameters (\code{beta}) and
-    scale parameters (\code{zeta}). 
+    scale parameters (\code{zeta}).
   }
   \item{gradient}{gradient of the log-likelihood function for the
     parameters at the optimum.
   }
-  \item{Hessian}{the Hessian of the parameters at the optimum. 
+  \item{Hessian}{the Hessian of the parameters at the optimum.
   }
   \item{logLik}{the value of the log-likelihood function at the
-    optimum. 
+    optimum.
   }
   \item{convergence}{a convergence code; 1: successful convergence, 2:
     iteration limit reached, 3: step factor reduced below minimum.
@@ -93,8 +93,8 @@ clm.fit(y, X, S, N, weights = rep(1, nrow(X)),
     inferred from the column names of the design matrices.
   }
   \item{aliased}{a list of logical vectors; \code{TRUE} is a parameter
-    is not identified due to column rank deficiency in the design 
-    matrices and \code{FALSE} otherwise. 
+    is not identified due to column rank deficiency in the design
+    matrices and \code{FALSE} otherwise.
   }
 }
 %% \references{ bla
@@ -106,16 +106,15 @@ clm.fit(y, X, S, N, weights = rep(1, nrow(X)),
 %% \note{ bla
 %% %%  ~~further notes~~
 %% }
-%% 
+%%
 %% %% ~Make other sections like Warning with \section{Warning }{....} ~
-%% 
+%%
 \seealso{
   \code{\link{clm}}
 }
 \examples{
 
 ## A simple example:
-data(wine)
 fm1 <- clm(rating ~ contact + temp, data=wine)
 summary(fm1)
 ## get the model frame containing y and X:

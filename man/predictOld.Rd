@@ -30,7 +30,7 @@
   random effect of zero, i.e. an average 'subject', are wanted, the same
   data used to fit the model should be supplied in the \code{newdata}
   argument. For \code{clm2} fits those two sets of predictions are
-  identical. 
+  identical.
 }
 \value{
   A vector of predicted probabilities.
@@ -41,7 +41,6 @@
 }
 \examples{
 options(contrasts = c("contr.treatment", "contr.poly"))
-data(soup)
 
 ## More manageable data set for less voluminous printing:
 (tab26 <- with(soup, table("Product" = PROD, "Response" = SURENESS)))
@@ -60,31 +59,33 @@ predict(mN1)
 
 predict(update(m1, scale = ~.-prod))
 
-## Fit model from polr example:
-data(housing, package = "MASS")
-fm1 <- clm2(Sat ~ Infl + Type + Cont, weights = Freq, data = housing)
-predict(fm1)
 
 #################################
 ## Mimicing the behavior of predict.polr:
-set.seed(123)
-nlev <- 3
-y <- gl(nlev, 5)
-x <- as.numeric(y) + rnorm(15)
-fm.clm <- clm2(y ~ x)
-fm.polr <- polr(y ~ x)
+if(require(MASS)) {
+    ## Fit model from polr example:
+    fm1 <- clm2(Sat ~ Infl + Type + Cont, weights = Freq, data = housing)
+    predict(fm1)
 
-## The equivalent of predict.polr(object, type = "probs"):
-(pmat.polr <- predict(fm.polr, type = "probs"))
-ndat <- expand.grid(y = gl(nlev,1), x = x)
-(pmat.clm <- matrix(predict(fm.clm, newdata = ndat), ncol=nlev,
-                    byrow = TRUE))
-all.equal(c(pmat.clm), c(pmat.polr), tol = 1e-5) # TRUE
+    set.seed(123)
+    nlev <- 3
+    y <- gl(nlev, 5)
+    x <- as.numeric(y) + rnorm(15)
+    fm.clm <- clm2(y ~ x)
+    fm.polr <- polr(y ~ x)
 
-## The equivalent of predict.polr(object, type = "class"):
-(class.polr <- predict(fm.polr))
-(class.clm <- factor(apply(pmat.clm, 1, which.max)))
-all.equal(class.clm, class.polr) ## TRUE
+    ## The equivalent of predict.polr(object, type = "probs"):
+    (pmat.polr <- predict(fm.polr, type = "probs"))
+    ndat <- expand.grid(y = gl(nlev,1), x = x)
+    (pmat.clm <- matrix(predict(fm.clm, newdata = ndat), ncol=nlev,
+                        byrow = TRUE))
+    all.equal(c(pmat.clm), c(pmat.polr), tol = 1e-5) # TRUE
+
+    ## The equivalent of predict.polr(object, type = "class"):
+    (class.polr <- predict(fm.polr))
+    (class.clm <- factor(apply(pmat.clm, 1, which.max)))
+    all.equal(class.clm, class.polr) ## TRUE
+}
 
 }
 \keyword{models}

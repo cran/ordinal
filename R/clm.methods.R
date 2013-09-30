@@ -1,4 +1,7 @@
-print.clm <- 
+## This file contains:
+## Implementation of various methods for clm objects.
+
+print.clm <-
   function(x, digits = max(3, getOption("digits") - 3), ...)
 {
   cat("formula:", Deparse(formula(x$terms)), fill=TRUE)
@@ -22,90 +25,121 @@ print.clm <-
           " not defined because of singularities)\n", sep = "")
     }
     else cat("\nCoefficients:\n")
-    print.default(format(x$beta, digits = digits), 
+    print.default(format(x$beta, digits = digits),
                   quote = FALSE)
   }
     if(length(x$zeta)) {
-    if(sum(x$aliased$zeta) > 0) 
+    if(sum(x$aliased$zeta) > 0)
       cat("\nlog-scale coefficients: (", sum(x$aliased$zeta),
-          " not defined because of singularities)\n", sep = "") 
+          " not defined because of singularities)\n", sep = "")
     else cat("\nlog-scale coefficients:\n")
-    print.default(format(x$zeta, digits = digits), 
+    print.default(format(x$zeta, digits = digits),
                   quote = FALSE)
   }
   if(length(x$alpha) > 0) {
-    if(sum(x$aliased$alpha) > 0) 
+    if(sum(x$aliased$alpha) > 0)
       cat("\nThreshold coefficients: (", sum(x$aliased$alpha),
-          " not defined because of singularities)\n", sep = "") 
+          " not defined because of singularities)\n", sep = "")
     else cat("\nThreshold coefficients:\n")
-    print.default(format(x$alpha, digits = digits), 
-                  quote = FALSE)
+    if(!is.null(x$call$nominal))
+      print.default(format(x$alpha.mat, digits = digits),
+                    quote = FALSE)
+    else
+      print.default(format(x$alpha, digits = digits),
+                    quote = FALSE)
   }
 
   if(nzchar(mess <- naprint(x$na.action))) cat("(", mess, ")\n", sep="")
   return(invisible(x))
 }
 
-vcov.clm <- function(object, ...)
+vcov.clm <-
+    function(object, tol = sqrt(.Machine$double.eps),
+             method = c("clm", "Cholesky", "svd", "eigen", "qr"), ...)
 {
-  if(is.null(object$Hessian)) 
-    stop("Model needs to be fitted with Hess = TRUE")
-  dn <- dimnames(object$Hessian)
-  H <- object$Hessian
-  ## To handle NaNs in the Hessian resulting from parameter
-  ## unidentifiability:  
-  if(any(His.na <- !is.finite(H))) {
-    H[His.na] <- 0
-    VCOV <- MASS::ginv(H)
-    VCOV[His.na] <- NaN
-  }
-  else
-    VCOV <- solve(H) ## MASS::ginv(H)
-### FIXME: Use a cholesky decomposition to get vcov for better
-### precision - vcov.nls for details.
-  return(structure(VCOV, dimnames = dn))
+    method <- match.arg(method)
+    if(method == "clm")
+        return(object$vcov)
+    if(is.null(object$Hessian))
+        stop("Model needs to be fitted with Hess = TRUE")
+    dn <- dimnames(object$Hessian)
+    H <- object$Hessian
+    if(!all(is.finite(H)))
+        stop("cannot compute vcov: non-finite values in Hessian")
+    if(method == "svd") {
+        Hsvd <- svd(H)
+        ## positive <- Hsvd$d > max(tol * Hsvd$d[1L], tol)
+        positive <- Hsvd$d > tol
+        if(!all(positive))
+            stop(gettextf("Cannot compute vcov: \nHessian is numerically singular with min singular value = %g",
+                          min(Hsvd$d)))
+        cov <- Hsvd$v %*% (1/Hsvd$d * t(Hsvd$u))
+    }
+    else if(method == "eigen") {
+        evd <- eigen(H, symmetric=TRUE)
+        ## tol <- max(tol * evd$values[1L], tol) ## if evd$values[1L] < 0
+        if(any(evd$values < tol))
+            stop(gettextf("Cannot compute vcov: \nHessian is not positive definite with min eigenvalue = %g",
+                          min(evd$values)))
+        cov <- with(evd, vectors %*% diag(1/values) %*% t(vectors))
+    }
+    else if(method == "Cholesky") {
+        cholH <- try(chol(H), silent=TRUE)
+        if(inherits(cholH, "try-error"))
+            stop("Cannot compute vcov: \nHessian is not positive definite")
+        cov <- chol2inv(cholH)
+    }
+    else if(method == "qr") {
+        qrH <- qr(H, tol=sqrt(.Machine$double.eps))
+        if(qrH$rank < nrow(H))
+            stop("Cannot compute vcov: \nHessian is numerically singular")
+        cov <- solve.qr(qrH)
+    }
+    else
+        stop("method not recognized")
+    ## Need to test for negative variances, since some methods (svd,
+    ## qr) may produce a vcov-matrix if the Hessian is *negative*
+    ## definite:
+    if(any(diag(cov) < 0)) {
+        stop("Cannot compute vcov: \nHessian is not positive definite")
+        }
+    structure(cov, dimnames=dn)
 }
 
 summary.clm <- function(object, correlation = FALSE, ...)
 {
-  if(is.null(object$Hessian))
-    stop("Model needs to be fitted with Hess = TRUE")
-  coefs <- matrix(NA, length(object$coefficients), 4,
-                  dimnames = list(names(object$coefficients),
+    vcov <- object$vcov
+    coefs <- matrix(NA, length(object$coefficients), 4,
+                    dimnames = list(names(object$coefficients),
                     c("Estimate", "Std. Error", "z value", "Pr(>|z|)")))
-  coefs[, 1] <- object$coefficients
-  cov <- try(vcov(object), silent = TRUE)
-  if(class(cov) == "try-error") {
-    warning("Variance-covariance matrix of the parameters is not defined")
-    coefs[, 2:4] <- NaN
-    if(correlation) warning("Correlation matrix is unavailable")
-    object$condHess <- NaN
-  }
-  else {
-    alias <- unlist(object$aliased)
-    coefs[!alias, 2] <- sd <- sqrt(diag(cov))
-    ## Cond is Inf if Hessian contains NaNs:
-    object$condHess <-
-      if(any(is.na(object$Hessian))) Inf
-      else with(eigen(object$Hessian, symmetric=TRUE, only.values = TRUE),
-                abs(max(values) / min(values)))
-    coefs[!alias, 3] <- coefs[!alias, 1]/coefs[!alias, 2]
-    coefs[!alias, 4] <- 2 * pnorm(abs(coefs[!alias, 3]),
-                                  lower.tail=FALSE) 
-    if(correlation)
-      object$correlation <-
-        (cov / sd) / rep(sd, rep(object$edf, object$edf))
-    object$cov <- cov
-  }
-  object$info$cond.H <- formatC(object$condHess, digits=1, format="e")
-  object$coefficients <- coefs
-  class(object) <- "summary.clm"
-  return(object)
+    coefs[, 1] <- object$coefficients
+    if(!all(is.finite(vcov))) {
+        warning("Variance-covariance matrix of the parameters is not defined")
+        coefs[, 2:4] <- NA
+        if(correlation) warning("Correlation matrix is unavailable")
+    }
+    else {
+        alias <- unlist(object$aliased)
+        coefs[!alias, 2] <- sd <- sqrt(diag(vcov))
+        ## Cond is Inf if Hessian contains NaNs:
+        object$condHess <-
+            if(any(is.na(object$Hessian))) Inf
+            else with(eigen(object$Hessian, symmetric=TRUE, only.values = TRUE),
+                      abs(max(values) / min(values)))
+        coefs[!alias, 3] <- coefs[!alias, 1]/coefs[!alias, 2]
+        coefs[!alias, 4] <- 2 * pnorm(abs(coefs[!alias, 3]),
+                                      lower.tail=FALSE)
+        if(correlation)
+            object$correlation <- cov2cor(vcov)
+    }
+    object$coefficients <- coefs
+    class(object) <- "summary.clm"
+    return(object)
 }
 
-print.summary.clm <- 
-  function(x, digits = max(3, getOption("digits") - 3),
-           signif.stars = getOption("show.signif.stars"), ...)
+print.summary.clm <-
+    function(x, digits = max(3, getOption("digits") - 3),
+             signif.stars = getOption("show.signif.stars"), ...)
 {
   cat("formula:", Deparse(formula(x$terms)), fill=TRUE)
 ### NOTE: deparse(x$call$formula) will not always work since this may
@@ -121,36 +155,36 @@ print.summary.clm <-
   cat("\n")
 
   print(x$info, row.names=FALSE, right=FALSE)
-  
+
   nalpha <- length(x$alpha)
   nbeta <- length(x$beta)
   nzeta <- length(x$zeta)
   if(nbeta > 0) {
-    if(sum(x$aliased$beta) > 0) 
+    if(sum(x$aliased$beta) > 0)
       cat("\nCoefficients: (", sum(x$aliased$beta),
-          " not defined because of singularities)\n", sep = "") 
+          " not defined because of singularities)\n", sep = "")
     else cat("\nCoefficients:\n")
     printCoefmat(x$coefficients[nalpha + 1:nbeta, , drop=FALSE],
                  digits=digits, signif.stars=signif.stars,
-                 has.Pvalue=TRUE, ...) 
+                 has.Pvalue=TRUE, ...)
   } ## else  cat("\nNo Coefficients\n")
   if(nzeta > 0) {
-    if(sum(x$aliased$zeta) > 0) 
+    if(sum(x$aliased$zeta) > 0)
       cat("\nlog-scale coefficients: (", sum(x$aliased$zeta),
-          " not defined because of singularities)\n", sep = "") 
+          " not defined because of singularities)\n", sep = "")
     else cat("\nlog-scale coefficients:\n")
     printCoefmat(x$coefficients[nalpha + nbeta + 1:nzeta, , drop=FALSE],
                  digits=digits, signif.stars=signif.stars,
-                 has.Pvalue=TRUE, ...) 
+                 has.Pvalue=TRUE, ...)
   }
   if(nalpha > 0) { ## always true
-    if(sum(x$aliased$alpha) > 0) 
+    if(sum(x$aliased$alpha) > 0)
       cat("\nThreshold coefficients: (", sum(x$aliased$alpha),
-          " not defined because of singularities)\n", sep = "") 
+          " not defined because of singularities)\n", sep = "")
     else cat("\nThreshold coefficients:\n")
     printCoefmat(x$coefficients[seq_len(nalpha), -4, drop=FALSE],
                  digits=digits, has.Pvalue=FALSE, signif.stars=FALSE,
-                 ...) 
+                 ...)
   }
 
   if(nzchar(mess <- naprint(x$na.action))) cat("(", mess, ")\n", sep="")
@@ -163,7 +197,7 @@ print.summary.clm <-
   }
   return(invisible(x))
 }
-  
+
 logLik.clm <- function(object, ...)
   structure(object$logLik, df = object$edf, nobs=object$nobs,
             class = "logLik")
@@ -182,21 +216,27 @@ anova.clm <- function(object, ...)
 ###  link (character)
 ###  threshold (character)
 ###  logLik
-###  
+###
 {
   mc <- match.call()
   dots <- list(...)
-  if (length(dots) == 0)
+  ## remove 'test' and 'type' arguments from dots-list:
+  not.keep <- which(names(dots) %in% c("test", "type"))
+  if(length(not.keep)) {
+    message("'test' and 'type' arguments ignored in anova.clm\n")
+    dots <- dots[-not.keep]
+  }
+  if(length(dots) == 0)
     stop('anova is not implemented for a single "clm" object')
-  mlist <- list(object, ...)
+  mlist <- c(list(object), dots)
   if(!all(sapply(mlist, function(model)
                  inherits(model, c("clm", "clmm")))))
     stop("only 'clm' and 'clmm' objects are allowed")
   nfitted <- sapply(mlist, function(x) length(x$fitted.values))
-  if(any(nfitted != nfitted[1L])) 
+  if(any(nfitted != nfitted[1L]))
     stop("models were not all fitted to the same dataset")
 ### FIXME: consider comparing y returned by the models for a better
-### check? 
+### check?
   no.par <- sapply(mlist, function(x) x$edf)
   ## order list with increasing no. par:
   ord <- order(no.par, decreasing=FALSE)
@@ -232,7 +272,7 @@ anova.clm <- function(object, ...)
   pval <- c(NA, pchisq(statistic[-1], df[-1], lower.tail=FALSE))
   pval[!is.na(df) & df==0] <- NA
   ## collect results in data.frames:
-  tab <- data.frame(no.par, AIC, logLiks, statistic, df, pval) 
+  tab <- data.frame(no.par, AIC, logLiks, statistic, df, pval)
   tab.names <- c("no.par", "AIC", "logLik", "LR.stat", "df",
                  "Pr(>Chisq)")
   mnames <- sapply(as.list(mc), Deparse)[-1]
@@ -248,9 +288,9 @@ anova.clm <- function(object, ...)
 
 print.anova.clm <-
   function(x, digits=max(getOption("digits") - 2, 3),
-           signif.stars=getOption("show.signif.stars"), ...) 
+           signif.stars=getOption("show.signif.stars"), ...)
 {
-  if (!is.null(heading <- attr(x, "heading"))) 
+  if (!is.null(heading <- attr(x, "heading")))
     cat(heading, "\n")
   models <- attr(x, "models")
   print(models, right=FALSE)
@@ -266,7 +306,7 @@ model.matrix.clm <- function(object, type = c("design", "B"), ...)
 ### the B matrices (including S if present) actually used for the
 ### fitting
 ### Aliased columns are retained in the former but dropped in the
-### latter. 
+### latter.
 {
   type <- match.arg(type)
   if(type == "design") {
@@ -283,7 +323,7 @@ model.matrix.clm <- function(object, type = c("design", "B"), ...)
 }
 
 model.frame.clm <- function(formula, ...) {
-### returns a model frame with *all* variables used for fitting. 
+### returns a model frame with *all* variables used for fitting.
   if(is.null(mod <- formula$model))
     update(formula, method="model.frame")$mf
   else
@@ -295,7 +335,7 @@ coef.clm <- function(object, na.rm = FALSE, ...) {
     coefs <- object$coefficients
     coefs[!is.na(coefs)]
   }
-  else 
+  else
     object$coefficients
 }
 
@@ -307,6 +347,6 @@ coef.summary.clm <- function(object, na.rm = FALSE, ...) {
   else
     object$coefficients
 }
-  
+
 nobs.clm <- function(object, ...) object$nobs
 

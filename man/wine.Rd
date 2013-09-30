@@ -10,7 +10,7 @@
   levels. Temperature and contact between juice and skins can be
   controlled when cruching grapes during wine production. Nine judges
   each assessed wine from two bottles from each of the four treatment
-  conditions, hence there are 72 observations in all. 
+  conditions, hence there are 72 observations in all.
 }
 \usage{
 wine
@@ -21,10 +21,10 @@ wine
     scorings of wine bitterness on a 0---100 continuous scale.
   }
   \item{\code{rating}}{
-    ordered factor with 5 levels; a grouped version of \code{response}. 
+    ordered factor with 5 levels; a grouped version of \code{response}.
   }
   \item{\code{temp}}{
-    temperature: factor with two levels. 
+    temperature: factor with two levels.
   }
   \item{\code{contact}}{
     factor with two levels (\code{"no"} and \code{"yes"}).
@@ -45,13 +45,14 @@ wine
 
   Tutz, G. and W. Hennevogl (1996). Random effects in ordinal regression
   models. \emph{Computational Statistics & Data Analysis 22},
-  pp. 537--557. 
+  pp. 537--557.
 }
 \examples{
 
-data(wine)
+head(wine)
+str(wine)
 
-## Variables 'rating' and 'response' are related in the following way: 
+## Variables 'rating' and 'response' are related in the following way:
 (intervals <- seq(0,100, by = 20))
 all(wine$rating == findInterval(wine$response, intervals)) ## ok
 
@@ -69,10 +70,10 @@ with(wine, {
 ## or simply: with(wine, table(bottle, rating))
 
 ## Table matching Table 1 in Tutz & Hennevogl (1996):
-tab <- xtabs(as.numeric(rating) ~ judge + temp.contact.bottle, 
+tab <- xtabs(as.numeric(rating) ~ judge + temp.contact.bottle,
              data = wine)
-colnames(tab) <- 
-  paste(rep(c("c","w"), each = 4), rep(c("n", "n", "y", "y"), 2), 
+colnames(tab) <-
+  paste(rep(c("c","w"), each = 4), rep(c("n", "n", "y", "y"), 2),
         1:8, sep=".")
 tab
 

@@ -50,7 +50,7 @@
   }
   \item{trace}{
     if \code{trace} is \code{TRUE} or positive, information about
-    progress is printed. 
+    progress is printed.
   }
   \item{Log}{
     should the profile likelihood be plotted on the log-scale?
@@ -60,7 +60,7 @@
   }
   \item{root}{
     should the (approximately linear) likelihood root statistic be
-    plotted? 
+    plotted?
   }
   \item{approx}{
     should the Gaussian or quadratic approximation to the (log)
@@ -71,18 +71,18 @@
   }
   \item{ask}{
     logical; if \code{TRUE}, the user is asked before each plot, see
-    \code{\link{par}}\code{(ask=.)}. 
+    \code{\link{par}}\code{(ask=.)}.
   }
   \item{n}{
     the no. points used in the spline interpolation of the profile
-    likelihood. 
+    likelihood.
   }
   \item{ylim}{overrules default y-limits on the plot of the profile
     likelihood.
   }
   \item{alpha}{
     The likelihood is profiled in the 100*(1-alpha)\% confidence region
-    as determined by the profile likelihood. 
+    as determined by the profile likelihood.
   }
   \item{control}{
     a list of control parameters for \code{\link{clm}}. Possibly use
@@ -96,7 +96,7 @@
   %%}
   \item{max.steps}{
     the maximum number of profiling steps in each direction for each
-    parameter. 
+    parameter.
   }
   \item{nsteps}{
     the (approximate) number of steps to take in each direction of the
@@ -110,7 +110,7 @@
     a warning is issued if the number of steps in each
     direction (up or down) for a parameter is less than
     \code{step.warn}. If few steps are taken, the profile will be
-    unreliable and derived confidence intervals will be inaccurate. 
+    unreliable and derived confidence intervals will be inaccurate.
   }
   \item{\dots}{
     additional arguments to be parsed on to methods.
@@ -126,7 +126,7 @@
   \code{plot.profile.clm} invisibly returns the profile object, i.e., a
   list of \code{\link{data.frame}}s with an \code{lroot} component for
   the likelihood root statistic and a  matrix \code{par.vals} with
-  values of the parameters. 
+  values of the parameters.
 }
 \details{
   These \code{confint} methods call
@@ -141,11 +141,9 @@
 }
 \examples{
 
-data(wine)
-fm1 <- clm(rating ~ temp * contact, data = wine)
-
 ## Accurate profile likelihood confidence intervals compared to the
 ## conventional Wald intervals:
+fm1 <- clm(rating ~ temp * contact, data = wine)
 confint(fm1) ## type = "profile"
 confint(fm1, type = "Wald")
 pr1 <- profile(fm1)
@@ -153,7 +151,7 @@ confint(pr1)
 
 ## plotting the profiles:
 par(mfrow = c(2, 2))
-plot(pr1, root = TRUE) ## check for linearity 
+plot(pr1, root = TRUE) ## check for linearity
 par(mfrow = c(2, 2))
 plot(pr1)
 par(mfrow = c(2, 2))
@@ -168,14 +166,14 @@ plot(pr1, Log = FALSE, relative = FALSE)
 
 ## Example from polr in package MASS:
 ## Fit model from polr example:
-data(housing, package = "MASS")
-fm1 <- clm(Sat ~ Infl + Type + Cont, weights = Freq,
-  data = housing)
-
-pr1 <- profile(fm1)
-confint(pr1)
-par(mfrow=c(2,2))
-plot(pr1)
+if(require(MASS)) {
+    fm1 <- clm(Sat ~ Infl + Type + Cont, weights = Freq,
+               data = housing)
+    pr1 <- profile(fm1)
+    confint(pr1)
+    par(mfrow=c(2,2))
+    plot(pr1)
+}
 
 }
 \keyword{models}

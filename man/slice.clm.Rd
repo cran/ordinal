@@ -12,7 +12,7 @@
   and provides graphics to substantiate (non-)convergence of a model
   fit. Also, the closeness of a quadratic approximation to the
   log-likelihood function can be inspected for relevant parameters. A
-  slice is considerably less computationally demanding than a profile. 
+  slice is considerably less computationally demanding than a profile.
 }
 \usage{
 slice(object, ...)
@@ -45,7 +45,7 @@ slice(object, ...)
   }
   \item{grid}{
     the number of values at which to compute the log-likelihood for each
-    parameter. 
+    parameter.
   }
   \item{quad.approx}{
     compute and include the quadratic approximation to the
@@ -59,11 +59,11 @@ slice(object, ...)
   }
   \item{plot.mle}{
     include a vertical line at the MLE (maximum likelihood estimate)
-    when \code{type = "quadratic"}? Ignored for \code{type = "linear"}. 
+    when \code{type = "quadratic"}? Ignored for \code{type = "linear"}.
   }
   \item{ask}{
     logical; if \code{TRUE}, the user is asked before each plot, see
-    \code{\link{par}}\code{(ask=.)}. 
+    \code{\link{par}}\code{(ask=.)}.
   }
   \item{\dots}{
     further arguments to \code{plot.default} for the plot method. Not
@@ -81,10 +81,10 @@ slice(object, ...)
   \code{"logLik"}. A third column is present if \code{quad.approx = TRUE}
   and contains the corresponding quadratic approximation to the
   log-likelihood. The original model fit is included as the attribute
-  \code{"original.fit"}. 
+  \code{"original.fit"}.
 
   The \code{plot} method produces a plot of the likelihood slice for
-  each parameter. 
+  each parameter.
 
 }
 \author{
@@ -92,8 +92,6 @@ slice(object, ...)
 }
 \examples{
 
-## get data:
-data(wine)
 ## fit model:
 fm1 <- clm(rating ~ contact + temp, data = wine)
 ## slice the likelihood:

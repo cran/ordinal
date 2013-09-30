@@ -2,15 +2,15 @@
 \alias{clmm.control}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-  Set control parameters for cumulative link mixed models  
+  Set control parameters for cumulative link mixed models
 }
 \description{
   Set control parameters for cumulative link mixed models
 }
 \usage{
-clmm.control(method = c("ucminf", "model.frame"), ..., trace = 0,
+clmm.control(method = c("nlminb", "ucminf", "model.frame"), ..., trace = 0,
 maxIter = 50, gradTol = 1e-4, maxLineIter = 50,  useMatrix = FALSE,
-innerCtrl = c("warnOnly", "noWarn", "giveError")) 
+innerCtrl = c("warnOnly", "noWarn", "giveError"))
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -39,7 +39,7 @@ innerCtrl = c("warnOnly", "noWarn", "giveError"))
     \code{FALSE} (default), a C implementation of the Laplace
     approximation valid only for models with a single random effects
     term is used when possible.
-    \code{TRUE} is not valid for models fitted with quadrature methods.  
+    \code{TRUE} is not valid for models fitted with quadrature methods.
   }
   \item{innerCtrl}{the use of warnings/errors if the inner optimization
     fails to converge.

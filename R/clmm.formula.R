@@ -1,3 +1,8 @@
+## This file contains:
+## Functions to process lmer-style mixed-model formulae. These
+## functions are borrowed from the lme4 package but have later been
+## modified.
+
 findbars <- function(term)
 ### Return the pairs of expressions that separated by vertical bars
 {
@@ -12,7 +17,7 @@ findbars <- function(term)
 nobars <- function(term)
 ### term - usually the third element of a formula object: formula[[3]]
 ### returns a list of terms
-  
+
 ### Return the formula omitting the pairs of expressions that are
 ### separated by vertical bars
 {
