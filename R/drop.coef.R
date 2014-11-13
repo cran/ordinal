@@ -48,8 +48,12 @@ drop.coef2 <- function(X, tol = 1e-7, silent = FALSE, test.ans = FALSE)
   newX <- X[, qr.X$pivot[1:qr.X$rank], drop = FALSE]
   sel <- qr.X$pivot[-(1:qr.X$rank)]
   aliased[sel] <- 1
+  attributes(newX)
   attr(newX, "aliased") <- aliased
   attr(newX, "orig.colnames") <- colnames(X)
+  ## Copy old attributes:
+  attributes(newX)$contrasts <- attributes(X)$contrasts
+  attr(newX, "assign") <- attr(X, "assign")[-sel]
   ## did we succeed? stop-if-not:
   if(test.ans && qr.X$rank != qr(newX)$rank)
     stop(gettextf("determination of full column rank design matrix failed"),

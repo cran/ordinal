@@ -46,7 +46,7 @@ simple_clm <-
             call.=FALSE)
   } ## intercept in X is guaranteed.
   wts <- getWeights(mf)
-  off <- getOffset(mf)
+  off <- getOffsetStd(mf)
   ylevels <- levels(droplevels(y[wts > 0]))
   frames <- list(y=y, ylevels=ylevels, X=X)
 
@@ -57,15 +57,10 @@ simple_clm <-
   frames <- drop.cols(frames, silent=TRUE)
 
   ## Set envir rho with variables: B1, B2, o1, o2, wts, fitted:
-  rho <- eclm.newRho(parent.frame(), y=frames$y, X=frames$X,
-                     NOM=NULL, S=NULL,
-                     weights=wts, offset=off, S.offset=NULL,
-                     tJac=frames$ths$tJac)
-
-  ## Set appropriate logLik and deriv functions in rho:
-  rho$clm.nll <- clm.nll
-  rho$clm.grad <- clm.grad
-  rho$clm.hess <- clm.hess
+  rho <- clm.newRho(parent.frame(), y=frames$y, X=frames$X,
+                    NOM=NULL, S=NULL,
+                    weights=wts, offset=off, S.offset=NULL,
+                    tJac=frames$ths$tJac)
 
   ## Set starting values for the parameters:
   start <- set.start(rho, start=start, get.start=missing(start),
@@ -87,9 +82,10 @@ simple_clm <-
 ### allow non-converged fits to be returned.
 
   ## Modify and return results:
-  res <- eclm.finalize(fit, weights=wts,
-                       coef.names=frames$coef.names,
-                       aliased=frames$aliased)
+  res <- clm.finalize(fit, weights=wts,
+                      coef.names=frames$coef.names,
+                      aliased=frames$aliased)
+  res$control <- control
   res$link <- link
   res$start <- start
   if(control$method == "Newton" &&
@@ -103,6 +99,12 @@ simple_clm <-
   res$xlevels <- .getXlevels(mt, mf)
   res$tJac <- frames$ths$tJac
   res$y.levels <- frames$ylevels
+  ## Check convergence:
+  conv <- conv.check(res, Theta.ok=TRUE, tol=control$tol)
+  print.conv.check(conv, action=control$convergence) ## print convergence message
+  res$vcov <- conv$vcov
+  res$condHess <- conv$cond.H
+  res$convergence <- conv[!names(conv) %in% c("vcov", "cond.H")]
   res$info <- with(res, {
     data.frame("link" = link,
                "threshold" = threshold,
@@ -119,7 +121,7 @@ simple_clm <-
                ## the no. observations are.
                )
   })
-  class(res) <- c("sclm", "clm")
+  class(res) <- "clm"
   ## add model.frame to results list?
   if(model) res$model <- mf
 

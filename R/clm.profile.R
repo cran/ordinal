@@ -61,93 +61,93 @@ profile.clm.beta <-
            step.warn = 5, control = list(), ...)
 ### which.beta is assumed to be a numeric vector
 {
-  lroot.max <- qnorm(1 - alpha/2)
-  delta = lroot.max/nsteps
-  nbeta <- length(fitted$beta)
-  beta.names <- names(fitted$beta)
-  nalpha <- length(fitted$alpha)
-  orig.par <- c(fitted$alpha, fitted$beta)
-  if(!is.null(zeta <- fitted$zeta)) {
-    names(zeta) <- paste("sca", names(fitted$zeta), sep=".")
-    orig.par <- c(orig.par, zeta)
-  }
+    lroot.max <- qnorm(1 - alpha/2)
+    delta = lroot.max/nsteps
+    nbeta <- length(fitted$beta)
+    beta.names <- names(fitted$beta)
+    nalpha <- length(fitted$alpha)
+    orig.par <- c(fitted$alpha, fitted$beta)
+    if(!is.null(zeta <- fitted$zeta)) {
+        names(zeta) <- paste("sca", names(fitted$zeta), sep=".")
+        orig.par <- c(orig.par, zeta)
+    }
 ### NOTE: we need to update zeta.names to make names(orig.par)
 ### unique. This is needed to correctly construct the resulting
 ### par.vals matrix and to extract from it again.
-  std.err <- coef(summary(fitted))[nalpha + 1:nbeta, "Std. Error"]
-  ## results list:
-  prof.list <- vector("list", length = length(which.beta))
-  names(prof.list) <- beta.names[which.beta]
-  ## get model matrices and model environment:
-  mf <- update(fitted, method = "model.frame")
-  X <- with(mf, X[wts > 0, , drop=FALSE]) ## containing alias cols
-  rho <- update(fitted, doFit = FALSE)
-  orig <- as.list(rho)[c("B1", "B2", "o1", "o2")]
-  rho$n.psi <- rho$n.psi - 1 ## needed for models with scale
-  nalpha.clean <- sum(!fitted$aliased$alpha)
-  par.clean <- orig.par[!is.na(orig.par)]
-  ## which of which.beta are NA:
-  alias.wb <- fitted$aliased$beta[which.beta]
-  ## For each which.beta move up or down, fit the model and store the
-  ## signed likelihood root statistic and parameter values:
-  for(wb in which.beta) {
-    if(alias.wb[wb == which.beta]) next ## ignore aliased coef
-    rem <- nalpha.clean +
-      (which.beta - cumsum(alias.wb))[wb == which.beta]
-    par.wb <- matrix(coef(fitted), nrow = 1) ## MLE
-    wb.name <- beta.names[wb]
-    lroot.wb <- 0 ## lroot at MLE
-    ## set variables in fitting environment:
-    rho$B1 <- orig$B1[, -rem, drop=FALSE]
-    rho$B2 <- orig$B2[, -rem, drop=FALSE]
-    for(direction in c(-1, 1)) { ## move down or up
-      if(trace) {
-        message("\nParameter: ", wb.name,
-                c(" down", " up")[(direction + 1)/2 + 1])
-        utils::flush.console()
-      }
-      ## reset starting values:
-      rho$par <- par.clean[-rem]
-      for(step in seq_len(max.steps)) {
-        ## increment beta.i, offset and refit model without wb parameter:
-        beta.i <- fitted$beta[wb] +
-          direction * step * delta * std.err[wb]
-        new.off <- X[, 1+wb, drop=TRUE] * beta.i
-        rho$o1 <- orig$o1 - new.off
-        rho$o2 <- orig$o2 - new.off
-        fit <- clm.fit.NR(rho, control)
-        ## save likelihood root statistic:
-        lroot <- -direction * sqrt(2*(fitted$logLik - fit$logLik))
-        ## save lroot and pararameter values:
-        lroot.wb <- c(lroot.wb, lroot)
-        temp.par <- orig.par
-        temp.par[names(fit$par)] <- fit$par
-        temp.par[wb.name] <- beta.i
-        par.wb <- rbind(par.wb, temp.par)
-        ## break for loop if profile is far enough:
-        if(abs(lroot) > lroot.max) break
-      } ## end 'step in seq_len(max.steps)'
-      ## test that lroot.max is reached and enough steps are taken:
-      if(abs(lroot) < lroot.max)
-        warning("profile may be unreliable for ", wb.name,
-                " because lroot.max was not reached for ",
-                wb, c(" down", " up")[(direction + 1)/2 + 1])
-      if(step <= step.warn)
-        warning("profile may be unreliable for ", wb.name,
-                " because only ", step, "\n  steps were taken ",
-                c("down", "up")[(direction + 1)/2 + 1])
-    } ## end 'direction in c(-1, 1)'
-    ## order lroot and par values and collect in a data.frame:
-    lroot.order <- order(lroot.wb, decreasing = TRUE)
-    prof.list[[wb.name]] <-
-      structure(data.frame(lroot.wb[lroot.order]), names = "lroot")
-    prof.list[[wb.name]]$par.vals <- par.wb[lroot.order, ]
+    std.err <- coef(summary(fitted))[nalpha + 1:nbeta, "Std. Error"]
+    ## results list:
+    prof.list <- vector("list", length = length(which.beta))
+    names(prof.list) <- beta.names[which.beta]
+    ## get model matrices and model environment:
+    mf <- update(fitted, method = "model.frame")
+    X <- with(mf, X[wts > 0, , drop=FALSE]) ## containing alias cols
+    rho <- update(fitted, doFit = FALSE)
+    orig <- as.list(rho)[c("B1", "B2", "o1", "o2")]
+    rho$n.psi <- rho$n.psi - 1 ## needed for models with scale
+    nalpha.clean <- sum(!fitted$aliased$alpha)
+    par.clean <- orig.par[!is.na(orig.par)]
+    ## which of which.beta are NA:
+    alias.wb <- fitted$aliased$beta[which.beta]
+    ## For each which.beta move up or down, fit the model and store the
+    ## signed likelihood root statistic and parameter values:
+    for(wb in which.beta) {
+        if(alias.wb[wb == which.beta]) next ## ignore aliased coef
+        rem <- nalpha.clean +
+            (which.beta - cumsum(alias.wb))[wb == which.beta]
+        par.wb <- matrix(coef(fitted), nrow = 1) ## MLE
+        wb.name <- beta.names[wb]
+        lroot.wb <- 0 ## lroot at MLE
+        ## set variables in fitting environment:
+        rho$B1 <- orig$B1[, -rem, drop=FALSE]
+        rho$B2 <- orig$B2[, -rem, drop=FALSE]
+        for(direction in c(-1, 1)) { ## move down or up
+            if(trace) {
+                message("\nParameter: ", wb.name,
+                        c(" down", " up")[(direction + 1)/2 + 1])
+                utils::flush.console()
+            }
+            ## reset starting values:
+            rho$par <- par.clean[-rem]
+            for(step in seq_len(max.steps)) {
+                ## increment beta.i, offset and refit model without wb parameter:
+                beta.i <- fitted$beta[wb] +
+                    direction * step * delta * std.err[wb]
+                new.off <- X[, 1+wb, drop=TRUE] * beta.i
+                rho$o1 <- orig$o1 - new.off
+                rho$o2 <- orig$o2 - new.off
+                fit <- clm.fit.NR(rho, control)
+                ## save likelihood root statistic:
+                lroot <- -direction * sqrt(2*(fitted$logLik - fit$logLik))
+                ## save lroot and pararameter values:
+                lroot.wb <- c(lroot.wb, lroot)
+                temp.par <- orig.par
+                temp.par[names(fit$par)] <- fit$par
+                temp.par[wb.name] <- beta.i
+                par.wb <- rbind(par.wb, temp.par)
+                ## break for loop if profile is far enough:
+                if(abs(lroot) > lroot.max) break
+            } ## end 'step in seq_len(max.steps)'
+            ## test that lroot.max is reached and enough steps are taken:
+            if(abs(lroot) < lroot.max)
+                warning("profile may be unreliable for ", wb.name,
+                        " because lroot.max was not reached for ",
+                        wb, c(" down", " up")[(direction + 1)/2 + 1])
+            if(step <= step.warn)
+                warning("profile may be unreliable for ", wb.name,
+                        " because only ", step, "\n  steps were taken ",
+                        c("down", "up")[(direction + 1)/2 + 1])
+        } ## end 'direction in c(-1, 1)'
+        ## order lroot and par values and collect in a data.frame:
+        lroot.order <- order(lroot.wb, decreasing = TRUE)
+        prof.list[[wb.name]] <-
+            structure(data.frame(lroot.wb[lroot.order]), names = "lroot")
+        prof.list[[wb.name]]$par.vals <- par.wb[lroot.order, ]
 
-    if(!all(diff(par.wb[lroot.order, wb.name]) > 0))
-      warning("likelihood is not monotonically decreasing from maximum,\n",
-              "  so profile may be unreliable for ", wb.name)
-  } ## end 'wb in which.beta'
-  prof.list
+        if(!all(diff(par.wb[lroot.order, wb.name]) > 0))
+            warning("likelihood is not monotonically decreasing from maximum,\n",
+                    "  so profile may be unreliable for ", wb.name)
+    } ## end 'wb in which.beta'
+    prof.list
 }
 
 profile.clm.zeta <-
@@ -223,23 +223,27 @@ profile.clm.zeta <-
       ## test that lroot.max is reached and enough steps are taken:
       if(abs(lroot) < lroot.max)
         warning("profile may be unreliable for ", wz.name,
-                " because lroot.max was not reached for ",
-                wz, c(" down", " up")[(direction + 1)/2 + 1])
+                " because qnorm(1 - alpha/2) was not reached when profiling ",
+                c(" down", " up")[(direction + 1)/2 + 1])
       if(step <= step.warn)
         warning("profile may be unreliable for ", wz.name,
                 " because only ", step, "\n  steps were taken ",
                 c("down", "up")[(direction + 1)/2 + 1])
     } ## end 'direction in c(-1, 1)'
     ## order lroot and par values and collect in a data.frame:
-    lroot.order <- order(lroot.wz, decreasing = TRUE)
+    ## lroot.order <- order(lroot.wz, decreasing = TRUE)
+    lroot.order <- order(par.wz[, wz.name], decreasing = FALSE)
+### FIXME: Need to change how values are ordered here. We should order
+### with par.wz[, wz.name] instead of lroot.wz since if lroot.wz is
+### flat, the order may be incorrect.
     prof.list[[wz.name]] <-
       structure(data.frame(lroot.wz[lroot.order]), names = "lroot")
     prof.list[[wz.name]]$par.vals <- par.wz[lroot.order, ]
 
-    if(!all(diff(par.wz[lroot.order, wz.name]) > 0))
-      warning("likelihood is not monotonically decreasing from maximum,\n",
-              "  so profile may be unreliable for ", wz.name)
-  } ## end 'wz in which.zeta'
+    if(!all(diff(lroot.wz[lroot.order]) <= sqrt(.Machine$double.eps)))
+        warning("likelihood is not monotonically decreasing from maximum,\n",
+                "  so profile may be unreliable for ", wz.name)
+} ## end 'wz in which.zeta'
   prof.list
 }
 

@@ -1,4 +1,5 @@
 ### R code from vignette source 'clm_intro.Rnw'
+### Encoding: UTF-8
 
 ###################################################
 ### code chunk number 1: Initialize
@@ -9,7 +10,7 @@
 library(ordinal)
 data(wine)
 library(xtable)
-## 
+##
 RUN <- FALSE    #redo computations and write .RData files
 ## Change options:
 op <- options() ## To be able to reset settings
@@ -23,14 +24,14 @@ options(continue=" ")
 
 
 ###################################################
-### code chunk number 2: clm_intro.Rnw:243-253
+### code chunk number 2: clm_intro.Rnw:244-254
 ###################################################
 ## data(wine)
 tab <- with(wine, table(temp:contact, rating))
 mat <- cbind(rep(c("cold", "warm"), each = 2),
              rep(c("no", "yes"), 2),
              tab)
-colnames(mat) <- c("Temperature", "Contact", 
+colnames(mat) <- c("Temperature", "Contact",
                    paste("~~", 1:5, sep = ""))
 xtab <- xtable(mat)
 print(xtab, only.contents=TRUE, include.rownames=FALSE,
@@ -61,7 +62,7 @@ text(1.2, .8, expression(j == 3))
 
 
 ###################################################
-### code chunk number 4: clm_intro.Rnw:353-370
+### code chunk number 4: clm_intro.Rnw:354-371
 ###################################################
 wine$rate <- as.numeric(wine$rating)
 
@@ -83,53 +84,53 @@ fm1 <- clm(rating ~ contact, data=wine)
 
 
 ###################################################
-### code chunk number 5: clm_intro.Rnw:384-399
+### code chunk number 5: clm_intro.Rnw:385-400
 ###################################################
 ## Table of coefficients comparing GLM and CLM
 ## j, GLM.intercept, GLM.contact, CLM.intercept, CLM.contact
 dig <- 3
 cf.se <- paste(format(round(cf[2,], dig-1), digits=dig), "(",
-               format(round(ses[2,], dig-1), digits=dig), ")", sep="")  
+               format(round(ses[2,], dig-1), digits=dig), ")", sep="")
 mat <- cbind(1:4, format(round(cf[1,], dig-1), digits=dig), cf.se,
-             format(round(coef(fm1)[1:4], dig-1), digits=dig), 
+             format(round(coef(fm1)[1:4], dig-1), digits=dig),
              c(paste(round(coef(fm1)[5], dig-1), "(",
                      round(coef(summary(fm1))[5,2], dig-1), ")",
                      sep=""), rep("", 3)))
 ## mat
 xtab <- xtable(mat)
 print(xtab, only.contents=TRUE, include.rownames=FALSE,
-      include.colnames=FALSE) 
+      include.colnames=FALSE)
 #      sanitize.text.function = function(x) x)
 
 
 ###################################################
-### code chunk number 6: clm_intro.Rnw:486-487
+### code chunk number 6: clm_intro.Rnw:487-488
 ###################################################
 str(args(clm))
 
 
 ###################################################
-### code chunk number 7: clm_intro.Rnw:518-520
+### code chunk number 7: clm_intro.Rnw:519-521
 ###################################################
 fm1 <- clm(rating ~ contact + temp, data = wine)
 summary(fm1)
 
 
 ###################################################
-### code chunk number 8: clm_intro.Rnw:544-545
+### code chunk number 8: clm_intro.Rnw:545-546
 ###################################################
 drop1(fm1, test = "Chi")
 
 
 ###################################################
-### code chunk number 9: clm_intro.Rnw:552-554
+### code chunk number 9: clm_intro.Rnw:553-555
 ###################################################
 fm0 <- clm(rating ~ 1, data = wine)
 add1(fm0, scope = ~ contact + temp, test = "Chi")
 
 
 ###################################################
-### code chunk number 10: clm_intro.Rnw:563-564
+### code chunk number 10: clm_intro.Rnw:564-565
 ###################################################
 confint(fm1, type = "Wald")
 
@@ -147,7 +148,7 @@ round(exp(confint(fm1, type = "Wald")), 1)
 
 
 ###################################################
-### code chunk number 13: clm_intro.Rnw:731-745
+### code chunk number 13: clm_intro.Rnw:732-746
 ###################################################
 ## freq <- c(6.5, 8.2, 11.3, 23.5, 15.6, 12.7, 22.2,
 ##           4.3, 6, 7.7, 13.2, 10.5, 16.3, 42.1)
@@ -157,7 +158,7 @@ round(exp(confint(fm1, type = "Wald")), 1)
 ##                 sep = "")
 ## income <- data.frame(year=year, freq=freq,
 ##                      income=factor(rep(income, 2), ordered=TRUE,
-##                        levels=income)) 
+##                        levels=income))
 data(income)
 tab <- xtabs(pct ~ year + income, income)
 attr(tab, "class") <- NULL
@@ -166,7 +167,7 @@ print(xtable(as.data.frame(tab)), only.contents = TRUE)
 
 
 ###################################################
-### code chunk number 14: clm_intro.Rnw:775-778
+### code chunk number 14: clm_intro.Rnw:776-779
 ###################################################
 links <- c("logit", "probit", "cloglog", "loglog", "cauchit")
 sapply(links, function(link) {
@@ -174,14 +175,14 @@ sapply(links, function(link) {
 
 
 ###################################################
-### code chunk number 15: clm_intro.Rnw:932-934
+### code chunk number 15: clm_intro.Rnw:933-935
 ###################################################
 fm2 <- clm(rating ~ contact * temp, data = wine)
 anova(fm1, fm2)
 
 
 ###################################################
-### code chunk number 16: clm_intro.Rnw:1007-1011
+### code chunk number 16: clm_intro.Rnw:1008-1012
 ###################################################
 tab <- with(wine, table(temp:contact, rating))
 ## Get full log-likelihood:
@@ -190,7 +191,7 @@ pi.hat <- tab / rowSums(tab)
 
 
 ###################################################
-### code chunk number 17: clm_intro.Rnw:1014-1019
+### code chunk number 17: clm_intro.Rnw:1015-1020
 ###################################################
 ## fit null-model:
 fm0 <- clm(rating ~ 1, data = wine)
@@ -223,7 +224,7 @@ drop1(fm2, test = "Chi")
 
 
 ###################################################
-### code chunk number 19: clm_intro.Rnw:1180-1195
+### code chunk number 19: clm_intro.Rnw:1181-1196
 ###################################################
 data(wine)
 tab <- with(wine, {
@@ -272,18 +273,18 @@ mtext(expression(paste(bold(x)[i]^{T}, bold(beta))), side = 1,
 
 
 ###################################################
-### code chunk number 22: clm_intro.Rnw:1326-1331
+### code chunk number 22: clm_intro.Rnw:1327-1332
 ###################################################
 getOption("SweaveHooks")[["fig"]]()
 x <- seq(-6, 6, len = 1e3)
 plot(x, dlogis(x), type = "l", ylab = "Density", xlab = "",
-     axes=FALSE) 
+     axes=FALSE)
 axis(1); axis(2)
 lines(x, dnorm(x, sd = pi/sqrt(3)), lty=2)
 
 
 ###################################################
-### code chunk number 23: clm_intro.Rnw:1333-1337
+### code chunk number 23: clm_intro.Rnw:1334-1338
 ###################################################
 getOption("SweaveHooks")[["fig"]]()
 plot(x, plogis(x), type = "l", ylab="Distribution", xlab="",
@@ -293,7 +294,7 @@ lines(x, pnorm(x, sd = pi/sqrt(3)), lty = 2)
 
 
 ###################################################
-### code chunk number 24: clm_intro.Rnw:1367-1371
+### code chunk number 24: clm_intro.Rnw:1368-1372
 ###################################################
 fm1 <- clm(rating ~ contact + temp, data = wine, link = "logit")
 fm2 <- clm(rating ~ contact + temp, data = wine, link = "probit")
@@ -302,27 +303,27 @@ structure(rbind(coef(fm1), coef(fm2)),
 
 
 ###################################################
-### code chunk number 25: clm_intro.Rnw:1374-1375
+### code chunk number 25: clm_intro.Rnw:1375-1376
 ###################################################
 coef(fm1) / (pi / sqrt(3))
 
 
 ###################################################
-### code chunk number 26: clm_intro.Rnw:1404-1406
+### code chunk number 26: clm_intro.Rnw:1405-1407
 ###################################################
 coef(clm(rating ~ temp, data = wine, link = "probit"))["tempwarm"]
 coef(clm(rating ~ temp + contact, data = wine, link = "probit"))["tempwarm"]
 
 
 ###################################################
-### code chunk number 27: clm_intro.Rnw:1412-1414
+### code chunk number 27: clm_intro.Rnw:1413-1415
 ###################################################
-coef(lm(as.numeric(rating) ~ temp, data = wine))["tempwarm"] 
-coef(lm(as.numeric(rating) ~ contact + temp, data = wine))["tempwarm"] 
+coef(lm(as.numeric(rating) ~ temp, data = wine))["tempwarm"]
+coef(lm(as.numeric(rating) ~ contact + temp, data = wine))["tempwarm"]
 
 
 ###################################################
-### code chunk number 28: clm_intro.Rnw:1499-1502
+### code chunk number 28: clm_intro.Rnw:1500-1503
 ###################################################
 lm1 <- lm(as.numeric(rating) ~ contact + temp, data =wine)
 sd.lm1 <- summary(lm1)$sigma
@@ -330,54 +331,54 @@ coef(lm1)[-1] / sd.lm1
 
 
 ###################################################
-### code chunk number 29: clm_intro.Rnw:1506-1508
+### code chunk number 29: clm_intro.Rnw:1507-1509
 ###################################################
 fm1 <- clm(rating ~ contact + temp, data = wine, link = "probit")
 coef(fm1)[-(1:4)]
 
 
 ###################################################
-### code chunk number 30: clm_intro.Rnw:1514-1515
+### code chunk number 30: clm_intro.Rnw:1515-1516
 ###################################################
 diff(coef(fm1)[1:4])
 
 
 ###################################################
-### code chunk number 31: clm_intro.Rnw:1522-1523
+### code chunk number 31: clm_intro.Rnw:1523-1524
 ###################################################
 getOption("SweaveHooks")[["fig"]]()
 plot(table(as.numeric(wine$rating)), ylab="", las = 1)
 
 
 ###################################################
-### code chunk number 32: clm_intro.Rnw:1667-1669
+### code chunk number 32: clm_intro.Rnw:1668-1670
 ###################################################
 fm1 <- clm(rating ~ temp + contact, data=wine)
 summary(fm1)
 
 
 ###################################################
-### code chunk number 33: clm_intro.Rnw:1672-1673
+### code chunk number 33: clm_intro.Rnw:1673-1674
 ###################################################
 diff(fm1$alpha)
 
 
 ###################################################
-### code chunk number 34: clm_intro.Rnw:1680-1682
+### code chunk number 34: clm_intro.Rnw:1681-1683
 ###################################################
-fm2 <- clm(rating ~ temp + contact, data=wine, threshold="equidistant") 
+fm2 <- clm(rating ~ temp + contact, data=wine, threshold="equidistant")
 summary(fm2)
 
 
 ###################################################
-### code chunk number 35: clm_intro.Rnw:1685-1687
+### code chunk number 35: clm_intro.Rnw:1686-1688
 ###################################################
 a <- round(fm2$alpha[1], 3)
 b <- round(fm2$alpha[2], 3)
 
 
 ###################################################
-### code chunk number 36: clm_intro.Rnw:1693-1694
+### code chunk number 36: clm_intro.Rnw:1694-1695
 ###################################################
 anova(fm1, fm2)
 
@@ -484,20 +485,20 @@ plot(slice2.fm1, parm = 6)
 
 
 ###################################################
-### code chunk number 51: clm_intro.Rnw:1962-1964
+### code chunk number 51: clm_intro.Rnw:1963-1965
 ###################################################
 fm1 <- clm(rating ~ temp + contact, data=wine)
 confint(fm1)
 
 
 ###################################################
-### code chunk number 52: clm_intro.Rnw:1970-1971
+### code chunk number 52: clm_intro.Rnw:1971-1972
 ###################################################
 confint(fm1, type = "Wald")
 
 
 ###################################################
-### code chunk number 53: clm_intro.Rnw:1985-1986
+### code chunk number 53: clm_intro.Rnw:1986-1987
 ###################################################
 str(args(ordinal:::plot.profile.clm))
 
@@ -540,7 +541,7 @@ plot(pr1, which.par=2)
 
 
 ###################################################
-### code chunk number 59: clm_intro.Rnw:2110-2115
+### code chunk number 59: clm_intro.Rnw:2111-2116
 ###################################################
 tab <- with(wine, table(contact, rating))
 dat <- data.frame(freq =c(tab),
@@ -550,17 +551,17 @@ dat
 
 
 ###################################################
-### code chunk number 60: clm_intro.Rnw:2118-2119 (eval = FALSE)
+### code chunk number 60: clm_intro.Rnw:2119-2120 (eval = FALSE)
 ###################################################
 ## fm1 <- clm(rating ~ contact, weights=freq)
 
 
 ###################################################
-### code chunk number 61: clm_intro.Rnw:2122-2135
+### code chunk number 61: clm_intro.Rnw:2123-2136
 ###################################################
 thresholds <- 1:4
 cum.rate <- as.vector(sapply(thresholds, function(x) dat$rating <= x))
-rating.factor <- gl(n=length(thresholds), k=nrow(dat), 
+rating.factor <- gl(n=length(thresholds), k=nrow(dat),
                     length=nrow(dat) * length(thresholds))
 thres.X <- model.matrix(~ rating.factor - 1)
 colnames(thres.X) <- paste("t", thresholds, sep="")
@@ -574,7 +575,7 @@ p.df
 
 
 ###################################################
-### code chunk number 62: clm_intro.Rnw:2143-2146
+### code chunk number 62: clm_intro.Rnw:2144-2147
 ###################################################
 glm1 <- glm(cum.rate ~ t1+t2 +t3 +t4 - 1 + contactyes,
             weights=weights, family=binomial, data=p.df)

@@ -47,15 +47,17 @@
 }
 \details{
 
+  If \code{newdata} is omitted and \code{type = "prob"} a vector of
+  fitted probabilities are returned identical to the result from
+  \code{fitted}.
+
   If \code{newdata} is supplied and the response
   variable is omitted, then predictions, standard errors and intervals
   are matrices rather than vectors with the same number of rows as
   \code{newdata} and with one column for each response class. If
   \code{type = "class"} predictions are always a vector.
 
-  If \code{newdata} is omitted the predictions are based on the data
-  used for the fit.
-  In that case, the way missing values in the original fit are handled
+  If \code{newdata} is omitted, the way missing values in the original fit are handled
   is determined by the \code{na.action} argument of that fit. If
   \code{na.action = na.omit} omitted cases will not appear in the
   residuals, whereas if \code{na.action = na.exclude}

@@ -155,7 +155,7 @@ clmm.frames <- function(modelcall, formulae, contrasts) {
          y = getY(fullmf),
          X = getX(fullmf, fixedmf, contrasts),
          wts = getWeights(fullmf),
-         off = getOffset(fullmf),
+         off = getOffsetStd(fullmf),
          terms = attr(fixedmf, "terms")
          )
 }

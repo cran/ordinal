@@ -1,6 +1,12 @@
 library(ordinal)
+options(contrasts = c("contr.treatment", "contr.poly"))
+## library(devtools)
+## r2path <- "/Users/rhbc/Documents/Rpackages/ordinal/pkg/ordinal"
+## clean_dll(pkg = r2path)
+## load_all(r2path)
 
 ## one zero weight:
+data(wine, package="ordinal")
 wts <- rep(1, nrow(wine))
 wine$rating
 wts[1] <- 0

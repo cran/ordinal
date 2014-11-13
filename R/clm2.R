@@ -504,7 +504,7 @@ finalizeRho <- function(rho) { ## OK
         nobs <- sum(weights)
 
         fitted.values <- pr
-        df.residual = nobs - edf
+        df.residual <- nobs - edf
         if(exists("Hessian", inherits=FALSE)) {
             dimnames(Hessian) <- list(names(coefficients),
                                       names(coefficients))

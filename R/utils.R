@@ -167,14 +167,32 @@ getWeights <- function(mf) {
     return(as.double(wts))
 }
 
-getOffset <- function(mf) {
+getOffset <- function(mf, terms) {
 ### mf - model.frame
-  n <- nrow(mf)
-  if(is.null(off <- model.offset(mf))) off <- rep(0, n)
-  if(length(off) && length(off) != n)
-    stop(gettextf("number of offsets is %d should equal %d (number of observations)",
-                  length(off), n), call.=FALSE)
-  return(as.double(off))
+    n <- nrow(mf)
+    off <- rep(0, n)
+    if(!is.null(o <- attr(terms, "offset"))) {
+        if(length(o) > 1)
+            stop("only one offset term allowed in each formula", call.=FALSE)
+        varnm <- attr(terms, "variables")
+        ## deparse all variable names - character vector:
+        varnm <- unlist(lapply(as.list(varnm), deparse)[-1])
+        off <- mf[, varnm[o]]
+    }
+    ## off <- as.vector(mf[, o])
+    if(length(off) && length(off) != n)
+        stop(gettextf("number of offsets is %d should equal %d (number of observations)",
+                      length(off), n), call.=FALSE)
+    return(as.double(off))
+}
+
+getOffsetStd <- function(mf) {
+    n <- nrow(mf)
+    if(is.null(off <- model.offset(mf))) off <- rep(0, n)
+    if(length(off) && length(off) != n)
+        stop(gettextf("number of offsets is %d should equal %d (number of observations)",
+                      length(off), n), call.=FALSE)
+    return(as.double(off))
 }
 
 getFullForm <- function(form, ..., envir=parent.frame()) {
@@ -315,3 +333,110 @@ Deparse <-
   deparse(expr=expr, width.cutoff= width.cutoff, backtick=backtick,
           control=control, nlines=nlines)
 
+getContrasts <- function(terms, contrasts) {
+    if(is.null(contrasts)) return(NULL)
+    term.labels <- attr(terms, "term.labels")
+    contrasts[names(contrasts) %in% term.labels]
+}
+
+checkContrasts <- function(terms, contrasts) {
+### Check that contrasts are not specified for absent factors and warn
+### if about them
+    term.labels <- attr(terms, "term.labels")
+    nm.contr <- names(contrasts)
+    notkeep <- nm.contr[!nm.contr %in% term.labels]
+    msg <-
+        if(length(notkeep) > 2)
+            "variables '%s' are absent: their contrasts will be ignored"
+        else "variable '%s' is absent: its contrasts will be ignored"
+    if(length(notkeep))
+        warning(gettextf(msg, paste(notkeep, collapse=", ")),
+                call.=FALSE)
+    invisible()
+}
+
+get_clmInfoTab <- function(object, ...) {
+    names <- c("link", "threshold", "nobs", "logLik", "edf", "niter",
+               "maxGradient", "condHess")
+    stopifnot(all(names %in% names(object)))
+    info <- with(object, {
+        data.frame("link" = link,
+                   "threshold" = threshold,
+                   "nobs" = nobs,
+                   "logLik" = formatC(logLik, digits=2, format="f"),
+                   "AIC" = formatC(-2*logLik + 2*edf, digits=2,
+                   format="f"),
+                   "niter" = paste(niter[1], "(", niter[2], ")", sep=""),
+### NOTE: iterations to get starting values for scale models *are*
+### included here.
+                   "max.grad" = formatC(maxGradient, digits=2,
+                   format="e"),
+                   "cond.H" = formatC(condHess, digits=1, format="e")
+                   ## BIC is not part of output since it is not clear what
+                   ## the no. observations are.
+                   )
+    })
+    info
+}
+
+format_tJac <- function(frames) {
+    lev <- frames$ylevels
+    tJac <- frames$ths$tJac
+    rownames(tJac) <- paste(lev[-length(lev)], lev[-1], sep="|")
+    colnames(tJac) <- frames$ths$alpha.names
+    tJac
+}
+
+extractFromFrames <- function(frames, fullmf) {
+    lst <- list(y.levels=frames$ylevels,
+                na.action=attr(fullmf, "na.action"),
+                tJac=format_tJac(frames))
+
+    lstX <- list(contrasts=attr(frames$X, "contrasts"), terms=frames$terms,
+                 xlevels=.getXlevels(frames$terms, fullmf))
+    lst <- c(lst, lstX)
+
+    if(!is.null(frames$S))
+        lst <- c(lst, list(S.contrasts=attr(frames$S, "contrasts"),
+                           S.terms=frames$S.terms,
+                           xlevels=.getXlevels(frames$S.terms, fullmf)))
+    if(!is.null(frames$NOM))
+        lst <- c(lst, list(nom.contrasts=attr(frames$NOM, "contrasts"),
+                           nom.terms=frames$nom.terms,
+                           nom.xlevels=.getXlevels(frames$nom.terms, fullmf)))
+    lst
+}
+
+formatTheta <- function(object, NOM) {
+    res <- object
+    Theta.ok <- TRUE
+
+    ## get matrix of thresholds; Theta:
+    Theta.list <-
+        getThetamat(terms=res$nom.terms, alpha=res$alpha,
+                    assign=attr(NOM, "assign"),
+                    contrasts=res$nom.contrasts, xlevels=res$nom.xlevels,
+                    tJac=res$tJac, dataClasses=get_dataClasses(res$fullmf))
+### FIXME: cannot get Theta if some threshold parameters are aliased.
+    ## Test that thresholds are increasing:
+    if(all(is.finite(res$alpha))) {
+        th.increasing <- apply(Theta.list$Theta, 1, function(th)
+                               all(diff(th) >= 0))
+        if(!all(th.increasing))
+            Theta.ok <- FALSE
+    }
+    Theta <- if(length(Theta.list) == 2)
+        with(Theta.list, cbind(mf.basic, Theta)) else Theta.list$Theta
+    alpha.mat <- matrix(res$alpha, ncol=ncol(res$tJac), byrow=TRUE)
+    colnames(alpha.mat) <- colnames(res$tJac)
+    rownames(alpha.mat) <- attr(NOM, "orig.colnames")
+    ## Return
+    list(Theta=Theta, alpha.mat=alpha.mat, Theta.ok=Theta.ok)
+}
+
+get_dataClasses <- function(mf) {
+    if(!is.null(Terms <- attr(mf, "terms")) &&
+       !is.null(dataCl <- attr(Terms, "dataClasses")))
+        return(dataCl)
+    sapply(mf, .MFclass)
+}

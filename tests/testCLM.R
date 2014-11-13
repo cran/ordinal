@@ -1,12 +1,12 @@
-### library(ucminf)
-### library(numDeriv)
-### source("./ordinalDevel/R/clm.R")
-### source("./ordinalDevel/R/clmmUnitUni.R")
-
 library(ordinal)
 options(contrasts = c("contr.treatment", "contr.poly"))
+## library(devtools)
+## r2path <- "/Users/rhbc/Documents/Rpackages/ordinal/pkg/ordinal"
+## clean_dll(pkg = r2path)
+## load_all(r2path)
 
 ## More manageable data set:
+data(soup, package="ordinal")
 (tab26 <- with(soup, table("Product" = PROD, "Response" = SURENESS)))
 dimnames(tab26)[[2]] <- c("Sure", "Not Sure", "Guess", "Guess", "Not Sure", "Sure")
 dat26 <- expand.grid(sureness = as.factor(1:6), prod = c("Ref", "Test"))
@@ -168,6 +168,11 @@ summary(c4a)
 
 c4a <- clm(ordered(SURENESS)~PROD + offset(offs),
            scale = ~PROD + offset(offs), data=soup, subset = 1:100)
+summary(c4a)
+
+off2 <- offs
+c4a <- clm(ordered(SURENESS)~PROD + offset(offs),
+           scale = ~PROD + offset(off2), data=soup, subset = 1:100)
 summary(c4a)
 
 c4a <- clm(ordered(SURENESS)~PROD,

@@ -211,3 +211,20 @@ March 04 2010:
 - no longer importing numDeriv as we now use our own gradient and
   hessian functions
 - moving Matrix package from Depends to Imports
+
+2013-10-01:
+- Updating convergence checking in clm.fit and simple_clm to the clm
+  standard
+- Removing distinction between (non-S3/4) sclm, eclm and clm model
+  classes
+
+2013-10-31:
+- Now having 'methods' in depends since this is needed to run
+  clmm. This was most likely only a problem when using Rscript where
+  the methods package is not loaded by default.
+
+2014-11-12:
+- Reimplementation of formula, model.frame and design matrix
+  processing motivated by a bug in model.matrix.clm and predict.clm
+  reported by Russell Lenth 2014-11-07 when implementing lsmeans support
+  for clm::ordinal.

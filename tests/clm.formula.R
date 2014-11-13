@@ -1,12 +1,15 @@
 library(ordinal)
-data(wine)
+## library(devtools)
+## r2path <- "/Users/rhbc/Documents/Rpackages/ordinal/pkg/ordinal"
+## clean_dll(pkg = r2path)
+## load_all(r2path)
 
 #################################
 ## Appropriate evaluation of formulas:
 
 ## These fail and give appropriate error messages:
 ##  fm1 <- clm(rating ~ contact, scale=temp, data=wine)
-##  fm1 <- clm(rating ~ contact, scale=~Temp, data=wine) 
+##  fm1 <- clm(rating ~ contact, scale=~Temp, data=wine)
 ##  fm1 <- clm(rating ~ contact, scale="temp", data=wine)
 ##  sca <- "temp"
 ##  fm1 <- clm(rating ~ contact, scale=sca, data=wine)
@@ -90,7 +93,7 @@ fit
 #################################
 ## Evaluation within other functions:
 ## date: January 18th 2012.
-## 
+##
 ## The problem was raised by Stefan Herzog (stefan.herzog@unibas.ch)
 ## January 12th 2012 in trying to make clm work with glmulti.
 

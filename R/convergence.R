@@ -59,9 +59,12 @@ convergence.clm <-
     env$par <- coef(object, na.rm=TRUE) - step
     new.logLik <- -env$clm.nll(env)
     new.max.grad <- max(abs(env$clm.grad(env)))
-    if(new.max.grad > max(abs(g)))
+    if(new.max.grad > max(abs(g)) && max(abs(step)) > tol)
         warning("Convergence assessment may be unreliable: ",
                 "please assess the likelihood with slice()")
+### NOTE: we only warn if step is larger than a tolerance, since if
+### step \sim 1e-16, the max(abs(grad)) may increase though stay
+### essentially zero.
     logLik.err <- object$logLik - new.logLik
     err <- format.pval(logLik.err, digits=2, eps=1e-10)
     if(!length(grep("<", err)))
@@ -167,15 +170,10 @@ conv.check <-
                "2" = "iteration limit reached",
                "3" = "step factor reduced below minimum",
                "4" = "maximum number of consecutive Newton modifications reached")
+    if(control$method != "Newton") mess <- NULL
+### FIXME: get proper convergence message from optim, nlminb, ucminf etc.
     res <- c(res, alg.message=mess)
     ## }
-    if(max.grad > control$gradTol) {
-        res$code <- -1L
-        res$messages <-
-            gettextf("Model failed to converge with max|grad| = %g (tol = %g)",
-                     max.grad, control$gradTol)
-        return(res)
-    }
     evd <- eigen(H, symmetric=TRUE, only.values=TRUE)$values
     negative <- sum(evd < -tol)
     if(negative) {
@@ -186,6 +184,20 @@ conv.check <-
                      negative)
         return(res)
     }
+    ## Add condition number to res:
+    res$cond.H <- max(evd) / min(evd)
+    ## Compute Newton step:
+    ch <- try(chol(H), silent=TRUE)
+    step <- c(backsolve(ch, backsolve(ch, g, transpose=TRUE)))
+    ## Compute var-cov:
+    res$vcov[] <- chol2inv(ch)
+    if(max.grad > control$gradTol) {
+        res$code <- -1L
+        res$messages <-
+            gettextf("Model failed to converge with max|grad| = %g (tol = %g)",
+                     max.grad, control$gradTol)
+        return(res)
+    }
     if(!is.null(Theta.ok) && !Theta.ok) {
         res$code <- -3L
         res$messages <-
@@ -193,19 +205,12 @@ conv.check <-
         return(res)
     }
     zero <- sum(abs(evd) < tol)
-    ch <- try(chol(H), silent=TRUE)
     if(zero || inherits(ch, "try-error")) {
         res$code <- 1L
         res$messages <-
             "Hessian is numerically singular: parameters are not uniquely determined"
         return(res)
     }
-    ## Add condition number to res:
-    res$cond.H <- max(evd) / min(evd)
-    ## Compute Newton step:
-    step <- c(backsolve(ch, backsolve(ch, g, transpose=TRUE)))
-    ## Compute var-cov:
-    res$vcov[] <- chol2inv(ch)
     if(max(abs(step)) > control$relTol) {
         res$code <- c(res$code, 1L)
         corDec <- as.integer(min(cor.dec(step)))

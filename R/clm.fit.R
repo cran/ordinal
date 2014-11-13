@@ -43,30 +43,16 @@ clm.fit <-
               length(y) == nrow(N))
   }
 
-  ## Identify model as 'simple clm' or 'extended clm':
-  Class <- if(any(S.offset != 0) || !missing(S) || link == "cauchit")
-    c("eclm", "clm") else c("sclm", "clm")
-  ## get  threshold structure:
+  ## Get  threshold structure:
   frames$ths <- makeThresholds(frames$ylevels, threshold)
-  ## test for column rank deficiency in design matrices:
+  ## Test for column rank deficiency in design matrices:
   frames <- drop.cols(frames, silent=TRUE)
 
   ## Set envir rho with variables: B1, B2, o1, o2, wts, fitted...:
-  rho <- eclm.newRho(parent.frame(), y=frames$y, X=frames$X,
-                     NOM=frames$NOM, S=frames$S, weights=weights,
-                     offset=offset, S.offset=S.offset,
-                     tJac=frames$ths$tJac)
-
-  ## Set appropriate logLik and deriv functions in rho:
-  if("eclm" %in% Class) {
-    rho$clm.nll <- eclm.nll
-    rho$clm.grad <- eclm.grad
-    rho$clm.hess <- eclm.hess
-  } else {
-    rho$clm.nll <- clm.nll
-    rho$clm.grad <- clm.grad
-    rho$clm.hess <- clm.hess
-  }
+  rho <- clm.newRho(parent.frame(), y=frames$y, X=frames$X,
+                    NOM=frames$NOM, S=frames$S, weights=weights,
+                    offset=offset, S.offset=S.offset,
+                    tJac=frames$ths$tJac)
 
   ## Set starting values for the parameters:
   start <- set.start(rho, start=start, get.start=missing(start),
@@ -83,11 +69,21 @@ clm.fit <-
           clm.fit.optim(rho, control$method, control$ctrl) }
 
   ## Format and return the fit:
+  fit$control <- control
   fit$coef.names <- frames$coef.names
   fit$aliased <- lapply(frames$aliased, as.logical)
   if(control$method == "Newton" &&
      !is.null(start.iter <- attr(start, "start.iter")))
     fit$niter <- fit$niter + start.iter
+
+  ## Check convergence:
+  conv <- conv.check(fit, Theta.ok=TRUE, tol=control$tol)
+### NOTE: we are not checking if the thresholds are increasing (if
+### there are nominal effects) even though potentially we could.
+  print.conv.check(conv, action=control$convergence) ## print convergence message
+  fit$vcov <- conv$vcov
+  fit$condHess <- conv$cond.H
+  fit$convergence <- conv[!names(conv) %in% c("vcov", "cond.H")]
 
   return(fit)
 ### FIXME: should 'par' be 'coefficients' to allow coef(fit) etc.?

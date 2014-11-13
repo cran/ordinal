@@ -23,7 +23,7 @@ slice.clm <-
   if(!all(parm %in% seq_along(par)))
     stop("invalid 'parm' argument")
   stopifnot(length(parm) > 0)
-  parm <- as.integer(parm)
+  parm <- as.integer(round(parm))
   ## parm is an integer vector indexing non-aliased coef.
   ml <- object$logLik
   parm.names <- par.names[parm]
@@ -32,7 +32,7 @@ slice.clm <-
   rho <- update(object, doFit = FALSE)
   names(par) <- NULL
   rho$par <- par ## set rho$par to mle
-  stopifnot(isTRUE(all.equal(clm.nll(rho), -object$logLik)))
+  stopifnot(isTRUE(all.equal(rho$clm.nll(rho), -object$logLik)))
 
   ## generate sequence of parameters at which to compute the
   ## log-likelihood:
@@ -47,7 +47,7 @@ slice.clm <-
     rho$par <- par ## reset par values to MLE
     sapply(par.seq[[ i ]], function(par.val) { # for each par.seq value
       rho$par[ parm[i] ] <- par.val
-      -clm.nll(rho) - ml ## relative logLik
+      -rho$clm.nll(rho) - ml ## relative logLik
     })
   })
 
@@ -84,7 +84,7 @@ plot.slice.clm <-
   ## Initiala argument matching and testing:
   type <- match.arg(type)
   stopifnot(is.numeric(parm))
-  parm <- as.integer(parm)
+  parm <- as.integer(round(parm))
   of <- attr(x, "original.fit")
   par <- coef(of)
   ml <- of$logLik
@@ -124,68 +124,70 @@ plot.slice.clm <-
   return(invisible())
 }
 
-slice.eclm <-
-  function(object, parm = seq_along(par), lambda = 3, grid = 1e2,
-           quad.approx = TRUE, ...)
-{
-  ## argument matching and testing:
-  stopifnot(is.numeric(lambda) && lambda > 0)
-  stopifnot(is.numeric(grid) && grid >= 1)
-  grid <- as.integer(grid)
-  par <- coef(object)
-  par.names <- names(par)
-  npar <- length(par)
-  stopifnot(length(parm) == length(unique(parm)))
-  if(is.character(parm))
-    parm <- match(parm, par.names, nomatch = 0)
-  if(!all(parm %in% seq_along(par)))
-    stop("invalid 'parm' argument")
-  stopifnot(length(parm) > 0)
-  parm <- as.integer(parm)
-  ml <- object$logLik
-  parm.names <- par.names[parm]
+## slice.clm <-
+##   function(object, parm = seq_along(par), lambda = 3, grid = 1e2,
+##            quad.approx = TRUE, ...)
+## {
+##   ## argument matching and testing:
+##   stopifnot(is.numeric(lambda) && lambda > 0)
+##   stopifnot(is.numeric(grid) && grid >= 1)
+##   grid <- as.integer(grid)
+##   par <- coef(object)
+##   par.names <- names(par)
+##   npar <- length(par)
+##   stopifnot(length(parm) == length(unique(parm)))
+##   if(is.character(parm))
+##     parm <- match(parm, par.names, nomatch = 0)
+##   if(!all(parm %in% seq_along(par)))
+##     stop("invalid 'parm' argument")
+##   stopifnot(length(parm) > 0)
+##   parm <- as.integer(parm)
+##   ml <- object$logLik
+##   parm.names <- par.names[parm]
+##
+##   ## get environment corresponding to object:
+##   rho <- update(object, doFit = FALSE)
+##   names(par) <- NULL
+##   rho$par <- par ## set rho$par to mle
+##   stopifnot(isTRUE(all.equal(rho$clm.nll(rho), -object$logLik)))
+##
+##   ## generate sequence of parameters at which to compute the
+##   ## log-likelihood:
+##   curv <- sqrt(1/diag(object$Hess)) ## curvature in nll wrt. par
+##   par.range <- par + curv %o% c(-lambda, lambda)
+##   ## par.seq - list of length npar:
+##   par.seq <- sapply(parm, function(ind) {
+##     seq(par.range[ind, 1], par.range[ind, 2], length = grid) },
+##                     simplify = FALSE)
+##   ## compute relative logLik for all par.seq for each par:
+##   logLik <- lapply(seq_along(parm), function(i) { # for each par
+##     rho$par <- par ## reset par values to MLE
+##     sapply(par.seq[[ i ]], function(par.val) { # for each val
+##       rho$par[ parm[i] ] <- par.val
+##       -rho$clm.nll(rho) - ml ## relative logLik
+##     })
+##   })
+##
+##   ## collect results in a list of data.frames:
+##   res <- lapply(seq_along(parm), function(i) {
+##     structure(data.frame(par.seq[[ i ]], logLik[[ i ]]),
+##               names = c(parm.names[i], "logLik"))
+##   })
+##
+##   ## set attributes:
+##   names(res) <- parm.names
+##   attr(res, "original.fit") <- object
+##   class(res) <- "slice.clm"
+##
+##   if(!quad.approx) return(res)
+##   ## compute quadratic approx to *positive* logLik:
+##   Quad <- function(par, mle, curv)
+##     -((mle - par)^2 / curv^2 / 2)
+##   for(i in seq_along(parm))
+##     res[[ i ]]$quad <-
+##       Quad(par.seq[[ i ]], par[ parm[i] ], curv[ parm[i] ])
+##
+##   return(res)
+## }
 
-  ## get environment corresponding to object:
-  rho <- update(object, doFit = FALSE)
-  names(par) <- NULL
-  rho$par <- par ## set rho$par to mle
-  stopifnot(isTRUE(all.equal(eclm.nll(rho), -object$logLik)))
 
-  ## generate sequence of parameters at which to compute the
-  ## log-likelihood:
-  curv <- sqrt(1/diag(object$Hess)) ## curvature in nll wrt. par
-  par.range <- par + curv %o% c(-lambda, lambda)
-  ## par.seq - list of length npar:
-  par.seq <- sapply(parm, function(ind) {
-    seq(par.range[ind, 1], par.range[ind, 2], length = grid) },
-                    simplify = FALSE)
-  ## compute relative logLik for all par.seq for each par:
-  logLik <- lapply(seq_along(parm), function(i) { # for each par
-    rho$par <- par ## reset par values to MLE
-    sapply(par.seq[[ i ]], function(par.val) { # for each val
-      rho$par[ parm[i] ] <- par.val
-      -eclm.nll(rho) - ml ## relative logLik
-    })
-  })
-
-  ## collect results in a list of data.frames:
-  res <- lapply(seq_along(parm), function(i) {
-    structure(data.frame(par.seq[[ i ]], logLik[[ i ]]),
-              names = c(parm.names[i], "logLik"))
-  })
-
-  ## set attributes:
-  names(res) <- parm.names
-  attr(res, "original.fit") <- object
-  class(res) <- "slice.clm"
-
-  if(!quad.approx) return(res)
-  ## compute quadratic approx to *positive* logLik:
-  Quad <- function(par, mle, curv)
-    -((mle - par)^2 / curv^2 / 2)
-  for(i in seq_along(parm))
-    res[[ i ]]$quad <-
-      Quad(par.seq[[ i ]], par[ parm[i] ], curv[ parm[i] ])
-
-  return(res)
-}

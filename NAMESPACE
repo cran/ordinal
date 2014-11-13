@@ -1,9 +1,13 @@
 useDynLib(ordinal, .registration = TRUE)
 
-
 importFrom(graphics,
            plot)
 importFrom(ucminf, ucminf)
+import(methods)
+## importFrom(methods,
+##            as,
+##            checkAtAssignment,
+##            loadMethod)
 import(Matrix)
 ## importFrom(nlme,
 ##            ranef,

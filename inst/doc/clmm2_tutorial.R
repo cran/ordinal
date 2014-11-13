@@ -1,4 +1,5 @@
 ### R code from vignette source 'clmm2_tutorial.Rnw'
+### Encoding: UTF-8
 
 ###################################################
 ### code chunk number 1: Initialize
@@ -7,7 +8,7 @@
 ## Load common packages, functions and set settings:
 library(ordinal)
 library(xtable)
-## 
+##
 RUN <- FALSE    #redo computations and write .RData files
 ## Change options:
 op <- options() ## To be able to reset settings
@@ -21,7 +22,7 @@ options(continue=" ")
 
 
 ###################################################
-### code chunk number 2: clmm2_tutorial.Rnw:151-154
+### code chunk number 2: clmm2_tutorial.Rnw:152-155
 ###################################################
 data(wine)
 head(wine)
@@ -29,12 +30,12 @@ str(wine)
 
 
 ###################################################
-### code chunk number 3: clmm2_tutorial.Rnw:175-189
+### code chunk number 3: clmm2_tutorial.Rnw:176-190
 ###################################################
 data(wine)
 temp.contact.bottle <- with(wine, temp:contact:bottle)[drop=TRUE]
 tab <- xtabs(as.numeric(rating) ~ temp.contact.bottle + judge,
-             data=wine) 
+             data=wine)
 class(tab) <- "matrix"
 attr(tab, "call") <- NULL
 mat <- cbind(rep(c("cold", "warm"), each = 4),
@@ -48,14 +49,14 @@ print(xtab, only.contents=TRUE, include.rownames=FALSE,
 
 
 ###################################################
-### code chunk number 4: clmm2_tutorial.Rnw:216-218
+### code chunk number 4: clmm2_tutorial.Rnw:217-219
 ###################################################
 fm1 <- clmm2(rating ~ temp + contact, random=judge, data=wine)
 fm1
 
 
 ###################################################
-### code chunk number 5: clmm2_tutorial.Rnw:225-228
+### code chunk number 5: clmm2_tutorial.Rnw:226-229
 ###################################################
 fm2 <- clmm2(rating ~ temp + contact, random=judge, data=wine,
             Hess=TRUE, nAGQ=10)
@@ -63,27 +64,27 @@ summary(fm2)
 
 
 ###################################################
-### code chunk number 6: clmm2_tutorial.Rnw:264-265
+### code chunk number 6: clmm2_tutorial.Rnw:265-266
 ###################################################
 exp(coef(fm2)[5])
 
 
 ###################################################
-### code chunk number 7: clmm2_tutorial.Rnw:273-275
+### code chunk number 7: clmm2_tutorial.Rnw:274-276
 ###################################################
 fm3 <- clmm2(rating ~ temp, random=judge, data=wine, nAGQ=10)
 anova(fm3, fm2)
 
 
 ###################################################
-### code chunk number 8: clmm2_tutorial.Rnw:281-283
+### code chunk number 8: clmm2_tutorial.Rnw:282-284
 ###################################################
 fm4 <- clm2(rating ~ temp + contact, data=wine)
 anova(fm4, fm2)
 
 
 ###################################################
-### code chunk number 9: clmm2_tutorial.Rnw:294-296
+### code chunk number 9: clmm2_tutorial.Rnw:295-297
 ###################################################
 pr2 <- profile(fm2, range=c(.1, 4), nSteps=30, trace=0)
 confint(pr2)
@@ -119,7 +120,7 @@ abline(h = 0, lty=2)
 
 
 ###################################################
-### code chunk number 13: clmm2_tutorial.Rnw:347-348
+### code chunk number 13: clmm2_tutorial.Rnw:348-349
 ###################################################
 getOption("SweaveHooks")[["fig"]]()
 ci <- fm2$ranef + qnorm(0.975) * sqrt(fm2$condVar) %o% c(-1, 1)
@@ -134,32 +135,32 @@ abline(h = 0, lty=2)
 
 
 ###################################################
-### code chunk number 14: clmm2_tutorial.Rnw:360-361
+### code chunk number 14: clmm2_tutorial.Rnw:361-362
 ###################################################
 head(cbind(wine, fitted(fm2)))
 
 
 ###################################################
-### code chunk number 15: clmm2_tutorial.Rnw:366-367
+### code chunk number 15: clmm2_tutorial.Rnw:367-368
 ###################################################
 head(cbind(wine, pred=predict(fm2, newdata=wine)))
 
 
 ###################################################
-### code chunk number 16: clmm2_tutorial.Rnw:385-387
+### code chunk number 16: clmm2_tutorial.Rnw:386-388
 ###################################################
-plogis(fm2$Theta[3] - fm2$beta[2]) - 
+plogis(fm2$Theta[3] - fm2$beta[2]) -
   plogis(fm2$Theta[2] - fm2$beta[2])
 
 
 ###################################################
-### code chunk number 17: clmm2_tutorial.Rnw:395-396
+### code chunk number 17: clmm2_tutorial.Rnw:396-397
 ###################################################
 qnorm(0.95) * c(-1, 1) * fm2$stDev
 
 
 ###################################################
-### code chunk number 18: clmm2_tutorial.Rnw:401-409
+### code chunk number 18: clmm2_tutorial.Rnw:402-410
 ###################################################
 pred <-
   function(eta, theta, cat = 1:(length(theta)+1), inv.link = plogis)
@@ -172,7 +173,7 @@ pred(qnorm(0.05) * fm2$stDev, fm2$Theta)
 
 
 ###################################################
-### code chunk number 19: clmm2_tutorial.Rnw:415-433
+### code chunk number 19: clmm2_tutorial.Rnw:416-434
 ###################################################
 mat <- expand.grid(judge = qnorm(0.95) * c(-1, 0, 1) * fm2$stDev,
                    contact = c(0, fm2$beta[2]),
@@ -195,7 +196,7 @@ for(k in c(1, 4, 7, 10)) {
 
 
 ###################################################
-### code chunk number 20: clmm2_tutorial.Rnw:438-448
+### code chunk number 20: clmm2_tutorial.Rnw:439-449
 ###################################################
 getOption("SweaveHooks")[["fig"]]()
 k <- 1
@@ -211,7 +212,7 @@ legend("topright",
 
 
 ###################################################
-### code chunk number 21: clmm2_tutorial.Rnw:450-460
+### code chunk number 21: clmm2_tutorial.Rnw:451-461
 ###################################################
 getOption("SweaveHooks")[["fig"]]()
 k <- 4
@@ -227,7 +228,7 @@ legend("topright",
 
 
 ###################################################
-### code chunk number 22: clmm2_tutorial.Rnw:462-472
+### code chunk number 22: clmm2_tutorial.Rnw:463-473
 ###################################################
 getOption("SweaveHooks")[["fig"]]()
 k <- 7
@@ -243,7 +244,7 @@ legend("topright",
 
 
 ###################################################
-### code chunk number 23: clmm2_tutorial.Rnw:474-484
+### code chunk number 23: clmm2_tutorial.Rnw:475-485
 ###################################################
 getOption("SweaveHooks")[["fig"]]()
 k <- 10
@@ -259,13 +260,13 @@ legend("topright",
 
 
 ###################################################
-### code chunk number 24: clmm2_tutorial.Rnw:494-495
+### code chunk number 24: clmm2_tutorial.Rnw:495-496
 ###################################################
 exp(2*qnorm(0.95) * fm2$stDev)
 
 
 ###################################################
-### code chunk number 25: clmm2_tutorial.Rnw:501-502
+### code chunk number 25: clmm2_tutorial.Rnw:502-503
 ###################################################
 exp(2*qnorm(0.75) * fm2$stDev)
 

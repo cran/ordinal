@@ -16,8 +16,6 @@
 \tabular{ll}{
 Package: \tab ordinal\cr
 Type: \tab Package\cr
-Version: \tab 2011.08-11\cr
-Date: \tab 2011-11-08\cr
 License: \tab GPL (>= 2)\cr
 LazyLoad: \tab yes\cr
 }
@@ -66,10 +64,9 @@ main features are:
   \item{Estimation is via maximum likelihood using the Laplace
     approximation or adaptive Gauss-Hermite quadrature (one random
     effect).}
-  \item{Vector-valued and correlated random effects are not yet
-    implemented.}
-  \item{Random slopes (random coefficient models) are not yet
-    implemented.}
+  \item{Vector-valued and correlated random effects such as random
+    slopes (random coefficient models) are fitted with the Laplace
+    approximation.}
   \item{Estimation employs sparse matrix methods from the
     \code{\link{Matrix}} package. }
   \item{During model fitting a Newton-Raphson algorithm updates the

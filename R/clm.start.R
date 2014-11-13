@@ -7,8 +7,8 @@ set.start <-
   ## set starting values for the parameters:
   if(get.start) {
     start <- ## not 'starting' scale effects:
-      eclm.start(ylevels=frames$ylevels, threshold=threshold, X=frames$X,
-                 NOM=frames$NOM, has.intercept=TRUE)
+        clm.start(ylevels=frames$ylevels, threshold=threshold, X=frames$X,
+                  NOM=frames$NOM, has.intercept=TRUE)
     if(NCOL(frames$S) > 1 || link == "cauchit") {
 ### NOTE: only special start if NCOL(frames$S) > 1 (no reason for
 ### special start if scale is only offset and no predictors).
@@ -19,8 +19,8 @@ set.start <-
       else setLinks(rho, link)
       tempk <- rho$k
       rho$k <- 0
-      ## increased gradTol:
-      fit <- try(clm.fit.NR(rho, control=list(gradTol=1e-3)),
+      ## increased gradTol and relTol:
+      fit <- try(clm.fit.NR(rho, control=list(gradTol=1e-3, relTol=1e-3)),
                  silent=TRUE)
       if(class(fit) == "try-error")
         stop("Failed to find suitable starting values: please supply some",
@@ -86,19 +86,18 @@ meaningful for responses with 3 or more levels"))
 start.beta <- function(X, has.intercept = TRUE)
   return(rep(0, NCOL(X) - has.intercept))
 
-clm.start <- function(ylevels, threshold, X, has.intercept = TRUE)
-### could use eclm.start instead
-  return(c(start.threshold(ylevels, threshold),
-           start.beta(X, has.intercept)))
+## clm.start <- function(ylevels, threshold, X, has.intercept = TRUE)
+##   return(c(start.threshold(ylevels, threshold),
+##            start.beta(X, has.intercept)))
 
-eclm.start <- function(ylevels, threshold, X, NOM=NULL, S=NULL,
+clm.start <- function(ylevels, threshold, X, NOM=NULL, S=NULL,
                        has.intercept=TRUE)
 {
   st <- start.threshold(ylevels, threshold)
-  if(NCOL(NOM) > 1)
+  if(!is.null(NOM) && NCOL(NOM) > 1)
     st <- c(st, rep(rep(0, length(st)), ncol(NOM)-1))
   start <- c(st, start.beta(X, has.intercept))
-  if(NCOL(S) > 1)
+  if(!is.null(S) && NCOL(S) > 1)
     start <- c(start, rep(0, ncol(S) - 1))
   start
 }
