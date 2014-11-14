@@ -1,7 +1,7 @@
 Package: ordinal
 Type: Package
 Title: Regression Models for Ordinal Data
-Version: 2014.11-12
+Version: 2014.11-14
 Authors@R: person(given="Rune Haubo Bojesen", family="Christensen",
     email="rhbc@dtu.dk", role=c("aut", "cre"))
 LazyData: true
@@ -21,9 +21,9 @@ Description: This package implements cumulative link (mixed) models also known
     addition to profile methods and slice methods for visualizing the
     likelihood function and checking convergence.
 License: GPL (>= 2)
-Packaged: 2014-11-13 10:30:53 UTC; rhbc
+Packaged: 2014-11-14 11:21:42 UTC; rhbc
 Author: Rune Haubo Bojesen Christensen [aut, cre]
 Maintainer: Rune Haubo Bojesen Christensen <rhbc@dtu.dk>
 NeedsCompilation: yes
 Repository: CRAN
-Date/Publication: 2014-11-13 14:50:35
+Date/Publication: 2014-11-14 14:35:36

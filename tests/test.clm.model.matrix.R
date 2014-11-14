@@ -19,7 +19,7 @@ stopifnot(all(test))
 ## Check that get_clmDesign works with singular fit and NAs:
 cy <- with(wine, which(temp == "cold" & contact == "yes"))
 wine2 <- subset(wine, subset=(!1:nrow(wine) %in% cy))
-wine2[sample(1:nrow(wine2), 3, replace=TRUE), "rating"] <- NA
+wine2[c(9, 15, 46), "rating"] <- NA
 fm1 <- clm(rating ~ temp, scale=~contact, nominal=~contact,
            data=wine2)
 contr <- c(fm1$contrasts, fm1$S.contrasts, fm1$nom.contrasts)

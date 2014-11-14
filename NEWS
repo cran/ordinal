@@ -228,3 +228,7 @@ March 04 2010:
   processing motivated by a bug in model.matrix.clm and predict.clm
   reported by Russell Lenth 2014-11-07 when implementing lsmeans support
   for clm::ordinal.
+
+2014-11-14:
+- Fixing bug in convergence checking (conv.check) and added test to
+ /tests/test.clm.convergence.R

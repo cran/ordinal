@@ -1,7 +1,7 @@
-289c258319d0e85571771dcd3c9672fd *DESCRIPTION
+dba15b2b3ca46e1e774f41571dcd3b7d *DESCRIPTION
 075989c6d87da80a363053480588c7fb *LICENCE.note
 7103562a1e9703ffc1bb3eef944eb73f *NAMESPACE
-3b0f23fa8460da2dd4afa86fa548eff3 *NEWS
+db8fed2802f2d8ebb15a0285c746918c *NEWS
 0f3ddfb5f025174eb652a99b980ecef2 *R/AO.R
 7b30545033503b9ff3b550e173ccf721 *R/clm.R
 916306816bb07386216038b574f26bb6 *R/clm.Thetamat.R
@@ -26,7 +26,7 @@ f9d5c93e4827156e9cf564dc59b8d7fd *R/clmm.start.R
 9151b9d6e1dfe93ce482a6f8313c9ac2 *R/clmm2.R
 675f8c2cfc99bfd7784e649f98ac051d *R/clmm2.utils.R
 efe68833b157b4b8b86c266313454a5a *R/control.R
-127abab12fd2cc672d7d81e4366fae3b *R/convergence.R
+497e23be9029e44c8e781e8c8856edb0 *R/convergence.R
 5104a82a439b3d6d09575e4e9edf46d2 *R/derivatives.R
 344bbe05fd2825a5fbe024c18f65e24b *R/drop.coef.R
 6f3e8fe235faf63f228e9007772b0210 *R/experimental.R
@@ -41,13 +41,13 @@ de5d075c95248681323ce9e571e7d0a2 *data/soup.rda
 65579c5a7a676225b90a5ed567bdbe59 *inst/CITATION
 640f2ac80f1ac7cee2acb81cc9fb2136 *inst/doc/clm_intro.R
 2a77f599014831eef28aaec197a0cefa *inst/doc/clm_intro.Rnw
-9af1842c04fc374d94b6344092fac60d *inst/doc/clm_intro.pdf
+8288db28dd143b635bf496f67c1fa8a6 *inst/doc/clm_intro.pdf
 0ae09f459b2b663fe09edb7f6a8a4d35 *inst/doc/clm_tutorial.R
 0a47054ca5716fd6aaabdad0c05d9c0d *inst/doc/clm_tutorial.Rnw
-45aa725a8a7962633063dc3092a4206b *inst/doc/clm_tutorial.pdf
+3064d991cb7f2758ce89a4f5b7e05684 *inst/doc/clm_tutorial.pdf
 4b635c0e8e50007e29e94ab28da75f23 *inst/doc/clmm2_tutorial.R
 ddde6e9af6699c2d9c11002d12e3049e *inst/doc/clmm2_tutorial.Rnw
-3733468f4bad2e8fe431fe713f934b3d *inst/doc/clmm2_tutorial.pdf
+617684660b7c45e1d30faa61bc27856a *inst/doc/clmm2_tutorial.pdf
 0dc6dd5fc752782590a85c3eab31d5fb *man/VarCorr.Rd
 14bf4cdcac3cf742306b7d873ce4e9a0 *man/addtermOld.Rd
 841dc5d0283d35124ce81ed5bf7f0c3c *man/anovaOld.Rd
@@ -90,7 +90,8 @@ ce328403fdc7e00f0f90442cee2e3fc7 *tests/clmm.R
 cadfa40f297ae2ad3013b99470d73116 *tests/clmm.formula.R
 bb53b627bd127be25140ca9b18cd7570 *tests/confint.R
 d8267669e5b9c3ab305c6036f1c8d623 *tests/nominal.test.R
-47c1e5f6c4ba2d15f3233d67e10b632b *tests/test.clm.model.matrix.R
+bbc590abfd1ce82d5443ad7cad78771d *tests/test.clm.convergence.R
+86b34330881a9afd342e77dff6d26c65 *tests/test.clm.model.matrix.R
 e07e7e3cdf4756028a1281f65b15420a *tests/test.clm.predict.R
 fecf75dd7c28b54b86daabc6d3db5a2c *tests/test0weights.R
 dd771457105e82780b335f6ced52e736 *tests/testAnova.clm2.R
