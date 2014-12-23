@@ -71,7 +71,8 @@ predict.clm <-
 ### code clarity:
         offset <- rep(0, nrow(X))
         if(!is.null(off.num <- attr(object$terms, "offset")))
-            for(i in off.num) offset <- offset + eval(off.num[[i + 1]], newdata)
+            for(i in off.num) offset <- offset +
+                eval(attr(object$terms, "variables")[[i + 1]], newdata)
         y <- model.response(mf)
         if(any(!levels(y) %in%  object$y.levels))
             stop(gettextf("response factor '%s' has new levels",
@@ -272,37 +273,45 @@ get.se <- function(rho, cov, type=c("lp", "gamma", "prob")) {
 ### cumulative probabilities (gamma) or values of the linear
 ### predictor (lp) for linear (k<=0) or location-scale models
 ### (k>0).
-  rho$type <- match.arg(type)
-  rho$cov <- cov
-  clm.nll(rho) ## just to be safe
-  with(rho, {
+    rho$xcovtx <- function(x, chol.cov) {
+        ## Compute 'diag(x %*% cov %*% t(x))'
+        diag(x %*% crossprod(chol.cov) %*% t(x))
+        ## colSums(tcrossprod(chol.cov, x)^2)
+    }
+    rho$type <- match.arg(type)
+    rho$chol.cov <- try(chol(cov), silent=TRUE)
+    if(inherits(rho$chol.cov, "try-error"))
+        stop(gettext("VarCov matrix of model parameters is not positive definite:\n cannot compute standard errors of predictions"),
+             call.=FALSE)
+    clm.nll(rho) ## just to be safe
+    with(rho, {
 ### First compute d[eta, gamma, prob] / d par; then compute variance
 ### covariance matrix of the observations and extract SEs as the
 ### square root of the diagonal elements:
-    if(type %in% c("lp", "gamma")) {
-      D1 <- B1
-      D2 <- B2
-      if(k > 0) {
-        D1 <- cbind(D1/sigma, -S*eta1)
-        D2 <- cbind(D2/sigma, -S*eta2)
-      }
-      if(type == "gamma") {
-        D1 <- D1*dfun(eta1)
-        D2 <- D2*dfun(eta2)
-      }
-      se <- list(se1=sqrt(diag(D1 %*% cov %*% t(D1))),
-                 se2=sqrt(diag(D2 %*% cov %*% t(D2))))
-    }
-    if(type == "prob") {
-      p1 <- dfun(eta1)
-      p2 <- dfun(eta2)
-      C2 <- if(k <= 0) B1*p1 - B2*p2 else
-      cbind(B1*p1/sigma - B2*p2/sigma,
-            -(eta1 * p1 - eta2 * p2) * S)
-      se <- sqrt(diag(C2 %*% cov %*% t(C2)))
-    }
-    return(se)
-  })
+        if(type %in% c("lp", "gamma")) {
+            D1 <- B1
+            D2 <- B2
+            if(k > 0) {
+                D1 <- cbind(D1/sigma, -S*eta1)
+                D2 <- cbind(D2/sigma, -S*eta2)
+            }
+            if(type == "gamma") {
+                D1 <- D1*dfun(eta1)
+                D2 <- D2*dfun(eta2)
+            }
+            se <- list(se1=sqrt(xcovtx(D1, chol.cov)),
+                       se2=sqrt(xcovtx(D2, chol.cov)))
+        }
+        if(type == "prob") {
+            p1 <- dfun(eta1)
+            p2 <- dfun(eta2)
+            C2 <- if(k <= 0) B1*p1 - B2*p2 else
+            cbind(B1*p1/sigma - B2*p2/sigma,
+                  -(eta1 * p1 - eta2 * p2) * S)
+            se <- sqrt(xcovtx(C2, chol.cov))
+        }
+    })
+    rho$se
 }
 
 

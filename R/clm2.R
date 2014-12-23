@@ -968,55 +968,6 @@ predict.clm2 <- function(object, newdata, ...)
     as.vector(pr)
 }
 
-gof <- function(object, ...) {
-    if(!(class(object) %in% c("clls", "clm2")))
-        stop("'x' not of an appropriate class")
-
-    if(is.null(object$location))
-        stop("clm2 object has to be fitted with 'model=TRUE'")
-
-    ## Extract model.data, aggregate weights and form aggregated
-    ## data.frame, agData:
-    L <- object$location
-    S <- object$scale
-    M <- cbind(L, S[!(colnames(S) %in% colnames(L))])
-
-    ## Extract names of predictor variables along which to aggregate
-    nam <- names(M)[names(M) != "(weights)"][-1]
-    if (!'(weights)' %in% colnames(M))
-        M$'(weights)' <- rep(1, nrow(M))
-    agData <- aggregate(M$'(weights)', M[colnames(M) != "(weights)"], sum)
-    marg <- aggregate(agData$x, agData[nam], sum)
-    id <- with(marg, apply(marg[,-ncol(marg), drop = FALSE], 1, function(x)
-                           paste(x, collapse = " ")))
-    id2 <- apply(agData[nam], 1, function(x) paste(x, collapse = " "))
-    agData$Marg <- sapply(id2, function(ind) marg[id == ind, "x"])
-
-    ## Merge data with fitted probabilities:
-    ## Only needed when fitted on non-aggregated data:
-    M$mu <- fitted(object)
-    uM <- unique(M[colnames(M) != "(weights)"])
-    agData <- merge(agData, uM)
-
-    ## Compute deviance, Pearson statistic, p-values etc:
-    Expected <- with(agData, Marg * mu)
-    Deviance <- with(agData, 2*sum(x * log(x/Expected)))
-    Pearson <- with(agData, sum((x - Expected)^2/Expected))
-    statist <- c(Deviance, Pearson)
-    stat.name <- c("Deviance", "Pearson")
-    df <- nrow(agData) - object$edf - 1
-    p <- sapply(statist, function(x) pchisq(x, df, lower.tail = FALSE))
-    out <- data.frame(stat.name, no.obs = rep(nrow(agData), 2),
-                      Resid.df = rep(df, 2), statist, Prob = p)
-    names(out) <- c("Name", "NObs.", "Resid. df", "Chisq stat.",
-                    "Pr(Chi)")
-    class(out) <- c("Anova", "data.frame")
-    attr(out, "heading") <-
-        c("Goodness of fit tests of cumulative link location-scale models\n",
-          paste("Response:", names(M)[1]))
-    out
-}
-
 profile.clm2 <- function(fitted, whichL = seq_len(p),
                         whichS = seq_len(k), lambda = TRUE, alpha = 0.01,
                         maxSteps = 50, delta = LrootMax/10, trace = 0,

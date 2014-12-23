@@ -99,7 +99,7 @@ clm <-
   ## Add Theta table to results list:
   Theta.ok <- TRUE ## convergence condition
   if(!is.null(frames$NOM)) {
-      tmp <- formatTheta(res, frames$NOM)
+      tmp <- formatTheta(res, frames$NOM, fullmf)
       Theta.ok <- tmp$Theta.ok
       res <- c(res, tmp[!names(tmp) %in% "Theta.ok"])
   } else {

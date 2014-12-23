@@ -29,7 +29,8 @@ slice.clm <-
   parm.names <- par.names[parm]
 
   ## get environment corresponding to object:
-  rho <- update(object, doFit = FALSE)
+  rho <- get_clmRho(object)
+  ## rho <- update(object, doFit = FALSE)
   names(par) <- NULL
   rho$par <- par ## set rho$par to mle
   stopifnot(isTRUE(all.equal(rho$clm.nll(rho), -object$logLik)))

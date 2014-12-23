@@ -130,7 +130,6 @@
 ## Load common packages, functions and set settings:
 ## library(sensR)
 library(ordinal)
-data(wine)
 library(xtable)
 ##
 RUN <- FALSE    #redo computations and write .RData files

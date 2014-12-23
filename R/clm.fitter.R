@@ -109,7 +109,7 @@ clm.fit.NR <-
         ## Assess convergence:
         ## (only attempt to sattisfy rel.conv if abs.conv is true and
         ## it is possible to take the full newton step)
-### FIXME: And if 'step' is not close to 1 or 1/2, but
+### OPTION: And if 'step' is not close to 1 or 1/2, but
 ### small. Otherwise this just indicates that the parameter is
 ### infinite.
         ## if(abs.conv && !step.ok) {

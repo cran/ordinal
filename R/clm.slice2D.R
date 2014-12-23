@@ -25,7 +25,8 @@ slice2D.clm <-
     mle <- par[parm]
 
     ## get environment corresponding to object:
-    env <- update(object, doFit=FALSE)
+    env <- get_clmRho(object)
+    ## env <- update(object, doFit=FALSE)
     names(par) <- NULL
     env$par <- as.vector(par) ## set env$par to mle
     stopifnot(isTRUE(all.equal(env$clm.nll(env), -object$logLik)))
@@ -130,7 +131,8 @@ sliceg.clm <-
   parm.names <- par.names[parm]
 
   ## get environment corresponding to object:
-  rho <- update(object, doFit = FALSE)
+  rho <- get_clmRho(object)
+  ## rho <- update(object, doFit = FALSE)
   names(par) <- NULL
   rho$par <- par ## set rho$par to mle
   stopifnot(isTRUE(all.equal(rho$clm.nll(rho), -object$logLik)))

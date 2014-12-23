@@ -79,9 +79,14 @@ profile.clm.beta <-
     prof.list <- vector("list", length = length(which.beta))
     names(prof.list) <- beta.names[which.beta]
     ## get model matrices and model environment:
-    mf <- update(fitted, method = "model.frame")
-    X <- with(mf, X[wts > 0, , drop=FALSE]) ## containing alias cols
-    rho <- update(fitted, doFit = FALSE)
+### NOTE: Fixing the fragile update approach:
+    ## mf <- update(fitted, method = "model.frame")
+    ## Need to subset by wts to make nrow(X) == nrow(B1)
+    ## X <- with(mf, X[wts > 0, , drop=FALSE]) ## containing alias cols
+    wts <- getWeights(model.frame(fitted))
+    X <- model.matrix(fitted)$X[wts > 0, , drop=FALSE]
+    rho <- get_clmRho(fitted)
+    ## rho <- update(fitted, doFit = FALSE)
     orig <- as.list(rho)[c("B1", "B2", "o1", "o2")]
     rho$n.psi <- rho$n.psi - 1 ## needed for models with scale
     nalpha.clean <- sum(!fitted$aliased$alpha)
@@ -172,7 +177,8 @@ profile.clm.zeta <-
   prof.list <- vector("list", length = length(which.zeta))
   names(prof.list) <- names(zeta)[which.zeta]
   ## get model environment:
-  rho <- update(fitted, doFit = FALSE)
+  rho <- get_clmRho(fitted)
+  ## rho <- update(fitted, doFit = FALSE)
   S <- rho$S ## S without intercept
   Soff <- rho$Soff
   rho$k <- max(0, rho$k - 1)
@@ -626,7 +632,11 @@ profileAlt.clm <- ## using clm.fit()
   prof.list <- vector("list", length = length(which.beta))
   names(prof.list) <- beta.names[which.beta]
   ## get model.frame:
-  mf <- update(fitted, method = "model.frame")
+### NOTE: Attempting the following fix for a safer extraction of
+### model-design-objects:
+  ## mf <- update(fitted, method = "model.frame")
+  contr <- c(fitted$contrasts, fitted$S.contrasts, fitted$nom.contrasts)
+  mf <- get_clmDesign(fitted$model, fitted$formulas, contr)
   y <- mf$y
   X <- mf$X
   wts <- mf$wts

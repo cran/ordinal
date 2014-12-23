@@ -1,3 +1,7 @@
+## This file contains:
+## methods for computing, manipulating and extracting design matrices,
+## weights, offsets, model.frames and things like that.
+
 get_clmDesign <- function(fullmf, formulas, contrasts) {
 ### Compute design matrices for a clm object.
 ### clm-internal+external
@@ -135,13 +139,20 @@ get_clmFormulas <- function(mc)
     forms
 }
 
-get_clmRho <-
-    function(fullmf, formulas, contrasts, link, threshold,
+get_clmRho <- function(object, ...) {
+  UseMethod("get_clmRho")
+}
+
+
+get_clmRho.default <-
+    function(object, formulas, contrasts, link, threshold,
              parent=parent.frame(), start=NULL, ...)
 ### .default method(?)
+### object: model.frame (fullmf) with all variables present
+### formulas: list of formulas for the clm object.
 {
     ## Get design matrices etc:
-    design <- get_clmDesign(fullmf=fullmf,
+    design <- get_clmDesign(fullmf=object,
                             formulas=formulas,
                             contrasts=contrasts)
     ## Get threshold information:
@@ -168,9 +179,9 @@ get_clmRho.clm <-
     function(object, parent=parent.frame(), ...) {
 ### Safely generate the model environment from a model object.
     o <- object
-    get_clmRho(fullmf=model.frame(o), formulas=o$formulas,
-               contrasts=o$contrasts, start=c(o$start), link=o$link,
-               threshold=o$threshold, parent=parent, ...)
+    get_clmRho.default(object=model.frame(o), formulas=o$formulas,
+                       contrasts=o$contrasts, start=c(o$start), link=o$link,
+                       threshold=o$threshold, parent=parent, ...)
 }
 
 ## get_mfcall <- function(mc, envir=parent.frame(2)) {

@@ -407,19 +407,21 @@ extractFromFrames <- function(frames, fullmf) {
     lst
 }
 
-formatTheta <- function(object, NOM) {
+formatTheta <- function(object, NOM, fullmf) {
     res <- object
     Theta.ok <- TRUE
 
-    ## get matrix of thresholds; Theta:
+    ## Get matrix of thresholds; Theta:
     Theta.list <-
-        getThetamat(terms=res$nom.terms, alpha=res$alpha,
+        getThetamat(terms=res$nom.terms,
+                    alpha=res$alpha,
                     assign=attr(NOM, "assign"),
-                    contrasts=res$nom.contrasts, xlevels=res$nom.xlevels,
-                    tJac=res$tJac, dataClasses=get_dataClasses(res$fullmf))
-### FIXME: cannot get Theta if some threshold parameters are aliased.
+                    contrasts=res$nom.contrasts,
+                    tJac=res$tJac,
+                    xlevels=res$nom.xlevels,
+                    dataClasses=get_dataClasses(fullmf))
     ## Test that thresholds are increasing:
-    if(all(is.finite(res$alpha))) {
+        if(all(is.finite(unlist(Theta.list$Theta)))) {
         th.increasing <- apply(Theta.list$Theta, 1, function(th)
                                all(diff(th) >= 0))
         if(!all(th.increasing))

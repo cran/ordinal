@@ -231,4 +231,7 @@ March 04 2010:
 
 2014-11-14:
 - Fixing bug in convergence checking (conv.check) and added test to
- /tests/test.clm.convergence.R
+  /tests/test.clm.convergence.R
+- Improved the efficiency (i.e. speed) in the evaluation of standard
+  errors for predictions using predict.clm (based on feature request
+  by Thomas Jagger).

@@ -55,7 +55,9 @@ convergence.clm <-
         warning("convergence assessment may be unreliable ",
                 "due to large numerical error")
     ## Compute approximate error in the log-likelihood function:
-    env <- update(object, doFit=FALSE)
+    env <- get_clmRho(object)
+    ## Note: safer to get env this way.
+    ## env <- update(object, doFit=FALSE)
     env$par <- coef(object, na.rm=TRUE) - step
     new.logLik <- -env$clm.nll(env)
     new.max.grad <- max(abs(env$clm.grad(env)))
