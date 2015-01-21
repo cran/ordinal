@@ -48,7 +48,6 @@ drop.coef2 <- function(X, tol = 1e-7, silent = FALSE, test.ans = FALSE)
   newX <- X[, qr.X$pivot[1:qr.X$rank], drop = FALSE]
   sel <- qr.X$pivot[-(1:qr.X$rank)]
   aliased[sel] <- 1
-  attributes(newX)
   attr(newX, "aliased") <- aliased
   attr(newX, "orig.colnames") <- colnames(X)
   ## Copy old attributes:
@@ -66,22 +65,22 @@ drop.cols <- function(mf, silent = FALSE, drop.scale=TRUE)
 ### drop columns from X and possibly NOM and S to ensure full column
 ### rank.
 ### mf - list with X and possibly NOM and S design matrices. Includes
-### a ths object containing ths$alpha.names
+### alpha.names
 ###
 ### returns: updated version of mf.
 {
-    nalpha <- length(mf$ths$alpha.names)
+    nalpha <- length(mf$alpha.names)
     ## X is assumed to contain an intercept at this point:
     Xint <- match("(Intercept)", colnames(mf$X), nomatch = 0)
     if(Xint <= 0) {
         mf$X <- cbind("(Intercept)" = rep(1, nrow(mf$X)), mf$X)
         warning("an intercept is needed and assumed")
     } ## intercept in X is guaranteed.
-    if(!is.null(mf$NOM)){
+    if(!is.null(mf[["NOM"]])){
         ## store coef names:
         mf$coef.names <- list()
         mf$coef.names$alpha <-
-            paste(rep(mf$ths$alpha.names, ncol(mf$NOM)), ".",
+            paste(rep(mf$alpha.names, ncol(mf$NOM)), ".",
                   rep(colnames(mf$NOM), each=nalpha), sep="")
         mf$coef.names$beta <- colnames(mf$X)[-1]
         ## drop columns from NOM:
@@ -96,7 +95,7 @@ drop.cols <- function(mf, silent = FALSE, drop.scale=TRUE)
         mf$aliased <- list(alpha = rep(attr(mf$NOM, "aliased"),
                            each=nalpha))
         mf$aliased$beta <- attr(NOMX, "aliased")[-seq_len(ncol(mf$NOM))]
-        if(drop.scale && !is.null(mf$S)) {
+        if(drop.scale && !is.null(mf[["S"]])) {
             mf$coef.names$zeta <- colnames(mf$S)[-1]
             ## drop columns from S:
             NOMS <- drop.coef2(cbind(mf$NOM, mf$S[,-1, drop=FALSE]),
@@ -106,7 +105,7 @@ drop.cols <- function(mf, silent = FALSE, drop.scale=TRUE)
                           NOMS[,-seq_len(ncol(mf$NOM)), drop=FALSE])
             mf$aliased$zeta <- attr(NOMS,
                                     "aliased")[-seq_len(ncol(mf$NOM))]
-        } else if(!is.null(mf$S)) {
+        } else if(!is.null(mf[["S"]])) {
             Sint <- match("(Intercept)", colnames(mf$S), nomatch = 0)
             if(Sint <= 0) {
                 mf$S <- cbind("(Intercept)" = rep(1, nrow(mf$S)), mf$S)
@@ -118,15 +117,15 @@ drop.cols <- function(mf, silent = FALSE, drop.scale=TRUE)
             mf$aliased$zeta <- attr(mf$S, "aliased")[-1]
         }
         return(mf)
-    }
+    } ## end !is.null(mf[["NOM"]])
     ## drop columns from X assuming an intercept:
-    mf$coef.names <- list(alpha = mf$ths$alpha.names,
+    mf$coef.names <- list(alpha = mf$alpha.names,
                           beta = colnames(mf$X)[-1])
     mf$X <- drop.coef2(mf$X, silent=silent)
     mf$aliased <- list(alpha = rep(0, nalpha),
                        beta = attr(mf$X, "aliased")[-1])
     ## drop columns from S if relevant:
-    if(!is.null(mf$S)) {
+    if(!is.null(mf[["S"]])) {
         Sint <- match("(Intercept)", colnames(mf$S), nomatch = 0)
         if(Sint <= 0) {
             mf$S <- cbind("(Intercept)" = rep(1, nrow(mf$S)), mf$S)

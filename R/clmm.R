@@ -299,7 +299,7 @@ fe.start <- function(frames, link, threshold) {
     fit <- with(frames,
                 clm.fit(y=y, X=X, weights=wts, offset=off, link=link,
                         threshold=threshold))
-    fit$par
+    unname(coef(fit))
 }
 
 getDims <- function(frames, ths, retrms)

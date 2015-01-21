@@ -50,6 +50,9 @@ predict.clm <-
             names(newdata)[ncol(newdata)] <- resp
         }
 ### Set model matrices:
+        if(is.null(attr(object$terms, "predvars")))
+            warning(paste0("terms object does not have a predvars attribute: ",
+                           "predictions may be misleading"))
         mf <- model.frame(object$terms, newdata, na.action=na.action,
                           xlev=object$xlevels)
         ## model.frame will warn, but here we also throw an error:

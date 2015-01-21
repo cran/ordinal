@@ -159,3 +159,18 @@ fm2 <- clm(SURENESS ~ 1, nominal=~SOUPTYPE * DAY, data=soup,
            threshold="symmetric")
 fm2$Theta
 fm2$alpha.mat
+
+#################################
+### Check correctness of Theta matrix when intercept is removed in
+### nominal formula:
+### December 25th 2014, RHBC
+fm1 <- clm(rating ~ temp, nominal=~contact-1, data=wine)
+fm2 <- clm(rating ~ temp, nominal=~contact, data=wine)
+stopifnot(isTRUE(all.equal(fm1$Theta, fm2$Theta)))
+stopifnot(isTRUE(all.equal(fm1$logLik, fm2$logLik)))
+wine2 <- wine
+wine2$contact <- relevel(wine2$contact, "yes")
+fm3 <- clm(rating ~ temp, nominal=~contact, data=wine2)
+stopifnot(isTRUE(all.equal(coef(fm1, na.rm=TRUE), coef(fm3))))
+#################################
+

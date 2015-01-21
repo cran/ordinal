@@ -136,3 +136,14 @@ fm5 <- clm(Location, scale=Scale, data=soup)
 summary(fm5)
 
 #################################
+## Check that "."-notation works in formula:
+## December 25th 2014, RHBC
+data(wine)
+wine2 <- wine[c("rating", "contact", "temp")]
+str(wine2)
+fm0 <- clm(rating ~ ., data=wine2)
+fm1 <- clm(rating ~ contact + temp, data=wine2)
+keep <- c("coefficients", "logLik", "info")
+fun <- function(x, y) stopifnot(isTRUE(all.equal(x, y)))
+mapply(fun, fm0[keep], fm1[keep])
+#################################

@@ -7,7 +7,7 @@ set.start <-
   ## set starting values for the parameters:
   if(get.start) {
     start <- ## not 'starting' scale effects:
-        clm.start(ylevels=frames$ylevels, threshold=threshold, X=frames$X,
+        clm.start(y.levels=frames$y.levels, threshold=threshold, X=frames$X,
                   NOM=frames$NOM, has.intercept=TRUE)
     if(NCOL(frames$S) > 1 || link == "cauchit") {
 ### NOTE: only special start if NCOL(frames$S) > 1 (no reason for
@@ -41,16 +41,16 @@ set.start <-
 }
 
 start.threshold <-
-  function(ylevels, threshold = c("flexible", "symmetric", "symmetric2", "equidistant"))
+  function(y.levels, threshold = c("flexible", "symmetric", "symmetric2", "equidistant"))
 ### args:
-### ylevels - levels of the model response, at least of length two
+### y.levels - levels of the model response, at least of length two
 ### threshold - threshold structure, character.
 {
   ## match and test arguments:
   threshold <- match.arg(threshold)
-  nylevels <- length(ylevels)
-  ntheta <- nylevels - 1L
-  if(threshold %in% c("symmetric", "symmetric2", "equidistant") && nylevels < 3)
+  ny.levels <- length(y.levels)
+  ntheta <- ny.levels - 1L
+  if(threshold %in% c("symmetric", "symmetric2", "equidistant") && ny.levels < 3)
     stop(gettextf("symmetric and equidistant thresholds are only
 meaningful for responses with 3 or more levels"))
 
@@ -86,14 +86,14 @@ meaningful for responses with 3 or more levels"))
 start.beta <- function(X, has.intercept = TRUE)
   return(rep(0, NCOL(X) - has.intercept))
 
-## clm.start <- function(ylevels, threshold, X, has.intercept = TRUE)
-##   return(c(start.threshold(ylevels, threshold),
+## clm.start <- function(y.levels, threshold, X, has.intercept = TRUE)
+##   return(c(start.threshold(y.levels, threshold),
 ##            start.beta(X, has.intercept)))
 
-clm.start <- function(ylevels, threshold, X, NOM=NULL, S=NULL,
+clm.start <- function(y.levels, threshold, X, NOM=NULL, S=NULL,
                        has.intercept=TRUE)
 {
-  st <- start.threshold(ylevels, threshold)
+  st <- start.threshold(y.levels, threshold)
   if(!is.null(NOM) && NCOL(NOM) > 1)
     st <- c(st, rep(rep(0, length(st)), ncol(NOM)-1))
   start <- c(st, start.beta(X, has.intercept))

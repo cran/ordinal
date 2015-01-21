@@ -95,6 +95,12 @@ clm.fit.NR <-
         ##         cat("Newton step is not in descent direction; using gradient instead\n")
         ##     step <- c(gradient / max(abs(gradient)))
         ## } else
+        if(abs.conv && rel.conv) {
+            conv <- 0L
+            ## no need to step back as stephalf was false so the new
+            ## par are just better.
+            break
+        }
 
         ## update parameters:
         rho$par <- rho$par - stepFactor * step
@@ -121,12 +127,14 @@ clm.fit.NR <-
             rho$clm.nll(rho)
             break
         }
-        if(abs.conv && rel.conv) {
-            conv <- 0L
-            ## no need to step back as stephalf was false so the new
-            ## par are just better.
-            break
-        }
+        ## if(abs.conv && rel.conv) {
+        ##     conv <- 0L
+        ##     rho$par <- rho$par + stepFactor * step
+        ##     rho$clm.nll(rho)
+        ##     ## no need to step back as stephalf was false so the new
+        ##     ## par are just better.
+        ##     break
+        ## }
         if(abs.conv && abs.iter >= 5L) {
             ## Cannot satisy rel.conv in 5 iterations after satisfying
             ## abs.conv. Probably some parameters are unbounded.

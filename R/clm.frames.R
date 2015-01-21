@@ -2,42 +2,107 @@
 ## methods for computing, manipulating and extracting design matrices,
 ## weights, offsets, model.frames and things like that.
 
-get_clmDesign <- function(fullmf, formulas, contrasts) {
-### Compute design matrices for a clm object.
-### clm-internal+external
+##  #################################
+##  ## call sequence
+##  clm() {
+##      get_clmFormulas()
+##      get_clm.mf()
+##      get_clmTerms() # optionally
+##      get_clmDesign()
+##
+##      makeThresholds()
+##      drop.cols()
+##
+##      clm.fit.default()
+##      get_clmInfoTab()
+##  }
+##
+##  get_clmFormulas() {
+##      getFullForm()
+##  }
+##
+##  get_clm.mf() {
+##      model.frame()
+##  }
+##
+##  get_clmTerms() {
+##      get_clm.mf()
+##  }
+##
+##  get_clmDesign() {
+##      checkContrasts()
+##      get_clmDM() ## for formula, scale, nominal
+##      getWeights()
+##      get_clmY()
+##  }
+##
+##  get_clmDM() {
+##      model.matrix()
+##      getContrasts()
+##      getOffset()
+##  }
 
-    ## Check specification of contrasts:
+get_clmTerms <-
+    function(mc, formulas, call.envir=parent.frame(2L))
+### Compute terms objects for each of the formulas.
+{
+    ## We need this approach in order to get the predvars and
+    ## dataClasses attributes of the terms objects.
+    nms <- c("formula", "scale", "nominal")
+    keep <- match(nms, names(formulas), nomatch=0)
+    lapply(formulas[keep], function(form) {
+        terms(get_clm.mf(mc, form, attr(formulas, "envir"), call.envir))
+    })
+}
+
+get_clmDesign <- function(fullmf, terms.list, contrasts) {
+### Compute (y, X, weights, off, S, NOM etc.) for a clm object.
+### clm-internal+external
+###
+### terms.list: list of terms.objects.
+    stopifnot(all(sapply(terms.list, inherits, "terms")))
+
+    ## Check that contrasts are specified only for terms in the model:
     checkContrasts(terms=attr(fullmf, "terms"), contrasts=contrasts)
 
     ## Extract X (design matrix for location effects) + terms, offset:
-    res <- get_clmDM(fullmf, formulas, contrasts, type="formula")
-    res$off <- res$offset
-    res$offset <- NULL
+    res <- get_clmDM(fullmf, terms.list[["formula"]], contrasts,
+                     type="formula")
+    res$terms <- terms.list[["formula"]]
+    res$contrasts <- attr(res$X, "contrasts")
+    res$xlevels <- .getXlevels(res$terms, fullmf)
+    res$na.action <- attr(fullmf, "na.action")
 
     ## Extract weights:
-    res$wts <- getWeights(fullmf)
+    res$weights <- getWeights(fullmf)
 
     ## Extract model response:
-    res <- c(get_clmY(fullmf, res$wts), res)
+    res <- c(get_clmY(fullmf, res$weights), res)
 
     ## Extract S (design matrix for the scale effects):
-    if(!is.null(formulas$scale)) {
-        ans <- get_clmDM(fullmf, formulas, contrasts, type="scale")
+    if(!is.null(terms.list$scale)) {
+        ans <- get_clmDM(fullmf, terms.list[["scale"]], contrasts,
+                         type="scale")
         res$S <- ans$X
-        res$S.terms <- ans$terms
+        res$S.terms <- terms.list[["scale"]]
         res$S.off <- ans$offset
-        if(attr(ans$terms, "response") != 0)
+        res$S.contrasts <- attr(res$S, "contrasts")
+        res$S.xlevels <- .getXlevels(res$S.terms, fullmf)
+        if(attr(res$S.terms, "response") != 0)
             stop("response not allowed in 'scale'", call.=FALSE)
     }
 
     ## Extract NOM (design matrix for the nominal effects):
-    if(!is.null(formulas$nominal)) {
-        ans <- get_clmDM(fullmf, formulas, contrasts, type="nominal")
+    if(!is.null(terms.list$nominal)) {
+        ans <- get_clmDM(fullmf, terms.list[["nominal"]], contrasts,
+                         type="nominal")
         res$NOM <- ans$X
-        res$nom.terms <- ans$terms
-        if(attr(ans$terms, "response") != 0)
+        res$nom.terms <- terms.list[["nominal"]]
+        res$nom.contrasts <- attr(res$NOM, "contrasts")
+        res$nom.xlevels <- .getXlevels(res$nom.terms, fullmf)
+        if(attr(res$nom.terms, "response") != 0)
             stop("response not allowed in 'nominal'", call.=FALSE)
-        if(!is.null(attr(ans$terms, "offset")))
+        if(!is.null(attr(res$nom.terms, "offset")))
             stop("offset not allowed in 'nominal'", call.=FALSE)
     }
 
@@ -48,79 +113,74 @@ get_clmDesign <- function(fullmf, formulas, contrasts) {
 }
 
 get_clmDM <-
-    function(fullmf, formulas, contrasts,
-             type=c("formula", "scale", "nominal"),
-             check.intercept=TRUE, get.offset=TRUE)
+    function(fullmf, terms, contrasts, check.intercept=TRUE,
+             type="formula", get.offset=TRUE)
+### Get DM (=Design Matrix):
 {
-    ## Get DM (=Design Matrix):
-    type <- match.arg(type)
-    ## if(type=="scale") browser()
-    terms <- terms(formulas[[type]], data=fullmf)
-    X <- model.matrix(formulas[[type]], data=fullmf,
+    X <- model.matrix(terms, data=fullmf,
                       contrasts.arg=getContrasts(terms, contrasts))
     ## Test for intercept in X(?):
     Xint <- match("(Intercept)", colnames(X), nomatch = 0)
     if(check.intercept && Xint <= 0) {
         X <- cbind("(Intercept)" = rep(1, nrow(X)), X)
-        warning(gettext("an intercept is needed and assumed in '%s'", type),
+        warning(gettextf("an intercept is needed and assumed in '%s'", type),
                 call.=FALSE)
     } ## Intercept in X is guaranteed.
-    res <- list(X=X, terms=terms)
+    res <- list(X=X)
     if(get.offset)
         res$offset <- getOffset(fullmf, terms)
     res
 }
 
-get_clmFullmf <- function(mc, fullForm, form.envir, contrasts)
+get_clm.mf <-
+    function(mc, formula, form.envir, call.envir=parent.frame(2L))
 ### clm-internal
-### Extract the full model.frame
+### Extract the model.frame from formula
 ### mc - matched call containing: data, subset, weights, na.action
 {
     ## Extract the full model.frame(mf):
     m <- match(c("data", "subset", "weights", "na.action"),
                names(mc), 0)
     mfcall <- mc[c(1, m)]
-    mfcall$formula <- fullForm
+    mfcall$formula <- formula
     mfcall$drop.unused.levels <- TRUE
     mfcall[[1]] <- as.name("model.frame")
     if(is.null(mfcall$data)) mfcall$data <- form.envir
-    fullmf <- eval(mfcall, envir=parent.frame(2))
-    ## Return:
-    fullmf
+    eval(mfcall, envir=call.envir)
 }
 
-get_clmY <- function(fullmf, wts) {
+get_clmY <- function(fullmf, weights) {
     y <- model.response(fullmf, "any") ## any storage mode
-    if(!is.factor(y)) stop("response needs to be a factor", call.=FALSE)
-    ## ylevels are the levels of y with positive weights
-    ylevels <- levels(droplevels(y[wts > 0]))
+    if(is.null(y)) stop("'formula' needs a response", call.=FALSE)
+    if(!is.factor(y)) stop("response in 'formula' needs to be a factor", call.=FALSE)
+    ## y.levels are the levels of y with positive weights
+    y.levels <- levels(droplevels(y[weights > 0]))
     ## check that y has at least two levels:
-    if(length(ylevels) == 1L)
+    if(length(y.levels) == 1L)
         stop(gettextf("response has only 1 level ('%s'); expecting at least two levels",
-                      ylevels), call.=FALSE)
-    if(!length(ylevels))
+                      y.levels), call.=FALSE)
+    if(!length(y.levels))
         stop("response should be a factor with at least two levels")
     ## return:
-    list(y=y, ylevels=ylevels)
+    list(y=y, y.levels=y.levels)
 }
 
-get_clmFormulas <- function(mc)
+get_clmFormulas <- function(mc, envir=parent.frame(2L))
 ### clm-internal
-### Extracts and returns a list of formulas needed for further
-### processing.
+### Extracts and returns a list of formulas needed for further processing.
 ### mc: matched call
+### envir: environment in which mc is to be evaluated
 {
     ## Collect all variables in a full formula:
     ## evaluate the formulae in the enviroment in which clm was called
     ## (parent.frame(2)) to get them evaluated properly:
-    forms <- list(eval.parent(mc$formula, 2))
-    if(!is.null(mc$scale)) forms$scale <- eval.parent(mc$scale, 2)
-    if(!is.null(mc$nominal)) forms$nominal <- eval.parent(mc$nominal, 2)
+    forms <- list(eval(mc$formula, envir=envir))
+    if(!is.null(mc$scale)) forms$scale <- eval(mc$scale, envir=envir)
+    if(!is.null(mc$nominal)) forms$nominal <- eval(mc$nominal, envir=envir)
     ## get the environment of the formula. If this does not have an
     ## enviroment (it could be a character), then use the parent frame.
     form.envir <-
-        if(!is.null(env <- environment(forms[[1]]))) env
-        else parent.frame(2)
+        if(!is.null(env <- environment(forms[[1]]))) env else envir
     ## ensure formula, scale and nominal are formulas:
     ## forms <- lapply(forms, function(x) {
     ##   try(formula(deparse(x), env = form.envir), silent=TRUE) })
@@ -132,9 +192,10 @@ get_clmFormulas <- function(mc)
         stop("unable to interpret 'formula', 'scale' or 'nominal'")
     ## collect all variables in a full formula:
     forms$fullForm <- do.call("getFullForm", forms)
+### FIXME: do we really need to set this name?
     names(forms)[1] <- "formula"
     ## set environment of 'fullForm' to the environment of 'formula':
-    forms$form.envir <- environment(forms$fullForm) <- form.envir
+    attr(forms, "envir") <- environment(forms$fullForm) <- form.envir
     ## return:
     forms
 }
@@ -145,25 +206,26 @@ get_clmRho <- function(object, ...) {
 
 
 get_clmRho.default <-
-    function(object, formulas, contrasts, link, threshold,
+    function(object, terms.list, contrasts, link, threshold,
              parent=parent.frame(), start=NULL, ...)
 ### .default method(?)
 ### object: model.frame (fullmf) with all variables present
-### formulas: list of formulas for the clm object.
+### terms.list: list of terms.objects for each of the formulas in the
+### clm object.
 {
     ## Get design matrices etc:
     design <- get_clmDesign(fullmf=object,
-                            formulas=formulas,
+                            terms.list=terms.list,
                             contrasts=contrasts)
     ## Get threshold information:
-    design$ths <- makeThresholds(design$ylevels, threshold)
+    design <- c(design, makeThresholds(design$y.levels, threshold))
     ## Drop columns for aliased coefs:
     design <- drop.cols(design, drop.scale=FALSE, silent=TRUE)
-    ## Set envir rho with variables: B1, B2, o1, o2, wts, fitted:
+    ## Set envir rho with variables: B1, B2, o1, o2, weights, fitted:
     rho <- with(design, {
         clm.newRho(parent.frame(), y=y, X=X, NOM=design$NOM, S=design$S,
-                   weights=wts, offset=off, S.offset=design$S.off,
-                   tJac=ths$tJac)
+                   weights=weights, offset=offset, S.offset=design$S.off,
+                   tJac=tJac)
     })
     ## Set and check starting values for the parameters:
     start <- set.start(rho, start=start, get.start=is.null(start),
@@ -179,7 +241,8 @@ get_clmRho.clm <-
     function(object, parent=parent.frame(), ...) {
 ### Safely generate the model environment from a model object.
     o <- object
-    get_clmRho.default(object=model.frame(o), formulas=o$formulas,
+    get_clmRho.default(object=model.frame(o),
+                       terms.list=terms(o, "all"),
                        contrasts=o$contrasts, start=c(o$start), link=o$link,
                        threshold=o$threshold, parent=parent, ...)
 }
@@ -195,128 +258,3 @@ get_clmRho.clm <-
 ##     list(mfcall=mf, envir=parent.frame(2))
 ## }
 
-## get_clmDesign <- function(fullmf, formulas, contrasts) {
-## ### Compute design matrices for a clm object.
-## ### clm-internal+external
-##
-##     ## Extract X (design matrix for location effects) + terms, offset:
-##     res <- get_clmX(fullmf, formulas, contrasts)
-##
-##     ## Extract weights:
-##     res$wts <- getWeights(fullmf)
-##
-##     ## Extract model response:
-##     res <- c(get_clmY(fullmf, res$wts), res)
-##
-##     ## Extract S (design matrix for the scale effects):
-##     if(!is.null(formulas$scale))
-##         res <- c(res, get_clmS(fullmf, formulas, contrasts))
-##
-##     ## Extract NOM (design matrix for the nominal effects):
-##     if(!is.null(formulas$nominal))
-##         res <- c(res, get_clmNOM(fullmf, formulas, contrasts))
-##     ## Return results (list of design matrices etc.):
-##     res
-## ### NOTE: X, S and NOM are with dimnames and intercepts are
-## ### guaranteed. They may be column rank deficient.
-## }
-
-
-## get_clmX <- function(fullmf, formulas, contrasts) {
-##     ## mfcall$formula <- formulas$formula
-##     ## mfcall$na.action <- "na.pass" ## filter NAs by hand below
-##     ## X.mf <- eval(mfcall, envir=mfenvir)
-##     ## X.terms <- attr(X.mf, "terms")
-##     ## X <- model.matrix(X.terms, data=fullmf,
-##     ##                 contrasts.arg=getContrasts(X.terms, contrasts))
-## ### NOTE: The following construct is not enough, since calls like
-## ### clm(ordered(rating) ~ temp + contact, data=wine) will fail. The
-## ### reason is that 'ordered(factor)' will not be evaluated correctly.
-## ### X.mf <- model.frame(formulas$formula, data=mf)
-## ### mf$formula <- forms[[1]]
-## ### X.mf <- eval(mf, envir = parent.frame(2))
-## ### X.terms <- attr(X.mf, "terms")
-## ### X <- model.matrix(X.terms, data=mf,
-## ###                   contrasts.arg=getContrasts(X.terms, contrasts))
-## ###
-## ### Can we somehow extract the right colums/terms from mf anyway?
-## ###
-##     terms <- terms(formulas$formula, data=fullmf)
-## ### FIXME: test if fm$terms contains contact (which is should not) if
-## ### fm <- clm(rating ~ terms, scale=~contact, data=wine)
-##     X <- model.matrix(formulas$formula, data=fullmf,
-##                       contrasts.arg=getContrasts(terms, contrasts))
-##     n <- nrow(X)
-##     ## Test for intercept in X:
-##     Xint <- match("(Intercept)", colnames(X), nomatch = 0)
-##     if(Xint <= 0) {
-##         X <- cbind("(Intercept)" = rep(1, n), X)
-##         warning("an intercept is needed and assumed in 'formula'",
-##                 call.=FALSE)
-##     } ## intercept in X is guaranteed.
-##     off <- getOffset(fullmf, terms)
-##     ## Filter NAs if any:
-##     ## if(!is.null(naa <- na.action(fullmf)))
-##     ##     off <- off[-naa]
-##     ## return:
-##     list(X=X, terms=terms, off=off)
-## }
-##
-## get_clmS <- function(mfcall, mfenvir, fullmf, formulas, contrasts) {
-##     mfcall$formula <- formulas$scale
-##     mfcall$na.action <- "na.pass" ## filter NAs by hand below
-##     mf <- eval(mfcall, envir=mfenvir)
-##     terms <- attr(mf, "terms")
-##     X <- model.matrix(terms, data=fullmf,
-##                       contrasts.arg=getContrasts(terms, contrasts))
-##     ## S.mf <- model.frame(formulas$scale, data=fullmf)
-##     if(!is.null(model.response(mf)))
-##         stop("response not allowed in 'scale'", call.=FALSE)
-##     ## S.terms <- attr(mf, "terms")
-##     ## S <- model.matrix(S.terms, data=fullmf,
-##     ##                   contrasts.arg=getContrasts(S.terms, contrasts))
-##     ## Test for intercept in S:
-##     Xint <- match("(Intercept)", colnames(X), nomatch = 0)
-##     if(Xint <= 0) {
-##         X <- cbind("(Intercept)" = rep(1, n), X)
-##         warning("an intercept is needed and assumed in 'scale'",
-##                 call.=FALSE)
-##     } ## intercept in S is guaranteed.
-##     off <- getOffset(mf, terms)
-##     ## Filter NAs if any:
-##     if(!is.null(naa <- na.action(fullmf)))
-##         off <- off[-naa]
-##     ## Return:
-##     list(S=X, S.terms=terms, S.off=off)
-## }
-##
-## get_clmNOM <- function(mfcall, mfenvir, fullmf, formulas, contrasts) {
-##     ## ans <- get_clmDM(mfcall, mfenvir, fullmf, formulas, contrasts,
-##     ##                  type="nominal", get.offset=FALSE)
-##     ## if(!is.null(model.response(ans$mf)))
-##     ##     stop("response not allowed in 'nominal'", call.=FALSE)
-##     ## if(!is.null(model.offset(ans$mf)))
-##     ##     stop("offset not allowed in 'nominal'", call.=FALSE)
-##     ## return(list(NOM=ans$X, nom.terms=terms))
-##     mfcall$formula <- formulas$nominal
-##     mfcall$na.action <- "na.pass" ## filter NAs by hand below
-##     mf <- eval(mfcall, envir=mfenvir)
-##     terms <- attr(mf, "terms")
-##     X <- model.matrix(terms, data=fullmf,
-##                       contrasts.arg=getContrasts(terms, contrasts))
-##     ## nom.mf <- model.frame(formulas$nominal, data=fullmf)
-##     if(!is.null(model.response(mf)))
-##         stop("response not allowed in 'nominal'", call.=FALSE)
-##     if(!is.null(model.offset(mf)))
-##         stop("offset not allowed in 'nominal'", call.=FALSE)
-##     ## terms <- attr(nom.mf, "terms")
-##     ## NOM <- model.matrix(terms, data=fullmf,
-##     ##                     contrasts.arg=getContrasts(terms, contrasts))
-##     Xint <- match("(Intercept)", colnames(X), nomatch = 0)
-##     if(Xint <= 0) {
-##         X <- cbind("(Intercept)" = rep(1, n), X)
-##         warning("an intercept is needed and assumed in 'nominal'",
-##                 call.=FALSE)
-##     } ## intercept in NOM is guarantied.
-##     list(NOM=X, nom.terms=terms)
-## }

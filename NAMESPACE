@@ -57,6 +57,9 @@ export(gnorm, glogis, gcauchy,
        )
 
 ## Methods:
+S3method(clm.fit, default)
+S3method(clm.fit, factor)
+
 S3method(print, clm)
 S3method(vcov, clm)
 S3method(summary, clm)
@@ -87,6 +90,7 @@ S3method(logLik, clm)
 S3method(extractAIC, clm)
 S3method(model.matrix, clm)
 S3method(model.frame, clm)
+S3method(terms, clm)
 
 S3method(print, clmm)
 S3method(vcov, clmm)

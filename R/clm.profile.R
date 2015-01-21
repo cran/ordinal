@@ -15,6 +15,8 @@ profile.clm <-
 ### of aliased coefs.
 {
   ## match and test arguments:
+    if(any(is.na(diag(vcov(fitted)))))
+        stop("Cannot get profile when vcov(fitted) contains NAs", call.=FALSE)
   stopifnot(is.numeric(alpha) && length(alpha) == 1 &&
             alpha > 0 && alpha < 1)
   stopifnot(round(max.steps) > round(nsteps))
@@ -75,6 +77,9 @@ profile.clm.beta <-
 ### unique. This is needed to correctly construct the resulting
 ### par.vals matrix and to extract from it again.
     std.err <- coef(summary(fitted))[nalpha + 1:nbeta, "Std. Error"]
+    if(any(is.na(std.err)))
+        stop("Cannot profile model where standard errors are NA",
+             call.=FALSE)
     ## results list:
     prof.list <- vector("list", length = length(which.beta))
     names(prof.list) <- beta.names[which.beta]
@@ -173,6 +178,9 @@ profile.clm.zeta <-
   orig.par <- c(fitted$alpha, fitted$beta, zeta)
   nalpha <- length(fitted$alpha)
   std.err <- coef(summary(fitted))[nalpha+nbeta+1:nzeta, "Std. Error"]
+  if(any(is.na(std.err)))
+      stop("Cannot profile model where standard errors are NA",
+           call.=FALSE)
   ## results list:
   prof.list <- vector("list", length = length(which.zeta))
   names(prof.list) <- names(zeta)[which.zeta]
@@ -636,7 +644,7 @@ profileAlt.clm <- ## using clm.fit()
 ### model-design-objects:
   ## mf <- update(fitted, method = "model.frame")
   contr <- c(fitted$contrasts, fitted$S.contrasts, fitted$nom.contrasts)
-  mf <- get_clmDesign(fitted$model, fitted$formulas, contr)
+  mf <- get_clmDesign(fitted$model, fitted$terms.list, contr)
   y <- mf$y
   X <- mf$X
   wts <- mf$wts

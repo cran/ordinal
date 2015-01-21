@@ -122,7 +122,7 @@ summary.clm <- function(object, correlation = FALSE, ...)
         alias <- unlist(object$aliased)
         coefs[!alias, 2] <- sd <- sqrt(diag(vcov))
         ## Cond is Inf if Hessian contains NaNs:
-        object$condHess <-
+        object$cond.H <-
             if(any(is.na(object$Hessian))) Inf
             else with(eigen(object$Hessian, symmetric=TRUE, only.values = TRUE),
                       abs(max(values) / min(values)))
@@ -312,7 +312,7 @@ model.matrix.clm <- function(object, type = c("design", "B"), ...) {
         contr <- c(object$contrasts, object$S.contrasts,
                    object$nom.contrasts)
         design <- get_clmDesign(fullmf=object$model,
-                                formulas=object$formulas,
+                                terms.list=terms(object, "all"),
                                 contrasts=contr)
         keep <- c("X", "NOM", "S")
         select <- match(keep, names(design), nomatch=0)
@@ -353,3 +353,17 @@ coef.summary.clm <- function(object, na.rm = FALSE, ...) {
 
 nobs.clm <- function(object, ...) object$nobs
 
+terms.clm <-
+    function(x, type=c("formula", "scale", "nominal", "all"), ...)
+{
+    type <- match.arg(type)
+    term.nm <- c("terms", "S.terms", "nom.terms")
+    Terms <- x[names(x) %in% term.nm]
+    ind <- match(term.nm, names(Terms), 0L)
+    Terms <- Terms[ind]
+    names(Terms) <- c("formula", "scale", "nominal")[ind != 0]
+    if(type == "all") return(Terms)
+    if(!type %in% names(Terms))
+        stop(gettextf("no terms object for '%s'", type))
+    Terms[[type]]
+}

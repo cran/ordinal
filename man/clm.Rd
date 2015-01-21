@@ -158,7 +158,7 @@ clm(formula, scale, nominal, data, weights, start, subset, doFit = TRUE,
   \item{coefficients}{a vector of coefficients of the form
     \code{c(alpha, beta, zeta)}
   }
-  \item{condHess}{Condition number of the Hessian matrix at the optimum
+  \item{cond.H}{Condition number of the Hessian matrix at the optimum
     (i.e. the ratio of the largest to the smallest eigenvalue).
   }
   \item{contrasts}{(where relevant) the contrasts used for the

@@ -2,7 +2,7 @@
 ## Functions that set control parameters for clm() and clmm().
 
 clm.control <-
-  function(method = c("Newton", "model.frame", "ucminf", "nlminb",
+  function(method = c("Newton", "model.frame", "design", "ucminf", "nlminb",
              "optim"), ...,  trace = 0L, maxIter = 100L, gradTol = 1e-6,
            maxLineIter = 15L, relTol = 1e-6, tol = sqrt(.Machine$double.eps),
            maxModIter = 5L,

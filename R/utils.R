@@ -33,7 +33,7 @@ setLinks <- function(rho, link) {
   rho$link <- link
 }
 
-makeThresholds <- function(ylevels, threshold) { ## , tJac) {
+makeThresholds <- function(y.levels, threshold) { ## , tJac) {
 ### Generate the threshold structure summarized in the transpose of
 ### the Jacobian matrix, tJac. Also generating nalpha and alpha.names.
 
@@ -41,7 +41,7 @@ makeThresholds <- function(ylevels, threshold) { ## , tJac) {
 ### y - response variable, a factor
 ### threshold - one of "flexible", "symmetric" or "equidistant"
   ## stopifnot(is.factor(y))
-  lev <- ylevels
+  lev <- y.levels
   ntheta <- length(lev) - 1
 
   ## if(!is.null(tJac)) {
@@ -321,7 +321,7 @@ getB <- function(y, NOM=NULL, X=NULL, offset=NULL, tJac=NULL) {
   }
   dimnames(B1) <- NULL
   dimnames(B2) <- NULL
-  list(B1=B1, B2=B2, o1=o1, o2=o2)
+  namedList(B1, B2, o1, o2)
 }
 
 Deparse <-
@@ -341,7 +341,7 @@ getContrasts <- function(terms, contrasts) {
 
 checkContrasts <- function(terms, contrasts) {
 ### Check that contrasts are not specified for absent factors and warn
-### if about them
+### about them
     term.labels <- attr(terms, "term.labels")
     nm.contr <- names(contrasts)
     notkeep <- nm.contr[!nm.contr %in% term.labels]
@@ -357,7 +357,7 @@ checkContrasts <- function(terms, contrasts) {
 
 get_clmInfoTab <- function(object, ...) {
     names <- c("link", "threshold", "nobs", "logLik", "edf", "niter",
-               "maxGradient", "condHess")
+               "maxGradient", "cond.H")
     stopifnot(all(names %in% names(object)))
     info <- with(object, {
         data.frame("link" = link,
@@ -371,7 +371,7 @@ get_clmInfoTab <- function(object, ...) {
 ### included here.
                    "max.grad" = formatC(maxGradient, digits=2,
                    format="e"),
-                   "cond.H" = formatC(condHess, digits=1, format="e")
+                   "cond.H" = formatC(cond.H, digits=1, format="e")
                    ## BIC is not part of output since it is not clear what
                    ## the no. observations are.
                    )
@@ -379,16 +379,15 @@ get_clmInfoTab <- function(object, ...) {
     info
 }
 
-format_tJac <- function(frames) {
-    lev <- frames$ylevels
-    tJac <- frames$ths$tJac
+format_tJac <- function(tJac, y.levels, alpha.names) {
+    lev <- y.levels
     rownames(tJac) <- paste(lev[-length(lev)], lev[-1], sep="|")
-    colnames(tJac) <- frames$ths$alpha.names
+    colnames(tJac) <- alpha.names
     tJac
 }
 
 extractFromFrames <- function(frames, fullmf) {
-    lst <- list(y.levels=frames$ylevels,
+    lst <- list(y.levels=frames$y.levels,
                 na.action=attr(fullmf, "na.action"),
                 tJac=format_tJac(frames))
 
@@ -396,32 +395,44 @@ extractFromFrames <- function(frames, fullmf) {
                  xlevels=.getXlevels(frames$terms, fullmf))
     lst <- c(lst, lstX)
 
-    if(!is.null(frames$S))
+    if(!is.null(frames[["S"]]))
         lst <- c(lst, list(S.contrasts=attr(frames$S, "contrasts"),
                            S.terms=frames$S.terms,
-                           xlevels=.getXlevels(frames$S.terms, fullmf)))
-    if(!is.null(frames$NOM))
+                           S.xlevels=.getXlevels(frames$S.terms, fullmf)))
+    if(!is.null(frames[["NOM"]]))
         lst <- c(lst, list(nom.contrasts=attr(frames$NOM, "contrasts"),
                            nom.terms=frames$nom.terms,
                            nom.xlevels=.getXlevels(frames$nom.terms, fullmf)))
     lst
 }
 
-formatTheta <- function(object, NOM, fullmf) {
-    res <- object
+formatTheta <- function(alpha, tJac, x) {
+    ## x: alpha, tJac, nom.terms, NOM, nom.contrasts, nom.xlevels,
     Theta.ok <- TRUE
-
+    if(is.null(x[["NOM"]])) { ## no nominal effects
+        Theta <- alpha %*% t(tJac)
+        colnames(Theta) <- rownames(tJac)
+        return(namedList(Theta, Theta.ok))
+    }
+    x$nom.assign <- attr(x$NOM, "assign")
+    args <- c("nom.terms", "nom.assign")
+    args <- c("nom.terms")
+    if(any(sapply(args, function(txt) is.null(x[[txt]])))) {
+        ## Nominal effects, but we cannot compute Theta
+        warning("Cannot assess if all thresholds are increasing",
+                call.=FALSE)
+        return(namedList(Theta.ok))
+    }
     ## Get matrix of thresholds; Theta:
     Theta.list <-
-        getThetamat(terms=res$nom.terms,
-                    alpha=res$alpha,
-                    assign=attr(NOM, "assign"),
-                    contrasts=res$nom.contrasts,
-                    tJac=res$tJac,
-                    xlevels=res$nom.xlevels,
-                    dataClasses=get_dataClasses(fullmf))
-    ## Test that thresholds are increasing:
-        if(all(is.finite(unlist(Theta.list$Theta)))) {
+        getThetamat(terms=x$nom.terms,
+                    alpha=alpha,
+                    assign=attr(x$NOM, "assign"),
+                    contrasts=x$nom.contrasts,
+                    tJac=tJac,
+                    xlevels=x$nom.xlevels)
+    ## Test that (finite) thresholds are increasing:
+    if(all(is.finite(unlist(Theta.list$Theta)))) {
         th.increasing <- apply(Theta.list$Theta, 1, function(th)
                                all(diff(th) >= 0))
         if(!all(th.increasing))
@@ -429,16 +440,36 @@ formatTheta <- function(object, NOM, fullmf) {
     }
     Theta <- if(length(Theta.list) == 2)
         with(Theta.list, cbind(mf.basic, Theta)) else Theta.list$Theta
-    alpha.mat <- matrix(res$alpha, ncol=ncol(res$tJac), byrow=TRUE)
-    colnames(alpha.mat) <- colnames(res$tJac)
-    rownames(alpha.mat) <- attr(NOM, "orig.colnames")
+    alpha.mat <- matrix(alpha, ncol=ncol(tJac), byrow=TRUE)
+    colnames(alpha.mat) <- colnames(tJac)
+    rownames(alpha.mat) <- attr(x$NOM, "orig.colnames")
     ## Return
-    list(Theta=Theta, alpha.mat=alpha.mat, Theta.ok=Theta.ok)
+    namedList(Theta, alpha.mat, Theta.ok)
 }
 
-get_dataClasses <- function(mf) {
-    if(!is.null(Terms <- attr(mf, "terms")) &&
-       !is.null(dataCl <- attr(Terms, "dataClasses")))
-        return(dataCl)
-    sapply(mf, .MFclass)
+## We don't need this function anymore since the terms objects now
+## always contain dataClasses and predvars attributes.
+## get_dataClasses <- function(mf) {
+##     if(!is.null(Terms <- attr(mf, "terms")) &&
+##        !is.null(dataCl <- attr(Terms, "dataClasses")))
+##         return(dataCl)
+##     sapply(mf, .MFclass)
+## }
+
+## Returns a named list, where the names are the deparsed actual
+## arguments:
+namedList <- function(...) {
+    setNames(list(...), nm=sapply(as.list(match.call()), deparse)[-1])
 }
+
+## a <- 1
+## b <- 2
+## c <- 3
+## d <- list(e=2, f=factor(letters[rep(1:2, 2)]))
+## g <- matrix(runif(9), 3)
+##
+## namedList(a, b, c)
+## namedList(a, b, c, d, g)
+##
+## res <- namedList(d, g)
+## names(res)

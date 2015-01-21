@@ -83,7 +83,7 @@ try(anova(fm1, fm2), silent=TRUE)[1] ## OK
 
 ## Test clm.fit:
 wts2 <- 1 * with(wine, rating != "2")
-mf2 <- update(fm2, method="model.frame")
+mf2 <- update(fm2, method="design")
 fm3 <- with(mf2, clm.fit(y, X, weights=wts))
 
 #################################

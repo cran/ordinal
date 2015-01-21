@@ -52,7 +52,7 @@ simple_clm <-
 
   ## Compute the transpose of the Jacobian for the threshold function,
   ## tJac and the names of the threshold parameters, alpha.names:
-  frames$ths <- makeThresholds(ylevels, threshold)
+  frames <- c(frames, makeThresholds(ylevels, threshold))
   ## test for column rank deficiency in design matrices:
   frames <- drop.cols(frames, silent=TRUE)
 
@@ -60,7 +60,7 @@ simple_clm <-
   rho <- clm.newRho(parent.frame(), y=frames$y, X=frames$X,
                     NOM=NULL, S=NULL,
                     weights=wts, offset=off, S.offset=NULL,
-                    tJac=frames$ths$tJac)
+                    tJac=frames$tJac)
 
   ## Set starting values for the parameters:
   start <- set.start(rho, start=start, get.start=missing(start),
@@ -97,13 +97,13 @@ simple_clm <-
   res$na.action <- attr(mf, "na.action")
   res$terms <- mt
   res$xlevels <- .getXlevels(mt, mf)
-  res$tJac <- frames$ths$tJac
+  res$tJac <- frames$tJac
   res$y.levels <- frames$ylevels
   ## Check convergence:
   conv <- conv.check(res, Theta.ok=TRUE, tol=control$tol)
   print.conv.check(conv, action=control$convergence) ## print convergence message
   res$vcov <- conv$vcov
-  res$condHess <- conv$cond.H
+  res$cond.H <- conv$cond.H
   res$convergence <- conv[!names(conv) %in% c("vcov", "cond.H")]
   res$info <- with(res, {
     data.frame("link" = link,

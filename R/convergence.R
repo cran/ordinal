@@ -137,9 +137,13 @@ signif.digits <- function(value, error) {
 
 conv.check <-
     function(fit, control=NULL, Theta.ok=NULL, tol=sqrt(.Machine$double.eps), ...)
+    ## function(gr, Hess, conv, method, gradTol, relTol,
+    ##          tol=sqrt(.Machine$double.eps), ...)
 ### Compute variance-covariance matrix and check convergence along the
 ### way.
-### fit: clm-object or the result of clm.fit.NR()
+### fit: clm-object or the result of clm.fit.NR() | gradient, Hessian,
+### (control), convergence
+### control: (tol), (method), gradTol, relTol
 ###
 ### Return: list with elements
 ### vcov, conv, cond.H, messages and

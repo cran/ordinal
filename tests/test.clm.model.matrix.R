@@ -9,8 +9,8 @@ library(ordinal)
 ## Check that get_clmDesign works in standard setting:
 fm1 <- clm(rating ~ temp, scale=~contact, nominal=~contact, data=wine)
 contr <- c(fm1$contrasts, fm1$S.contrasts, fm1$nom.contrasts)
-XX <- ordinal:::get_clmDesign(fm1$model, fm1$formulas, contrasts=contr)
-XX2 <- update(fm1, method="model.frame")
+XX <- ordinal:::get_clmDesign(fm1$model, terms(fm1, "all"), contrasts=contr)
+XX2 <- update(fm1, method="design")
 (keep <- intersect(names(XX), names(XX2)))
 (test <- mapply(function(x, y) isTRUE(all.equal(x, y)),
                 XX[keep], XX2[keep]))
@@ -23,8 +23,8 @@ wine2[c(9, 15, 46), "rating"] <- NA
 fm1 <- clm(rating ~ temp, scale=~contact, nominal=~contact,
            data=wine2)
 contr <- c(fm1$contrasts, fm1$S.contrasts, fm1$nom.contrasts)
-XX <- ordinal:::get_clmDesign(fm1$model, fm1$formulas, contrasts=contr)
-XX2 <- update(fm1, method="model.frame")
+XX <- ordinal:::get_clmDesign(fm1$model, terms(fm1, "all"), contrasts=contr)
+XX2 <- update(fm1, method="design")
 (keep <- intersect(names(XX), names(XX2)))
 (test <- mapply(function(x, y) isTRUE(all.equal(x, y)),
                 XX[keep], XX2[keep]))

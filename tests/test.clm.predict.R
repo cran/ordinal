@@ -141,3 +141,30 @@ fm1 <- clm(rating ~ temp + contact, data=wine,
 fm2 <- update(fm1)
 stopifnot(isTRUE(all.equal(fitted(fm1), predict(fm1)$fit)))
 stopifnot(!isTRUE(all.equal(fitted(fm1), fitted(fm2))))
+
+#################################
+## Test equality of fits and predictions of models with:
+##   'x + I(x^2)' and 'poly(x, 2)':
+## December 25th 2014, RHBC.
+data(wine)
+set.seed(1)
+x <- rnorm(nrow(wine), sd=2) + as.numeric(wine$rating)
+range(x)
+
+## Comparison of 'x + I(x^2)' and 'poly(x, 2)':
+fm3 <- clm(rating ~ temp + x + I(x^2), data=wine)
+fm4 <- clm(rating ~ temp + poly(x, 2), data=wine)
+## Same model fits, but different parameterizations:
+stopifnot(
+    !isTRUE(all.equal(coef(fm3), coef(fm4), check.names=FALSE))
+    )
+stopifnot(isTRUE(all.equal(logLik(fm3), logLik(fm4))))
+newData <- expand.grid(temp = levels(wine$temp),
+                       x=seq(-1, 7, 3))
+predict(fm3, newdata=newData)$fit
+predict(fm4, newdata=newData)$fit
+stopifnot(isTRUE(all.equal(fitted(fm3), fitted(fm4))))
+stopifnot(isTRUE(
+    all.equal(predict(fm3, newdata=newData)$fit,
+              predict(fm4, newdata=newData)$fit)))
+#################################

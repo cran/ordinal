@@ -6,7 +6,7 @@
   Set control parameters for cumulative link models
 }
 \usage{
-clm.control(method = c("Newton", "model.frame", "ucminf", "nlminb",
+clm.control(method = c("Newton", "model.frame", "design", "ucminf", "nlminb",
    "optim"), ..., trace = 0L,
    maxIter = 100L, gradTol = 1e-06, maxLineIter = 15L, relTol = 1e-6,
    tol = sqrt(.Machine$double.eps), maxModIter = 5L,
@@ -15,9 +15,12 @@ clm.control(method = c("Newton", "model.frame", "ucminf", "nlminb",
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{method}{\code{"Newton"} fits the model by maximum likelihood and
-    \code{"model.frame"} cause \code{clm} to return the \code{model.frame}.
+    \code{"model.frame"} cause \code{\link{clm}} to return the
+    \code{model.frame}, \code{"design"} causes \code{\link{clm}} to
+    return a list of design matrices etc. that can be used with
+    \code{\link{clm.fit}}.
   }
-  \item{trace}{numerical, if > 0 information is printed about and during
+  \item{trace}{numerical, if \code{> 0} information is printed about and during
     the optimization process. Defaults to \code{0}.
   }
   \item{maxIter}{the maximum number of Newton-Raphson iterations.

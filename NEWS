@@ -235,3 +235,6 @@ March 04 2010:
 - Improved the efficiency (i.e. speed) in the evaluation of standard
   errors for predictions using predict.clm (based on feature request
   by Thomas Jagger).
+
+2015-01-21:
+- Updating Citation information per CRAN request.

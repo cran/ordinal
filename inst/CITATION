@@ -1,9 +1,8 @@
 citHeader("To cite the ordinal-package in publications use:")
 
-desc <- packageDescription("ordinal")
-year <- sub(".*(2[[:digit:]]{3})-.*", "\\1", desc$Date)
-vers <- paste("R package version", desc$Version,
-     		"http://www.cran.r-project.org/package=ordinal/")
+year <- sub(".*(2[[:digit:]]{3})-.*", "\\1", meta$Date)
+vers <- paste0("R package version ", meta$Version,
+              ". http://www.cran.r-project.org/package=ordinal/")
 
 citEntry(entry="misc",
          title = "ordinal---Regression Models for Ordinal Data ",
@@ -13,6 +12,6 @@ citEntry(entry="misc",
 
          textVersion =
          paste("Christensen, R. H. B. (", year,
- 		"). ordinal---Regression Models for Ordinal Data ",
+ 		"). ordinal - Regression Models for Ordinal Data. ",
 		vers, ".", sep="")
 )
