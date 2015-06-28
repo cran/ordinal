@@ -190,7 +190,9 @@ getZt <- function(retrms) {
 getREterms <- function(frames, formula) {
 ### NOTE: Need to parse mf - not just fullmf because we need the model
 ### fits for an identifiability check below.
-    fullmf <- frames$mf
+    ## fullmf <- frames$mf
+### FIXME: Should we have
+    fullmf <- droplevels(with(frames, mf[wts > 0, ]))
     barlist <- expandSlash(findbars(formula[[3]]))
 ### FIXME: make sure 'formula' is appropriately evaluated and returned
 ### by clmm.formulae
@@ -306,7 +308,7 @@ getDims <- function(frames, ths, retrms)
 ### Collect and compute all relevant dimensions in a list
 {
     dims <- retrms$dims ## n is also on retrms$dims
-    dims$n <- nrow(frames$mf)
+    dims$n <- sum(frames$wts > 0)
     dims$nbeta <- ncol(frames$X) - 1
     dims$nalpha <- ths$nalpha
     dims$nfepar <- dims$nalpha + dims$nbeta

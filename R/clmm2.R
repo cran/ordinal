@@ -362,6 +362,71 @@ getNAGQinR <- function(rho, par) {
     -sum(log(rowSums(rho$PRrn)))
 }
 
+## tmpAGQ(rho)
+
+tmpAGQ <- function(rho, par) {
+    if(!missing(par))
+        rho$par <- par
+    with(rho, {
+        ls()
+        stDev <- exp(ST[[1]][1, 1])
+        nlambda <- 0
+        K <- sqrt(2/D)
+        agqws <- K %*% t(ghqws)
+        agqns <- apply(K %*% t(ghqns), 2, function(x) x + u)
+        grFac <- unclass(grFac)
+        ranNew <- apply(agqns, 2, function(x) x[grFac] * stDev)
+        eta1Tmp <- (eta1Fix + o1 - ranNew) / sigma
+        eta2Tmp <- (eta2Fix + o2 - ranNew) / sigma
+        if(nlambda)
+            PRnn <- exp(weights * log(pfun(eta1Tmp, lambda) -
+                                      pfun(eta2Tmp, lambda)))
+        else
+            PRnn <- exp(wts * log(pfun(eta1Tmp) - pfun(eta2Tmp)))
+
+        dim(eta1Tmp)
+
+
+        exp(wts[IND] * log(pfun(eta1Tmp[IND, ]) - pfun(eta2Tmp[IND, ])))
+
+        PRrn <- do.call(rbind, lapply(1:dims$q, function(i) {
+            apply(PRnn[grFac == i, ,drop = FALSE], 2, prod)
+        }))
+        head(PRrn)
+
+        PRrn <- do.call(rbind, lapply(1:dims$q, function(i) {
+            apply(PRnn[grFac == i, ,drop = FALSE], 2, function(x) sum(log(x)))
+        }))
+        head(PRrn)
+        ## Could we do something like
+        PRnn <- wts * log(pfun(eta1Tmp) - pfun(eta2Tmp))
+        PRrn <- do.call(rbind, lapply(1:dims$q, function(i) {
+            apply(PRnn[grFac == i, ,drop = FALSE], 2, function(x) sum(x))
+        }))
+        head(PRrn, 20)
+        ## to avoid first exp()ing and then log()ing?
+        head(exp(PRrn), 20)
+        range(PRrn)
+        exp(range(PRrn))
+
+        out <- PRrn + log(agqws) + log(dnorm(x=agqns, mean=0, sd=1))
+
+
+        log(2 * 3)
+        log(2) + log(3)
+
+        PRnn[grFac == 12, , drop=FALSE]
+        IND <- which(grFac == 12)
+        cbind(IND, wts[IND], PRnn[IND, ])
+
+        dim(PRrn)
+        ## There seems to be underfloow allready in the computations
+        ## in PRnn, which propagates to PRrn
+        PRrn <- PRrn * agqws * dnorm(x=agqns, mean=0, sd=1)
+    })
+    -sum(log(rowSums(rho$PRrn)))
+}
+
 getNAGQinC <- function(rho, par) {
 ### negative log-likelihood by adaptive Gauss-Hermite quadrature
 ### implemented in C:

@@ -1,9 +1,23 @@
 useDynLib(ordinal, .registration = TRUE)
 
 importFrom(graphics,
-           plot)
-importFrom(ucminf, ucminf)
+           plot,
+           par,
+           abline,
+           lines,
+           points,
+           contour)
+importFrom(grDevices,
+           dev.interactive,
+           devAskNewPage)
+importFrom(utils,
+           combn,
+           packageDescription)
+importFrom(ucminf,
+           ucminf)
 import(methods)
+import(stats)
+
 ## importFrom(methods,
 ##            as,
 ##            checkAtAssignment,
@@ -19,19 +33,19 @@ importFrom(MASS,
            ginv,
            addterm,
            dropterm)
-importFrom(stats,
-           coef,
-           confint,
-           nobs,
-           logLik,
-           profile,
-           vcov,
-           extractAIC,
-           anova,
-           fitted## ,
-           ## terms
-           ## update
-           )
+## importFrom(stats,
+##            coef,
+##            confint,
+##            nobs,
+##            logLik,
+##            profile,
+##            vcov,
+##            extractAIC,
+##            anova,
+##            fitted## ,
+##            ## terms
+##            ## update
+##            )
 
 # Functions:
 export(clm)

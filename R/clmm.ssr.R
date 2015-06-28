@@ -57,6 +57,11 @@ clmm.fit.ssr <-
         else if(rho$nAGQ > 1) getNAGQ.ssr
         else getNLA.ssr ## nAGQ %in% c(0, 1)
 
+    init.val <- obj.fun(rho, rho$par)
+    if(!is.finite(init.val))
+        stop(gettextf("non-finite likelihood at starting value (%g)",
+                      init.val), call.=FALSE)
+
     ## Fit the model:
     if(method == "ucminf") {
         fit <- try(ucminf(rho$par, function(par) obj.fun(rho, par),
