@@ -65,12 +65,6 @@ ggumbel(x, max = TRUE)
   values of \code{NA}, \code{NaN}, \code{Inf}, \code{-Inf} or just
   extremely small or large. 
 
-  See the 'Primer' vignette for the definition of the Gumbel
-  distribution and its relation to the log-log and complementary-log-log
-  link used in cumulative link models.
-  See the examples for numerical relations between the max and
-  min variants.
-  
   The distribution functions, densities and gradients are used in the
   Newton-Raphson algorithms in fitting cumulative link models with
   \code{\link{clm}} and cumulative link mixed models with
@@ -109,7 +103,8 @@ dgumbel(x)
 ggumbel(x)
 
 (ppp <- pgumbel(x, max=FALSE))
-## Observe lack of precision:
+## Observe that probabilities close to 0 are more accurately determined than 
+## probabilities close to 1:
 qgumbel(ppp, max=FALSE)
 dgumbel(x, max=FALSE)
 ggumbel(x, max=FALSE)

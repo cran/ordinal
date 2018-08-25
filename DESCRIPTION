@@ -1,15 +1,15 @@
 Package: ordinal
 Type: Package
 Title: Regression Models for Ordinal Data
-Version: 2018.4-19
-Date: 2018-04-19
+Version: 2018.8-25
+Date: 2018-08-25
 Authors@R: person(given="Rune Haubo Bojesen", family="Christensen",
     email="rune.haubo@gmail.com", role=c("aut", "cre"))
 LazyData: true
 ByteCompile: yes
-Depends: R (>= 2.13.0), methods
-Imports: ucminf, MASS, Matrix
-Suggests: lme4, nnet, xtable, testthat (>= 0.8)
+Depends: R (>= 2.13.0), stats, methods
+Imports: ucminf, MASS, Matrix, numDeriv
+Suggests: lme4, nnet, xtable, testthat (>= 0.8), tools
 Description: Implementation of cumulative link (mixed) models also known
     as ordered regression models, proportional odds models, proportional
     hazards models for grouped survival times and ordered logit/probit/...
@@ -26,8 +26,8 @@ License: GPL (>= 2)
 NeedsCompilation: yes
 URL: https://github.com/runehaubo/ordinal
 BugReports: https://github.com/runehaubo/ordinal/issues
-Packaged: 2018-04-19 08:05:53 UTC; rhbc
+Packaged: 2018-08-25 13:13:27 UTC; rhbc
 Author: Rune Haubo Bojesen Christensen [aut, cre]
 Maintainer: Rune Haubo Bojesen Christensen <rune.haubo@gmail.com>
 Repository: CRAN
-Date/Publication: 2018-04-19 19:16:58 UTC
+Date/Publication: 2018-08-25 22:20:03 UTC

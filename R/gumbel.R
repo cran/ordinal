@@ -1,3 +1,22 @@
+#############################################################################
+#    Copyright (c) 2010-2018 Rune Haubo Bojesen Christensen
+#
+#    This file is part of the ordinal package for R (*ordinal*)
+#
+#    *ordinal* is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    *ordinal* is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    A copy of the GNU General Public License is available at
+#    <https://www.r-project.org/Licenses/> and/or
+#    <http://www.gnu.org/licenses/>.
+#############################################################################
 ## This file contains:
 ## [pdqrg]gumbel functions for the gumbel distribution.
 ## Here ggumbel is the gradient of the density function, dgumbel.
@@ -110,9 +129,8 @@ rgumbel <- function(n, location = 0, scale = 1, max = TRUE) {
     location + scale * log(-log(runif(n)))
 }
 
-qgumbel <-
-  function(p, location = 0, scale = 1, lower.tail = TRUE, max = TRUE)
-{
+qgumbel <- function(p, location = 0, scale = 1, lower.tail = TRUE, max = TRUE) {
+  if(!lower.tail) p <- 1 - p
   if(max)  ## right skew, loglog link
     location - scale * log(-log(p))
   else ## left skew, cloglog link

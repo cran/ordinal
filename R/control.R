@@ -1,21 +1,47 @@
+#############################################################################
+#    Copyright (c) 2010-2018 Rune Haubo Bojesen Christensen
+#
+#    This file is part of the ordinal package for R (*ordinal*)
+#
+#    *ordinal* is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    *ordinal* is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    A copy of the GNU General Public License is available at
+#    <https://www.r-project.org/Licenses/> and/or
+#    <http://www.gnu.org/licenses/>.
+#############################################################################
 ## This file contains:
 ## Functions that set control parameters for clm() and clmm().
 
 clm.control <-
   function(method = c("Newton", "model.frame", "design", "ucminf", "nlminb",
-             "optim"), ...,  trace = 0L, maxIter = 100L, gradTol = 1e-6,
+             "optim"), 
+           sign.location = c("negative", "positive"), 
+           sign.nominal = c("positive", "negative"), 
+           ...,  trace = 0L, maxIter = 100L, gradTol = 1e-6,
            maxLineIter = 15L, relTol = 1e-6, tol = sqrt(.Machine$double.eps),
            maxModIter = 5L,
            convergence=c("warn", "silent", "stop", "message"))
 {
   method <- match.arg(method)
   convergence <- match.arg(convergence)
+  sign.location <- match.arg(sign.location)
+  sign.nominal <- match.arg(sign.nominal)
 
   if(!all(is.numeric(c(maxIter, gradTol, maxLineIter, relTol, tol,
                        maxModIter))))
       stop("maxIter, gradTol, relTol, tol, maxModIter and maxLineIter should all be numeric")
 
   ctrl <- list(method = method,
+               sign.location = sign.location,
+               sign.nominal = sign.nominal,
                convergence = convergence,
                trace = as.integer(trace),
                maxIter = as.integer(maxIter),
@@ -34,10 +60,12 @@ clmm.control <-
   function(method = c("nlminb", "ucminf", "model.frame"),
            ..., trace = 0, maxIter = 50, gradTol = 1e-4,
            maxLineIter = 50, useMatrix = FALSE,
-           innerCtrl = c("warnOnly", "noWarn", "giveError"))
+           innerCtrl = c("warnOnly", "noWarn", "giveError"),
+           checkRanef = c("warn", "error", "message"))
 {
   method <- match.arg(method)
   innerCtrl <- match.arg(innerCtrl)
+  checkRanef <- match.arg(checkRanef)
   useMatrix <- as.logical(useMatrix)
   stopifnot(is.logical(useMatrix))
   ctrl <- list(trace=if(trace < 0) 1 else 0,
@@ -56,7 +84,6 @@ clmm.control <-
   if(method == "ucminf" && !"grad" %in% names(optCtrl))
     optCtrl$grad <- "central"
 
-  list(method = method, useMatrix = useMatrix, ctrl = ctrl,
-       optCtrl = optCtrl)
+  namedList(method, useMatrix, ctrl, optCtrl, checkRanef)
 }
 
