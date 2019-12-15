@@ -1,5 +1,4 @@
 ### R code from vignette source 'clmm2_tutorial.Rnw'
-### Encoding: UTF-8
 
 ###################################################
 ### code chunk number 1: Initialize

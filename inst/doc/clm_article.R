@@ -1,5 +1,4 @@
 ### R code from vignette source 'clm_article.Rnw'
-### Encoding: UTF-8
 
 ###################################################
 ### code chunk number 1: preliminaries
