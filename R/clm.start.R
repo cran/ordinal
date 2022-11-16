@@ -1,21 +1,21 @@
 #############################################################################
-#    Copyright (c) 2010-2018 Rune Haubo Bojesen Christensen
-#
-#    This file is part of the ordinal package for R (*ordinal*)
-#
-#    *ordinal* is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 2 of the License, or
-#    (at your option) any later version.
-#
-#    *ordinal* is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    A copy of the GNU General Public License is available at
-#    <https://www.r-project.org/Licenses/> and/or
-#    <http://www.gnu.org/licenses/>.
+##    Copyright (c) 2010-2022 Rune Haubo Bojesen Christensen
+##
+##    This file is part of the ordinal package for R (*ordinal*)
+##
+##    *ordinal* is free software: you can redistribute it and/or modify
+##    it under the terms of the GNU General Public License as published by
+##    the Free Software Foundation, either version 2 of the License, or
+##    (at your option) any later version.
+##
+##    *ordinal* is distributed in the hope that it will be useful,
+##    but WITHOUT ANY WARRANTY; without even the implied warranty of
+##    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+##    GNU General Public License for more details.
+##
+##    A copy of the GNU General Public License is available at
+##    <https://www.r-project.org/Licenses/> and/or
+##    <http://www.gnu.org/licenses/>.
 #############################################################################
 ## This file contains:
 ## Functions to compute starting values for CLMs in clm().
@@ -28,15 +28,18 @@ set.start <-
     start <- ## not 'starting' scale effects:
         clm.start(y.levels=frames$y.levels, threshold=threshold, X=frames$X,
                   NOM=frames$NOM, has.intercept=TRUE)
-    if(length(rho$lambda) > 0) start <- c(start, rho$lambda)
-    if(length(rho$lambda) == 0 && (NCOL(frames$S) > 1 || link == "cauchit")) {
+    if(NCOL(frames$S) > 1 || link == "cauchit" || length(rho$lambda)) {
 ### NOTE: only special start if NCOL(frames$S) > 1 (no reason for
 ### special start if scale is only offset and no predictors).
 ### NOTE: start cauchit models at the probit estimates if start is not
 ### supplied:
+### NOTE: start models with lambda at model with probit link
       rho$par <- start
-      if(link == "cauchit") setLinks(rho, link="probit")
-      else setLinks(rho, link)
+      if(link %in% c("Aranda-Ordaz", "log-gamma", "cauchit")) {
+        setLinks(rho, link="probit")
+      } else { 
+        setLinks(rho, link)
+      }
       tempk <- rho$k
       rho$k <- 0
       ## increased gradTol and relTol:
@@ -46,8 +49,10 @@ set.start <-
         stop("Failed to find suitable starting values: please supply some",
              call.=FALSE)
       start <- c(fit$par, rep(0, NCOL(frames$S) - 1))
+      if(length(rho$lambda) > 0) start <- c(start, rho$lambda)
       attr(start, "start.iter") <- fit$niter
       rho$k <- tempk
+      setLinks(rho, link) # reset link in rho
     }
   }
   ## test start:

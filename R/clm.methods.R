@@ -1,21 +1,21 @@
 #############################################################################
-#    Copyright (c) 2010-2018 Rune Haubo Bojesen Christensen
-#
-#    This file is part of the ordinal package for R (*ordinal*)
-#
-#    *ordinal* is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 2 of the License, or
-#    (at your option) any later version.
-#
-#    *ordinal* is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    A copy of the GNU General Public License is available at
-#    <https://www.r-project.org/Licenses/> and/or
-#    <http://www.gnu.org/licenses/>.
+##    Copyright (c) 2010-2022 Rune Haubo Bojesen Christensen
+##
+##    This file is part of the ordinal package for R (*ordinal*)
+##
+##    *ordinal* is free software: you can redistribute it and/or modify
+##    it under the terms of the GNU General Public License as published by
+##    the Free Software Foundation, either version 2 of the License, or
+##    (at your option) any later version.
+##
+##    *ordinal* is distributed in the hope that it will be useful,
+##    but WITHOUT ANY WARRANTY; without even the implied warranty of
+##    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+##    GNU General Public License for more details.
+##
+##    A copy of the GNU General Public License is available at
+##    <https://www.r-project.org/Licenses/> and/or
+##    <http://www.gnu.org/licenses/>.
 #############################################################################
 ## This file contains:
 ## Implementation of various methods for clm objects.
@@ -254,7 +254,10 @@ anova.clm <- function(object, ..., type = c("I", "II", "III", "1", "2", "3"))
     message("'test' argument ignored in anova.clm\n")
     dots <- dots[-not.keep]
   }
-  if(length(dots) == 0) return(single_anova(object, type=type))
+  if(length(dots) == 0) {
+    if(inherits(object, "clmm")) stop("anova not implemented for a single clmm fit")
+    return(single_anova(object, type=type))
+  }
   ## Multi-model anova method proceeds:
   mlist <- c(list(object), dots)
   if(!all(sapply(mlist, function(model)

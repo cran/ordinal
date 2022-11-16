@@ -1,21 +1,21 @@
 #############################################################################
-#    Copyright (c) 2010-2019 Rune Haubo Bojesen Christensen
-#
-#    This file is part of the ordinal package for R (*ordinal*)
-#
-#    *ordinal* is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 2 of the License, or
-#    (at your option) any later version.
-#
-#    *ordinal* is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    A copy of the GNU General Public License is available at
-#    <https://www.r-project.org/Licenses/> and/or
-#    <http://www.gnu.org/licenses/>.
+##    Copyright (c) 2010-2022 Rune Haubo Bojesen Christensen
+##
+##    This file is part of the ordinal package for R (*ordinal*)
+##
+##    *ordinal* is free software: you can redistribute it and/or modify
+##    it under the terms of the GNU General Public License as published by
+##    the Free Software Foundation, either version 2 of the License, or
+##    (at your option) any later version.
+##
+##    *ordinal* is distributed in the hope that it will be useful,
+##    but WITHOUT ANY WARRANTY; without even the implied warranty of
+##    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+##    GNU General Public License for more details.
+##
+##    A copy of the GNU General Public License is available at
+##    <https://www.r-project.org/Licenses/> and/or
+##    <http://www.gnu.org/licenses/>.
 #############################################################################
 ## This file contains:
 ## methods for computing, manipulating and extracting design matrices,
@@ -202,7 +202,7 @@ get_clmFormulas <- function(mc, envir=parent.frame(2L))
         if(!is.null(env <- environment(forms[[1]]))) env else envir
     ## ensure formula, scale and nominal are formulas:
     forms[] <- lapply(forms, function(x) { # 'is.character(.)' for scale = "~ ..."
-        tryCatch(formula(if(is.character(x)) x else deparse(x),
+        tryCatch(formula(if(is.character(x)) x else Deparse(x),
                          env = form.envir),
                  error = function(e)e)
     })

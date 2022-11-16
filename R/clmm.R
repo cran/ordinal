@@ -1,21 +1,21 @@
 #############################################################################
-#    Copyright (c) 2010-2019 Rune Haubo Bojesen Christensen
-#
-#    This file is part of the ordinal package for R (*ordinal*)
-#
-#    *ordinal* is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 2 of the License, or
-#    (at your option) any later version.
-#
-#    *ordinal* is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    A copy of the GNU General Public License is available at
-#    <https://www.r-project.org/Licenses/> and/or
-#    <http://www.gnu.org/licenses/>.
+##    Copyright (c) 2010-2022 Rune Haubo Bojesen Christensen
+##
+##    This file is part of the ordinal package for R (*ordinal*)
+##
+##    *ordinal* is free software: you can redistribute it and/or modify
+##    it under the terms of the GNU General Public License as published by
+##    the Free Software Foundation, either version 2 of the License, or
+##    (at your option) any later version.
+##
+##    *ordinal* is distributed in the hope that it will be useful,
+##    but WITHOUT ANY WARRANTY; without even the implied warranty of
+##    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+##    GNU General Public License for more details.
+##
+##    A copy of the GNU General Public License is available at
+##    <https://www.r-project.org/Licenses/> and/or
+##    <http://www.gnu.org/licenses/>.
 #############################################################################
 ## This file contains:
 ## Implementation of Cumulative Link Mixed Models in clmm().
@@ -141,7 +141,7 @@ clmm.formulae <- function(formula) {
         if(!is.null(env <- environment(form))) env
         else parent.frame(2)
     ## ensure 'formula' is a formula-object:
-    form <- tryCatch(formula(if(is.character(form)) form else deparse(form),
+    form <- tryCatch(formula(if(is.character(form)) form else Deparse(form),
                              env = form.envir), error = identity)
     ## report error if the formula cannot be interpreted
     if(inherits(form, "error"))
@@ -151,6 +151,9 @@ clmm.formulae <- function(formula) {
     ## (fullForm) and a formula with only fixed-effects variables
     ## (fixedForm):
     fixedForm <- nobars(form) ## ignore terms with '|'
+    # Handle case where formula is only response ~ RE:
+    fixedForm <- if(length(fixedForm) == 1 || !inherits(fixedForm, "formula")) 
+      reformulate("1", response = form[[2]], env=form.envir) else fixedForm
     fullForm <- subbars(form)      # substitute `+' for `|'
     ## Set the appropriate environments:
     environment(fullForm) <- environment(fixedForm) <-
@@ -218,8 +221,8 @@ getREterms <- function(frames, formula) {
 ### NOTE: make sure 'formula' is appropriately evaluated and returned
 ### by clmm.formulae
     if(!length(barlist)) stop("No random effects terms specified in formula")
-    term.names <- unlist(lapply(barlist, deparse))
-    names(barlist) <- unlist(lapply(barlist, function(x) deparse(x[[3]])))
+    term.names <- unlist(lapply(barlist, function(x) Deparse(x)))
+    names(barlist) <- unlist(lapply(barlist, function(x) Deparse(x[[3]])))
 ### NOTE: Deliberately naming the barlist elements by grouping factors
 ### and not by r.e. terms.
     ## list of grouping factors for the random terms:
@@ -249,7 +252,7 @@ getREterms <- function(frames, formula) {
 ### followed by columns for the 2nd gr.fac.
 ###
     ## single simple random effect on the intercept?
-    ssr <- (length(barlist) == 1 && as.character(barlist[[1]][[2]]) == "1")
+    ssr <- (length(barlist) == 1 && as.character(barlist[[1]][[2]])[1] == "1")
     ## order terms by decreasing number of levels in the factor but don't
     ## change the order if this is already true:
     nlev <- sapply(rel, function(re) nlevels(re$f))

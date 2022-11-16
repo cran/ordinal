@@ -1,21 +1,21 @@
 #############################################################################
-#    Copyright (c) 2010-2018 Rune Haubo Bojesen Christensen
-#
-#    This file is part of the ordinal package for R (*ordinal*)
-#
-#    *ordinal* is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 2 of the License, or
-#    (at your option) any later version.
-#
-#    *ordinal* is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    A copy of the GNU General Public License is available at
-#    <https://www.r-project.org/Licenses/> and/or
-#    <http://www.gnu.org/licenses/>.
+##    Copyright (c) 2010-2022 Rune Haubo Bojesen Christensen
+##
+##    This file is part of the ordinal package for R (*ordinal*)
+##
+##    *ordinal* is free software: you can redistribute it and/or modify
+##    it under the terms of the GNU General Public License as published by
+##    the Free Software Foundation, either version 2 of the License, or
+##    (at your option) any later version.
+##
+##    *ordinal* is distributed in the hope that it will be useful,
+##    but WITHOUT ANY WARRANTY; without even the implied warranty of
+##    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+##    GNU General Public License for more details.
+##
+##    A copy of the GNU General Public License is available at
+##    <https://www.r-project.org/Licenses/> and/or
+##    <http://www.gnu.org/licenses/>.
 #############################################################################
 ## This file contains:
 ## Implementation of various methods for clmm objects.
@@ -80,7 +80,7 @@ varcov <-
     if(format) noquote(formatVC(res, digits=digits)) else res
 }
 
-VarCorr <- function(x, ...) UseMethod("VarCorr")
+# VarCorr <- function(x, ...) UseMethod("VarCorr")
 VarCorr.clmm <- function(x, ...) varcov(x, ...)
 
 print.clmm <-
@@ -222,19 +222,6 @@ print.summary.clmm <-
   return(invisible(x))
 }
 
-## anova.clmm <- function(object, ...)
-##   anova.clm(object, ...)
-
-anova.clmm <- function(object, ...) {
-### This essentially calls anova.clm(object, ...), but the names of
-### the models were not displayed correctly in the printed output
-### unless the following dodge is enforced.
-  mc <- match.call()
-  arg.list <- as.list(mc)
-  arg.list[[1]] <- NULL
-  return(do.call(anova.clm, arg.list))
-}
-
 logLik.clmm <- function(object, ...)
   structure(object$logLik, df = object$edf, class = "logLik")
 
@@ -255,10 +242,26 @@ anova.clmm <- function(object, ...) {
 ### the models were not displayed correctly in the printed output
 ### unless the following dodge is enforced.
   mc <- match.call()
-  arg.list <- as.list(mc)
-  arg.list[[1]] <- NULL
-  return(do.call(anova.clm, arg.list))
+  args <- as.list(mc)
+  Call <- as.call(c(list(quote(anova.clm)), args[-1]))
+  ff <- environment(formula(object))
+  pf <- parent.frame()  ## save parent frame in case we need it
+  sf <- sys.frames()[[1]]
+  ff2 <- environment(object)
+  res <- tryCatch(eval(Call, envir=pf),
+                  error=function(e) {
+                    tryCatch(eval(Call, envir=ff),
+                             error=function(e) {
+                               tryCatch(eval(Call, envir=ff2),
+                                        error=function(e) {
+                                          tryCatch(eval(Call, envir=sf),
+                                                   error=function(e) {
+                                                     "error" })})})})
+  if((is.character(res) && res == "error"))
+    stop("Unable to evaluate models.")
+  res
 }
+
 
 logLik.clmm <- function(object, ...)
   structure(object$logLik, df = object$edf, class = "logLik")
@@ -268,3 +271,16 @@ extractAIC.clmm <- function(fit, scale = 0, k = 2, ...) {
   c(edf, -2*fit$logLik + k * edf)
 }
 
+model.matrix.clmm <- function(object, type = c("design", "B"), ...) {
+  type <- match.arg(type)
+  mf <- try(model.frame(object), silent=TRUE)
+  if(inherits(mf, "try-error"))
+    stop("Cannot extract model.matrix: refit model with 'model=TRUE'?")
+  if(type == "design") {
+    Terms <- terms(object)
+    ans <- model.matrix(Terms, mf)
+  } else { ## if type == "B":
+    stop("type = 'B' not yet implemented")
+  }
+  return(ans)
+}
