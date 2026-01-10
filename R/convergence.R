@@ -1,5 +1,5 @@
 #############################################################################
-##    Copyright (c) 2010-2022 Rune Haubo Bojesen Christensen
+##    Copyright (c) 2010-2026 Rune Haubo Bojesen Christensen
 ##
 ##    This file is part of the ordinal package for R (*ordinal*)
 ##
@@ -288,7 +288,7 @@ print.conv.check <-
     function(x, action=c("warn", "silent", "stop", "message"), ...)
 {
     action <- match.arg(action)
-    if(x$code == 0L || action == "silent") return(invisible())
+    if(x$code[1L] == 0L || action == "silent") return(invisible())
 
     Text <- paste("(", x$code[1L], ") ", x$messages[1L], sep="")
     if(!is.null(alg.text <- x$alg.message))

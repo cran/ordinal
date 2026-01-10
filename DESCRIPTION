@@ -1,8 +1,8 @@
 Package: ordinal
 Type: Package
 Title: Regression Models for Ordinal Data
-Version: 2023.12-4.1
-Date: 2023-12-04
+Version: 2025.12-29
+Date: 2025-12-29
 Authors@R: person(given="Rune Haubo Bojesen", family="Christensen",
     email="rune.haubo@gmail.com", role=c("aut", "cre"))
 LazyData: true
@@ -26,8 +26,8 @@ License: GPL (>= 2)
 NeedsCompilation: yes
 URL: https://github.com/runehaubo/ordinal
 BugReports: https://github.com/runehaubo/ordinal/issues
-Packaged: 2024-08-19 08:33:45 UTC; hornik
+Packaged: 2026-01-08 21:26:14 UTC; runechristensen
 Author: Rune Haubo Bojesen Christensen [aut, cre]
 Maintainer: Rune Haubo Bojesen Christensen <rune.haubo@gmail.com>
 Repository: CRAN
-Date/Publication: 2024-08-19 09:00:59 UTC
+Date/Publication: 2026-01-10 11:50:02 UTC
