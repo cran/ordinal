@@ -274,5 +274,3 @@ exp(2*qnorm(0.75) * fm2$stDev)
 ### code chunk number 26: misc (eval = FALSE)
 ###################################################
 ## 
-
-

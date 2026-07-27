@@ -725,5 +725,3 @@ nll2 <- function(par, envir) {
 start <- unname(c(coef(fm.nom)[1:4], coef(fm.lm)))
 fit <- nlminb(start, nll2, envir = update(fm.nom, doFit = FALSE))
 round(fit$par[5:6], 2)
-
-
